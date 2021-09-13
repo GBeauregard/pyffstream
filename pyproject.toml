@@ -10,6 +10,8 @@ authors = [{email = "pyffstream@gably.net"}]
 dynamic = ["description"]
 keywords = ["ffmpeg", "streaming", "srt"]
 classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Environment :: Console",
   "Development Status :: 2 - Pre-Alpha",
   "Programming Language :: Python",
 ]
