@@ -632,6 +632,7 @@ class Filter:
     Collects helper methods for constructing and rendering out ffmpeg
     filter strings for use with the CLI.
     """
+
     def __init__(
         self,
         filt: str | Filter,
