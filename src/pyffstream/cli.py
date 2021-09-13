@@ -178,7 +178,7 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
             deep_probe=deep_probe,
         )
     if (duration := fileduration.result()) is not None:
-        console.print("format_duration=" + duration, highlight=False)
+        console.print("format_duration=[green]" + duration, highlight=False)
     vlist, alist, slist = futurelists
 
     def make_columns(
