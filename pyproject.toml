@@ -5,6 +5,7 @@ build-backend = "flit_core.buildapi"
 [project]
 name = "pyffstream"
 readme = "README.md"
+license = {file = "LICENSE"}
 version = "0.0.1.dev2"
 authors = [{email = "pyffstream@gably.net"}]
 dynamic = ["description"]
@@ -22,6 +23,9 @@ dependencies = [
   "requests",
 ]
 
+[project.urls]
+Source = "https://github.com/GBeauregard/pyffstream"
+
 [project.optional-dependencies]
 dev = [
   "flit",
@@ -32,6 +36,8 @@ dev = [
   #"flake8",
 ]
 
+[project.scripts]
+pyffstream = "pyffstream.cli:main"
 
 [tool.pylint.messages_control]
 max-line-length = 88
@@ -54,9 +60,6 @@ disable = [
   "too-many-instance-attributes",
   "too-many-nested-blocks",
 ]
-
-[project.scripts]
-pyffstream = "pyffstream.cli:main"
 
 [tool.isort]
 skip="venv"
