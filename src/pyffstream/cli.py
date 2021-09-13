@@ -642,7 +642,7 @@ def download_win_ffmpeg(dltype: str = "git") -> bool:
 
 
 def win_set_local_ffmpeg(dltype: str, env: dict[str, str]) -> None:
-    """Set the ffmpeg instance to the Windows copy locally.
+    """Set the ffmpeg instance to the app-local Windows copy.
 
     If ffmpeg is not already available in user_data_path, offer to
     download it from a public repository.
