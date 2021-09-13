@@ -604,7 +604,10 @@ def num(val: str | int | float) -> float:
 
 
 def duration(timestamp: str | float | int) -> float:
-    """Processes ffmpeg duration string into time in seconds."""
+    """Processes ffmpeg duration string into time in seconds.
+
+    https://ffmpeg.org/ffmpeg-utils.html#Time-duration
+    """
     timestamp = str(timestamp)
     if re.fullmatch(r"(\d?\d:)?\d?\d:\d\d(\.\d*)?", timestamp) is not None:
         return sum(
@@ -624,6 +627,11 @@ def duration(timestamp: str | float | int) -> float:
 
 
 class Filter:
+    """A single ffmpeg filter.
+
+    Collects helper methods for constructing and rendering out ffmpeg
+    filter strings for use with the CLI.
+    """
     def __init__(
         self,
         filt: str | Filter,
