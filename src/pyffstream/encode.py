@@ -531,7 +531,7 @@ class StaticEncodeVars:
     dynamicnorm: bool = False
     fix_start_time: bool = True
     fdk: bool = False
-    pyffserver: bool = True
+    pyffserver: bool = False
     shader_dir: pathlib.Path = pathlib.Path.home()
 
     @classmethod
