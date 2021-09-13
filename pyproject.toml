@@ -1,0 +1,67 @@
+[build-system]
+requires = ["flit_core >=3.3,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "pyffstream"
+readme = "README.md"
+version = "0.0.1.dev1"
+authors = [{email = "pyffstream@gably.net"}]
+dynamic = ["description"]
+keywords = ["ffmpeg", "streaming", "srt"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Programming Language :: Python",
+]
+requires-python = ">=3.9"
+dependencies = [
+  "platformdirs >=2.1.0",
+  "rich",
+  "requests",
+]
+
+[project.optional-dependencies]
+dev = [
+  "flit",
+  "tox",
+  "black",
+  "isort",
+  #"mypy",
+  #"flake8",
+]
+
+
+[tool.pylint.messages_control]
+max-line-length = 88
+disable = [
+  "fixme",
+  "missing-docstring",
+  "logging-fstring-interpolation",
+  "no-else-return",
+  "no-else-break",
+  "no-else-continue",
+  "no-else-raise",
+  "too-many-locals",
+  "too-many-branches",
+  "invalid-name",
+  "global-statement",
+  "too-few-public-methods",
+  "too-many-statements",
+  "too-many-arguments",
+  "too-many-lines",
+  "too-many-instance-attributes",
+  "too-many-nested-blocks",
+]
+
+[project.scripts]
+pyffstream = "pyffstream.cli:main"
+
+[tool.isort]
+skip="venv"
+profile="black"
+
+[tool.black]
+target-version = ['py39']
+
+[tool.mypy]
+python_version = "3.9"
