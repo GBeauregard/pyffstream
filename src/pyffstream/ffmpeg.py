@@ -29,29 +29,29 @@ from . import config
 @functools.total_ordering
 class FFVersion:
     def __init__(self, *args: str | int | FFVersion):
-        self.version: list[int] = []
+        self._version: list[int] = []
         for arg in args:
             if isinstance(arg, FFVersion):
-                self.version += arg.version
+                self._version += arg._version
             elif isinstance(arg, str):
-                self.version += map(int, arg.split("."))
+                self._version += map(int, arg.split("."))
             elif isinstance(arg, int):
-                self.version.append(int(arg))
+                self._version.append(int(arg))
             else:
                 raise ValueError(f"Invalid arg {arg!r} passed to FFVersion")
 
     def __repr__(self) -> str:
-        return ".".join(map(str, self.version))
+        return ".".join(map(str, self._version))
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, (FFVersion, str)):
             return NotImplemented
-        return self.version == FFVersion(other).version
+        return self._version == FFVersion(other)._version
 
     def __lt__(self, other: object) -> bool:
         if not isinstance(other, (FFVersion, str)):
             return NotImplemented
-        for me, them in zip(self.version, FFVersion(other).version):
+        for me, them in zip(self._version, FFVersion(other)._version):
             if me != them:
                 return me < them
         return False
