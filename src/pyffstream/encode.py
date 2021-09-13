@@ -1,4 +1,4 @@
-"""Method holds classes and functions for ffmpeg encoding."""
+"""Classes and functions for ffmpeg encoding."""
 from __future__ import annotations
 
 import argparse

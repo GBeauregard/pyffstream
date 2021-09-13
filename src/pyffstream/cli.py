@@ -51,6 +51,7 @@ def get_stream_list(
     myfileargs: Sequence[str],
     deep_probe: bool = False,
 ) -> list[list[tuple[str, str]]]:
+    """Make and return tuples of (key,val) pairs for each stream."""
     stream_list = []
     outjson = ffmpeg.probe(
         ffmpeg.format_probestring(query_tuple, True),
@@ -89,7 +90,7 @@ def get_stream_list(
 def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
     """Prints to console formatted information about the input file.
 
-    Output is nicely formatted for console usage.
+    Output is nicely formatted for console usage using rich tables.
 
     Args:
         fopts: The file to print information about.
@@ -211,6 +212,7 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
 def status_wait(
     fv: encode.EncodeSession, futures: Iterable[concurrent.futures.Future[Any]]
 ) -> None:
+    """Wait on remaining background processes while showing status."""
     if concurrent.futures.wait(futures, 0).not_done or fv.ev.verbosity > 0:
         if fv.ev.verbosity > 0:
             unfinished = fv.statuses
@@ -235,6 +237,7 @@ def status_wait(
 
 
 def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
+    """Communicate with a pyffserver API to set up encode session."""
     payload = {"key": fv.ev.api_key}
     json_payload = {
         "srt_passphrase": fv.ev.srt_passphrase,
@@ -292,6 +295,7 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
 
 
 def start_stream(fv: encode.EncodeSession) -> None:
+    """Start and track the actual encode."""
     with subprocess.Popen(
         fv.ev.ff_flags,
         text=True,
@@ -393,6 +397,7 @@ def start_stream(fv: encode.EncodeSession) -> None:
 
 
 def stream_file(fopts: encode.FileOpts, args: argparse.Namespace) -> None:
+    """Manage calculating of all stream parameters."""
     console.print(f"starting:[bright_magenta] {fopts.fpath}", highlight=False)
     fv = encode.EncodeSession(fopts, encode.StaticEncodeVars.from_args(args))
     futures = []
@@ -421,6 +426,7 @@ def stream_file(fopts: encode.FileOpts, args: argparse.Namespace) -> None:
 def process_file(
     fpath: pathlib.Path, args: argparse.Namespace, stream_flist: Sequence[pathlib.Path]
 ) -> None:
+    """Format input arguments needed for a file and send to output."""
     infile_args = []
     if args.playlist:
         infile_args += ["-f", "concat", "-safe", "0"]
@@ -440,6 +446,7 @@ def process_file(
 
 
 def parse_files(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
+    """Process input arguments and send them off processing."""
     if args.bluray:
         if args.playlist:
             parser.error("--bluray cannot be used with a playlist")
@@ -501,6 +508,12 @@ def parse_files(args: argparse.Namespace, parser: argparse.ArgumentParser) -> No
 
 @dataclasses.dataclass
 class DefaultConfig:
+    """Holds config file values.
+
+    Used to determine the default CLI parameters after processing config
+    from files.
+    """
+
     pyffserver: bool = encode.StaticEncodeVars.pyffserver
     protocol: str = encode.StaticEncodeVars.protocol
     vbitrate: str = encode.StaticEncodeVars.vbitrate
@@ -527,6 +540,7 @@ class DefaultConfig:
 
 
 def set_console_logger(verbosity: int) -> None:
+    """Set loglevel."""
     if verbosity >= 2:
         logging.getLogger("").setLevel(logging.DEBUG)
     elif verbosity >= 1:
@@ -539,6 +553,11 @@ def set_console_logger(verbosity: int) -> None:
 
 
 def download_win_ffmpeg(dltype: str = "git") -> bool:
+    """Download and install ffmpeg for windows in user_data_path.
+
+    The current ffmpeg in the location is replaced if already there.
+    User data path is determined from platformdirs.
+    """
     console.print(
         f"Starting download of ffmpeg {dltype} from"
         " https://github.com/BtbN/FFmpeg-Builds/releases"
@@ -621,6 +640,11 @@ def download_win_ffmpeg(dltype: str = "git") -> bool:
 
 
 def win_set_local_ffmpeg(dltype: str, env: dict[str, str]) -> None:
+    """Set the ffmpeg instance to the Windows copy locally.
+
+    If ffmpeg is not already available in user_data_path, offer to
+    download it from a public repository.
+    """
     local_bin = platformdirs.user_data_path(defaults.APPNAME) / "ffmpeg/bin"
     if (
         shutil.which(local_bin / "ffmpeg.exe") is None
@@ -654,6 +678,7 @@ def win_set_local_ffmpeg(dltype: str, env: dict[str, str]) -> None:
 
 
 def main() -> None:
+    """Process config and CLI arguments then send off for processing."""
     config = DefaultConfig()
 
     conf_list: list[str | os.PathLike[Any]] = []
