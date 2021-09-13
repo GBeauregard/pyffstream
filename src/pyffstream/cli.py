@@ -197,7 +197,6 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
             for tup in vallist:
                 # table.add_row(*tup)
                 # pre-calculate the line wrap so the table width is correct
-                # https://github.com/willmcgugan/rich/issues/1478
                 table.add_row(textwrap.fill(tup[0], 19), textwrap.fill(tup[1], 30))
             table_list.append(table)
         return rich.columns.Columns(
