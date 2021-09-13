@@ -313,6 +313,7 @@ def start_stream(fv: encode.EncodeSession) -> None:
         "•",
         "[cyan]{task.fields[speed]:<6}",
         auto_refresh=False,
+        console=console,
     ) as progress:
         assert result.stdout is not None
         statusregex = re.compile(
@@ -605,6 +606,7 @@ def download_win_ffmpeg(dltype: str = "git") -> bool:
                 rich.progress.TransferSpeedColumn(),
                 "•",
                 rich.progress.TimeRemainingColumn(),
+                console=console,
             ) as progress:
                 task_id = progress.add_task(
                     "download", filename=ff_url.split("/")[-1], start=False
