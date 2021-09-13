@@ -609,7 +609,7 @@ def duration(timestamp: str | float | int) -> float:
     https://ffmpeg.org/ffmpeg-utils.html#Time-duration
     """
     timestamp = str(timestamp)
-    if re.fullmatch(r"(\d?\d:)?\d?\d:\d\d(\.\d*)?", timestamp) is not None:
+    if re.fullmatch(r"(\d+:)?\d?\d:\d\d(\.\d*)?", timestamp) is not None:
         return sum(
             s * float(t) for s, t in zip([1, 60, 3600], reversed(timestamp.split(":")))
         )
