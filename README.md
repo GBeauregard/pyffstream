@@ -1,4 +1,4 @@
-[![PyPI](https://img.shields.io/pypi/v/pyffstream.svg)](https://pypi.org/project/hypermodern-python/)
+[![PyPI](https://img.shields.io/pypi/v/pyffstream.svg)](https://pypi.org/project/pyffstream/)
 
 # pyffstream
 
