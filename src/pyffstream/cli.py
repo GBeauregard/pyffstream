@@ -17,6 +17,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import textwrap
 import time
 from collections.abc import Iterable, Sequence
 from typing import Any, Final, NamedTuple
@@ -194,7 +195,10 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
             table.add_column(style="green", max_width=19, overflow="fold")
             table.add_column(style="blue", max_width=30, overflow="fold")
             for tup in vallist:
-                table.add_row(*tup)
+                # table.add_row(*tup)
+                # pre-calculate the line wrap so the table width is correct
+                # https://github.com/willmcgugan/rich/issues/1478
+                table.add_row(textwrap.fill(tup[0], 19), textwrap.fill(tup[1], 30))
             table_list.append(table)
         return rich.columns.Columns(
             table_list, align="left", title=rich.text.Text(title, style="bold italic")
