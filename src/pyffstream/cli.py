@@ -298,7 +298,18 @@ def start_stream(fv: encode.EncodeSession) -> None:
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         env=ffmpeg.ff_bin.env,
-    ) as result:
+    ) as result, rich.progress.Progress(
+        "[progress.description]{task.description}",
+        rich.progress.BarColumn(),
+        "[progress.percentage]{task.percentage:>3.1f}%",
+        "•",
+        "[green]{task.fields[timestamp]}",
+        "•",
+        "[red]{task.fields[bitrate]}",
+        "•",
+        "[cyan]{task.fields[speed]:<6}",
+        auto_refresh=False,
+    ) as progress:
         assert result.stdout is not None
         statusregex = re.compile(
             r"""
@@ -335,60 +346,46 @@ def start_stream(fv: encode.EncodeSession) -> None:
         def sec_to_str(seconds: float | int) -> str:
             m, s = divmod(seconds, 60)
             h, m = divmod(m, 60)
-            # return f"{int(h):02d}:{int(m):02d}:{s:05.2f}"
             return f"{int(h):02d}:{int(m):02d}:{math.trunc(s):02d}"
 
         length_str = sec_to_str(length)
 
-        with rich.progress.Progress(
-            "[progress.description]{task.description}",
-            rich.progress.BarColumn(),
-            "[progress.percentage]{task.percentage:>3.1f}%",
-            "•",
-            "[green]{task.fields[timestamp]}",
-            "•",
-            "[red]{task.fields[bitrate]}",
-            "•",
-            "[cyan]{task.fields[speed]:<6}",
-            auto_refresh=False,
-        ) as progress:
-            task_id = progress.add_task(
-                "Encode",
-                bitrate=br,
-                speed=speed,
-                timestamp=f"{sec_to_str(ts)}/{length_str}",
-                start=False,
-            )
-            progress.update(task_id, total=length)
-            progress.start_task(task_id)
-            while result.poll() is None:
-                line = result.stdout.readline()
-                logger.info(line.rstrip())
-                if (match := statusregex.search(line)) is not None:
-                    if match.group("time"):
-                        ts = ffmpeg.duration(match.group("time")) + ts_offset
-                    if match.group("bitrate"):
-                        br = match.group("bitrate")
-                    if match.group("speed"):
-                        speed = match.group("speed")
-                    progress.update(
-                        task_id,
-                        refresh=True,
-                        completed=ts,
-                        bitrate=br,
-                        speed=speed,
-                        timestamp=f"{sec_to_str(ts)}/{length_str}",
-                    )
-            ts = length
-            progress.update(
-                task_id,
-                refresh=True,
-                completed=ts,
-                bitrate=br,
-                speed=speed,
-                timestamp=f"{sec_to_str(ts)}/{length_str}",
-                # timestamp=sec_to_str(ts),
-            )
+        task_id = progress.add_task(
+            "Encode",
+            bitrate=br,
+            speed=speed,
+            timestamp=f"{sec_to_str(ts)}/{length_str}",
+            start=False,
+        )
+        progress.update(task_id, total=length)
+        progress.start_task(task_id)
+        while result.poll() is None:
+            line = result.stdout.readline()
+            logger.info(line.rstrip())
+            if (match := statusregex.search(line)) is not None:
+                if match.group("time"):
+                    ts = ffmpeg.duration(match.group("time")) + ts_offset
+                if match.group("bitrate"):
+                    br = match.group("bitrate")
+                if match.group("speed"):
+                    speed = match.group("speed")
+                progress.update(
+                    task_id,
+                    refresh=True,
+                    completed=ts,
+                    bitrate=br,
+                    speed=speed,
+                    timestamp=f"{sec_to_str(ts)}/{length_str}",
+                )
+        ts = length
+        progress.update(
+            task_id,
+            refresh=True,
+            completed=ts,
+            bitrate=br,
+            speed=speed,
+            timestamp=f"{sec_to_str(ts)}/{length_str}",
+        )
     if result.returncode != 0:
         console.print(f"stream finished with exit code {result.returncode}")
     else:
