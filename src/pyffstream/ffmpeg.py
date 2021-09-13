@@ -20,7 +20,7 @@ import pathlib
 import re
 import shlex
 import subprocess
-from collections.abc import Container, Iterable, Mapping, MutableSequence, Sequence
+from collections.abc import Iterable, Mapping, MutableSequence, Sequence
 from typing import Any, Final, Literal, NamedTuple, TypedDict, Union, overload
 
 from . import config
@@ -28,7 +28,18 @@ from . import config
 
 @functools.total_ordering
 class FFVersion:
+    """Holds a ffmpeg component version."""
+
     def __init__(self, *args: str | int | FFVersion):
+        """Construct version.
+
+        Args:
+            *args: String of type ``(N.)*N`` or an int N or FFVersion to
+                be appended to the version when constructing.
+
+        Raises:
+            ValueError: Invalid type passed to the constructor.
+        """
         self._version: list[int] = []
         for arg in args:
             if isinstance(arg, FFVersion):
@@ -59,7 +70,7 @@ class FFVersion:
 
 class FFBanner(NamedTuple):
     ffversion: str
-    ffconfig: Container[str]
+    ffconfig: list[str]
     versions: dict[str, FFVersion]
 
 
@@ -75,13 +86,38 @@ class FFProtocols(NamedTuple):
 
 
 class FFBin:
+    """An instance of a path to an ffmpeg binary.
+
+    Provides various helper properties to get information about the
+    capabilities of the ffmpeg binary. Note that just because something
+    was compiled into the binary it doesn't mean it's usable at runtime.
+    This is the case for hardware support (e.g. nvidia) in particular.
+
+    Attributes:
+        ffmpeg (str): Path to ffmpeg binary.
+        ffprobe (str): Path to ffprobe binary.
+        env (dict[str,str]): Environmental variables to use with ffmpeg.
+    """
+
     def __init__(self, ffmpeg: str, ffprobe: str, env: dict[str, str]):
+        """Inits new FFBin instance.
+
+        Args:
+            ffmpeg: Path to ffmpeg binary.
+            ffprobe: Path to ffprobe binary.
+            env: Environmental variables to use with ffmpeg.
+        """
         self.ffmpeg: str = ffmpeg
         self.ffprobe: str = ffprobe
         self.env: dict[str, str] = env
 
     @functools.cached_property
-    def header(self) -> FFBanner:
+    def _header(self) -> FFBanner:
+        """Gets properties readable from the CLI ffmpeg header.
+
+        Returns:
+            FFBanner: a named tuple of those properties.
+        """
         ffversion = "0.0.0"
         ffconfig = []
         version_dict = collections.defaultdict(lambda: FFVersion(0, 0, 0))
@@ -117,18 +153,27 @@ class FFBin:
 
     @property
     def ffversion(self) -> str:
-        return self.header.ffversion
+        """Returns string representing ffmpeg release version.
+
+        Note this might not always be sensible to use for simple
+        comparison, for example in the case of versions compiled from
+        git.
+        """
+        return self._header.ffversion
 
     @property
-    def build_config(self) -> Container[str]:
-        return self.header.ffconfig
+    def build_config(self) -> list[str]:
+        """Returns list of build config options."""
+        return self._header.ffconfig
 
     @property
     def version(self) -> dict[str, FFVersion]:
-        return self.header.versions
+        """Returns dict of FFVersions indexed by component name."""
+        return self._header.versions
 
     @functools.cached_property
-    def encoders(self) -> FFEncoders:
+    def _encoders(self) -> FFEncoders:
+        """Read all encoders compiled in."""
         vencoders = set()
         aencoders = set()
         sencoders = set()
@@ -160,15 +205,18 @@ class FFBin:
 
     @property
     def vencoders(self) -> set[str]:
-        return self.encoders.vencoders
+        """Returns set of compiled-in video encoders."""
+        return self._encoders.vencoders
 
     @property
     def aencoders(self) -> set[str]:
-        return self.encoders.aencoders
+        """Returns set of compiled-in audio encoders."""
+        return self._encoders.aencoders
 
     @property
     def sencoders(self) -> set[str]:
-        return self.encoders.sencoders
+        """Returns set of compiled-in subtitle encoders."""
+        return self._encoders.sencoders
 
     @functools.cached_property
     def filters(self) -> set[str]:
@@ -198,6 +246,7 @@ class FFBin:
 
     @functools.cached_property
     def hwaccels(self) -> set[str]:
+        """Returns hwaccels compiled in."""
         hwaccels = set()
         hwaccelargs = [self.ffmpeg, "-hide_banner", "-v", "0", "-hwaccels"]
         result = subprocess.run(
@@ -213,6 +262,7 @@ class FFBin:
 
     @functools.cached_property
     def protocols(self) -> FFProtocols:
+        """Returns FFProtocols of compiled in input/output protocols."""
         in_protocols: set[str] = set()
         out_protocols: set[str] = set()
         protocolargs = [self.ffmpeg, "-hide_banner", "-v", "0", "-protocols"]
