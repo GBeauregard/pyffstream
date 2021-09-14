@@ -12,9 +12,11 @@ dynamic = ["description"]
 keywords = ["ffmpeg", "streaming", "srt"]
 classifiers = [
   "License :: OSI Approved :: MIT License",
-  "Environment :: Console",
-  "Development Status :: 2 - Pre-Alpha",
+  "Development Status :: 3 - Alpha",
   "Programming Language :: Python",
+  "Programming Language :: Python :: 3.9",
+  "Typing :: Typed",
+  "Environment :: Console",
 ]
 requires-python = ">=3.9"
 dependencies = [
