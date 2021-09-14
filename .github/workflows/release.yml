@@ -29,5 +29,4 @@ jobs:
       - name: Upload Release to GitHub
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          run: gh release upload ${{ github.event.release.tag_name }} dist/*.tar.gz dist/*.whl build/*.pex
+        run: gh release upload ${{ github.event.release.tag_name }} dist/*.tar.gz dist/*.whl build/*.pex
