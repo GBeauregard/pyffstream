@@ -31,4 +31,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           file: "dist/*.tar.gz;dist/*.whl;build/*.pex"
-          release_id: ${{ github.event.release.tag_name }}
+          release_id: ${{ github.event.release.id }}
+          draft: false
