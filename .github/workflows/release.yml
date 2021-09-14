@@ -47,7 +47,7 @@ jobs:
         run: pip install tox
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.0.3
-      - name: Package and Build
+      - name: Build exe
         run: tox -e nuitka-win
       - name: Upload Release to GitHub
         env:
