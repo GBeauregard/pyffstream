@@ -26,11 +26,8 @@ jobs:
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
-      - uses: xresloader/upload-to-github-release@v1
+      - name: Upload Release to GitHub
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          file: "dist/*.tar.gz;dist/*.whl;build/*.pex"
-          release_id: ${{ github.event.release.id }}
-          overwrite: true
-          draft: false
+          run: gh release upload ${{ github.event.release.tag_name }} dist/*.tar.gz dist/*.whl build/*.pex
