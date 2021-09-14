@@ -1,4 +1,4 @@
-name: Build
+name: Release
 
 on:
   release:
@@ -19,9 +19,13 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Install tox and any other packages
         run: pip install tox
-      - name: Run tox
-        # Run tox using the version of Python in `PATH`
+      - name: Package with tox
         run: tox -e package
+      - name: Publish Python distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
       - uses: xresloader/upload-to-github-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
