@@ -32,4 +32,5 @@ jobs:
         with:
           file: "dist/*.tar.gz;dist/*.whl;build/*.pex"
           release_id: ${{ github.event.release.id }}
+          overwrite: true
           draft: false
