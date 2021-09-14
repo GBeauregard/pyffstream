@@ -100,7 +100,7 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
     probesfargs = copy.copy(fopts.subtitle)
     probefargs.pop(-2)
     probesfargs.pop(-2)
-    console.print("file:[bright_magenta] " + str(fopts.fpath), highlight=False)
+    console.print(f"file: [bright_magenta]{fopts.fpath}", highlight=False)
     # order determines order in output
     vstreams = [
         "codec_name",
