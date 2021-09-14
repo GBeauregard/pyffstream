@@ -32,4 +32,4 @@ jobs:
         with:
           draft: false
           file: "dist/*.tar.gz;dist/*.whl;build/*.pex"
-          release_id: ${{ github.event.release.tag_name }}
+          release_id: ${{ github.event.release.name }}
