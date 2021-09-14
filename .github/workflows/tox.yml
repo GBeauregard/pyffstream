@@ -20,4 +20,4 @@ jobs:
         run: pip install tox
       - name: Run tox
         # Run tox using the version of Python in `PATH`
-        run: tox -e py,type,lint
+        run: tox -e py,lint,type
