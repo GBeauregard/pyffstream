@@ -1396,7 +1396,9 @@ def main() -> None:
             ConfName("kf_target_sec", "keyframe_target_sec"),
         }
         for conf in conf_names:
-            if getattr(config, conf.file_name) != getattr(args, conf.arg_name):
+            if getattr(config, conf.file_name) != getattr(
+                args, conf.arg_name, getattr(config, conf.file_name)
+            ):
                 main_section[conf.file_name] = str(getattr(args, conf.arg_name))
         new_full_config["pyffstream"] = new_config["pyffstream"]
 
