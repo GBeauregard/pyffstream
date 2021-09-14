@@ -19,8 +19,8 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Install tox and any other packages
         run: pip install tox
-      - name: Package with tox
-        run: tox -e package
+      - name: Package and Build
+        run: tox -e package,pex
       - name: Publish Python distribution to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
@@ -30,3 +30,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload ${{ github.event.release.tag_name }} dist/*.tar.gz dist/*.whl build/*.pex
+
+  windows-build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python: [3.9]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install tox and any other packages
+        run: pip install tox
+      - name: Package and Build
+        run: tox -e nuitka-win
+      - name: Upload Release to GitHub
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ github.event.release.tag_name }} build/*.exe
