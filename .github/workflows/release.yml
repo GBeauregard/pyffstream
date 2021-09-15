@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v2
       - name: Get Tag Name
         id: tag_name
         run: echo ::set-output name=val::${GITHUB_REF#refs/tags/}
