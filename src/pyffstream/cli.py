@@ -202,8 +202,8 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
                 # table.add_row(*map(rich.markup.escape, tup))
                 # pre-calculate the line wrap so the table width is correct
                 table.add_row(
-                    textwrap.fill(rich.markup.escape(tup[0]), 19),
-                    textwrap.fill(rich.markup.escape(tup[1]), 30),
+                    rich.markup.escape(textwrap.fill(tup[0], 19)),
+                    rich.markup.escape(textwrap.fill(tup[1], 30)),
                 )
             table_list.append(table)
         return rich.columns.Columns(
