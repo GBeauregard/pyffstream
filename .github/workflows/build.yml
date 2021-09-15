@@ -26,7 +26,7 @@ jobs:
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
-      - name: Upload Release to GitHub
+      - name: Upload to Github Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload ${{ github.event.release.tag_name }} dist/*.tar.gz dist/*.whl build/*.pex
@@ -47,7 +47,7 @@ jobs:
         run: pip install tox
       - name: Build exe
         run: tox -e nuitka-win
-      - name: Upload Release to GitHub
+      - name: Upload to Github Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload ${{ github.event.release.tag_name }} build\pyffstream.exe

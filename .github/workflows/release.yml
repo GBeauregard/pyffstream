@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - *
+
+jobs:
+  linux-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get Tag Name
+              id: tag_name
+              run: echo ::set-output name=val::${GITHUB_REF#refs/tags/}
+      - name: Evaluate Release Type
+        id: check_type
+        run: |
+          if [[ ${{ steps.tag_name.outputs.val }} =~ (((a|b|c|rc)[0-9]+)(.post[0-9]+)?|(.dev[0-9]+))$ ]]; then
+              echo ::set-output name=prerelease::true
+          fi
+      - name: Create Release
+        if: steps.check-tag.outputs.prerelease != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.tag_name.outputs.val }}
+        run: gh release create "$TAG_NAME" --notes "release $TAG_NAME"
+      - name: Create Prerelease
+        if: steps.check-tag.outputs.prerelease == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.tag_name.outputs.val }}
+        run: gh release create "$TAG_NAME" --prerelease --notes "prerelease $TAG_NAME"
