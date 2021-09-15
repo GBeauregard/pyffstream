@@ -16,8 +16,10 @@ jobs:
         run: echo ::set-output name=val::${GITHUB_REF#refs/tags/}
       - name: Evaluate Release Type
         id: check_type
+        env:
+          TAG_NAME: ${{ steps.tag_name.outputs.val }}
         run: |
-          if [[ ${{ steps.tag_name.outputs.val }} =~ (((a|b|c|rc)[0-9]+)(.post[0-9]+)?|(.dev[0-9]+))$ ]]; then
+          if [[ "$TAG_NAME" =~ (((a|b|c|rc)[0-9]+)(.post[0-9]+)?|(.dev[0-9]+))$ ]]; then
               echo ::set-output name=prerelease::true
           fi
       - name: Create Release
@@ -61,7 +63,8 @@ jobs:
       - name: Upload to Github Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ steps.tag_name.outputs.val }} dist/*.tar.gz dist/*.whl build/*.pex
+          TAG_NAME: ${{ steps.tag_name.outputs.val }}
+        run: gh release upload "$TAG_NAME" dist/*.tar.gz dist/*.whl build/*.pex
 
   windows-build:
     needs: make-release
@@ -85,6 +88,8 @@ jobs:
       - name: Build exe
         run: tox -e nuitka-win
       - name: Upload to Github Release
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ steps.tag_name.outputs.val }} build\pyffstream.exe
+          TAG_NAME: ${{ steps.tag_name.outputs.val }}
+        run: gh release upload "$TAG_NAME" build\\pyffstream.exe
