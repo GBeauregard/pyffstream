@@ -6,7 +6,7 @@ on:
       - '*'
 
 jobs:
-  linux-build:
+  make-release:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,14 +21,71 @@ jobs:
               echo ::set-output name=prerelease::true
           fi
       - name: Create Release
-        if: steps.check-tag.outputs.prerelease != 'true'
+        if: steps.check_type.outputs.prerelease != "true"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ steps.tag_name.outputs.val }}
         run: gh release create "$TAG_NAME" --notes "release $TAG_NAME"
       - name: Create Prerelease
-        if: steps.check-tag.outputs.prerelease == 'true'
+        if: steps.check_type.outputs.prerelease == "true"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ steps.tag_name.outputs.val }}
         run: gh release create "$TAG_NAME" --prerelease --notes "prerelease $TAG_NAME"
+
+  linux-build:
+    needs: make-release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: [3.9]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get Tag Name
+        id: tag_name
+        run: echo ::set-output name=val::${GITHUB_REF#refs/tags/}
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install tox and any other packages
+        run: pip install tox
+      - name: Package and Build
+        run: tox -e package,pex
+      - name: Publish Python distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+      - name: Upload to Github Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.tag_name.outputs.val }}
+        run: gh release upload "$TAG_NAME" dist/*.tar.gz dist/*.whl build/*.pex
+
+  windows-build:
+    needs: make-release
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python: [3.9]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get Tag Name
+        id: tag_name
+        run: echo ::set-output name=val::${GITHUB_REF#refs/tags/}
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install tox and any other packages
+        run: pip install tox
+      - name: Build exe
+        run: tox -e nuitka-win
+      - name: Upload to Github Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.tag_name.outputs.val }}
+        run: gh release upload "$TAG_NAME" build\pyffstream.exe
