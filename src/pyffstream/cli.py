@@ -29,6 +29,7 @@ import rich.columns
 import rich.console
 import rich.live
 import rich.logging
+import rich.markup
 import rich.progress
 import rich.prompt
 import rich.table
@@ -100,7 +101,9 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
     probesfargs = copy.copy(fopts.subtitle)
     probefargs.pop(-2)
     probesfargs.pop(-2)
-    console.print(f"file: [bright_magenta]{fopts.fpath}", highlight=False)
+    console.print(
+        f"file: [bright_magenta]{rich.markup.escape(str(fopts.fpath))}", highlight=False
+    )
     # order determines order in output
     vstreams = [
         "codec_name",
@@ -196,9 +199,12 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
             table.add_column(style="green", max_width=19, overflow="fold")
             table.add_column(style="blue", max_width=30, overflow="fold")
             for tup in vallist:
-                # table.add_row(*tup)
+                # table.add_row(*map(rich.markup.escape, tup))
                 # pre-calculate the line wrap so the table width is correct
-                table.add_row(textwrap.fill(tup[0], 19), textwrap.fill(tup[1], 30))
+                table.add_row(
+                    textwrap.fill(rich.markup.escape(tup[0]), 19),
+                    textwrap.fill(rich.markup.escape(tup[1]), 30),
+                )
             table_list.append(table)
         return rich.columns.Columns(
             table_list, align="left", title=rich.text.Text(title, style="bold italic")
@@ -399,7 +405,10 @@ def start_stream(fv: encode.EncodeSession) -> None:
 
 def stream_file(fopts: encode.FileOpts, args: argparse.Namespace) -> None:
     """Manage calculating of all stream parameters."""
-    console.print(f"starting:[bright_magenta] {fopts.fpath}", highlight=False)
+    console.print(
+        f"starting:[bright_magenta] {rich.markup.escape(str(fopts.fpath))}",
+        highlight=False,
+    )
     fv = encode.EncodeSession(fopts, encode.StaticEncodeVars.from_args(args))
     futures = []
     encode.determine_timeseek(fv)
