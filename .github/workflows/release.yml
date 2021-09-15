@@ -21,13 +21,13 @@ jobs:
               echo ::set-output name=prerelease::true
           fi
       - name: Create Release
-        if: steps.check_type.outputs.prerelease != "true"
+        if: steps.check_type.outputs.prerelease != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ steps.tag_name.outputs.val }}
         run: gh release create "$TAG_NAME" --notes "release $TAG_NAME"
       - name: Create Prerelease
-        if: steps.check_type.outputs.prerelease == "true"
+        if: steps.check_type.outputs.prerelease == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ steps.tag_name.outputs.val }}
