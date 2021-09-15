@@ -61,8 +61,7 @@ jobs:
       - name: Upload to Github Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: ${{ steps.tag_name.outputs.val }}
-        run: gh release upload "$TAG_NAME" dist/*.tar.gz dist/*.whl build/*.pex
+        run: gh release upload ${{ steps.tag_name.outputs.val }} dist/*.tar.gz dist/*.whl build/*.pex
 
   windows-build:
     needs: make-release
@@ -87,5 +86,4 @@ jobs:
       - name: Upload to Github Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: ${{ steps.tag_name.outputs.val }}
-        run: gh release upload "$TAG_NAME" build\pyffstream.exe
+        run: gh release upload ${{ steps.tag_name.outputs.val }} build\pyffstream.exe
