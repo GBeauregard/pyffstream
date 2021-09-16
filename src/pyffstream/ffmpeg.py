@@ -352,16 +352,16 @@ def probe(
 
     Args:
         streamquery:
-            Argument passed to the `-show_entries` flag in ffprobe. If a
-            non-raw streamtype is specified, then the argument may be
+            Argument passed to the ``-show_entries`` flag in ffprobe. If
+            a non-raw streamtype is specified, then the argument may be
             the type field you want to query, for example the duration.
         fileargs:
             String of the file you want to analyze. If additional args
             are needed to specify the input, accepts a list of args to
             pass on.
         streamtype:
-            Optional; Argument to pass on to the `-select_streams` flag
-            in ffprobe. Not needed if querying a format.
+            Optional; Argument to pass on to the ``-select_streams``
+            flag in ffprobe. Not needed if querying a format.
         probetype:
             Optional; If one of "stream", "tags", "disposition",
             "format", query file for metadata of selected probetype and
@@ -380,7 +380,7 @@ def probe(
         extraargs:
             Optional; A list of additional arguments to past to ffprobe
             during runtime. Can be used for example to request
-            `-sexagesimal` formatting of duration fields.
+            ``-sexagesimal`` formatting of duration fields.
 
     Returns:
         fallback (default None): The query failed or returned "unknown"
@@ -502,18 +502,16 @@ def make_playlist(
 def format_probestring(init_tuple: InitTuple | None, is_stream: bool) -> str:
     """Format the streamquery arg for raw JSON queries to the probefile.
 
-    This corresponds to the `-show_entries` flag in ffprobe and can be
+    This corresponds to the ``-show_entries`` flag in ffprobe and can be
     used generically to format arguments to it.
 
     Args:
-        init_tuple:
-            If querying a stream, a 3-tuple of the stream values, stream
-            tags, and stream dispositions to query ffprobe for. If
-            querying a format, a list of the format values to query. Can
-            be None.
-        is_stream:
-            A boolean indicating whether or not init_tuple is a 3-tuple
-            for a stream or a list for a format.
+        init_tuple: If querying a stream, a 3-tuple of the stream
+            values, stream tags, and stream dispositions to query
+            ffprobe for. If querying a format, a list of the format
+            values to query. Can be None.
+        is_stream: A boolean indicating whether or not init_tuple is a
+            3-tuple for a stream or a list for a format.
 
     Returns:
         A formatted query for `-show_entries` in ffprobe. An empty
@@ -565,7 +563,7 @@ def num(val: str | int | float) -> float:
     SI prefix that may be appended with an `i` modifier that indicates
     the SI prefix is in powers of 1024 instead of 1000. Finally, the
     number may end in a `B` indicating it is to be multiplied by 8. The
-    optional ffmpeg utility `ffeval` may be used to validate the output
+    optional ffmpeg utility ``ffeval`` may be used to validate the output
     of this function.
 
     .. _numerical options:
