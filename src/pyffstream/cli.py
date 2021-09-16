@@ -1,4 +1,4 @@
-"""CLI interface for encoding and streaming with pyffstream."""
+"""CLI frontend for encoding and streaming."""
 from __future__ import annotations
 
 import argparse
@@ -722,19 +722,19 @@ def main() -> None:
         ff_binary_group.add_argument(
             "--downloaded-ffmpeg",
             help=(
-                "Use downloaded local ffmpeg instead of configured or system ffmpeg"
-                " (default is to only use as a fallback)"
+                "Use downloaded local Windows ffmpeg instead of configured or system"
+                " ffmpeg (default is to only use as a fallback)"
             ),
             action="store_true",
         )
         conf_parser.add_argument(
             "--redownload",
-            help="Redownload stored local ffmpeg binaries",
+            help="Redownload stored local Windows ffmpeg binaries",
             action="store_true",
         )
         conf_parser.add_argument(
             "--dltype",
-            help="Branch of ffmpeg binary to download (default: %(default)s)",
+            help="Type of Windows ffmpeg binary to download (default: %(default)s)",
             type=str.lower,
             default="git",
             choices={"git", "stable"},
@@ -875,20 +875,10 @@ def main() -> None:
             raise argparse.ArgumentTypeError(f"unsupported preset value: {value!r}")
         return lvalue
 
-    supported_vencoders: Final = (
-        encode.StaticEncodeVars.VIDEO_ENCODERS & ffmpeg.ff_bin.vencoders
-    )
-
     def ffmpeg_vencoder(value: str) -> str:
         lvalue = value.lower()
-        if lvalue not in supported_vencoders:
-            if lvalue not in encode.StaticEncodeVars.VIDEO_ENCODERS:
-                raise argparse.ArgumentTypeError(
-                    f"unsupported vencoder value: {value!r}"
-                )
-            raise argparse.ArgumentTypeError(
-                f"vencoder unsupported by installed ffmpeg: {value!r}"
-            )
+        if lvalue not in encode.StaticEncodeVars.VIDEO_ENCODERS:
+            raise argparse.ArgumentTypeError(f"unsupported vencoder value: {value!r}")
         return lvalue
 
     input_parser = parser.add_argument_group("input arguments")
@@ -1056,33 +1046,30 @@ def main() -> None:
         action=argparse.BooleanOptionalAction,
         default=True,
     )
-    if "--enable-libsoxr" in ffmpeg.ff_bin.build_config:
-        audio_parser.add_argument(
-            "--soxr",
-            help="Use SoX resampler library instead of ffmpeg's avresample",
-            action=argparse.BooleanOptionalAction,
-            default=config.soxr,
-        )
+    audio_parser.add_argument(
+        "--soxr",
+        help="Use SoX resampler library instead of ffmpeg's avresample",
+        action=argparse.BooleanOptionalAction,
+        default=config.soxr,
+    )
     output_parser.add_argument(
         "--fifo",
         help="Use FIFO to try to sustain and stabilize the connection.",
         action=argparse.BooleanOptionalAction,
         default=False,
     )
-    if "zscale" in ffmpeg.ff_bin.filters:
-        video_parser.add_argument(
-            "--zscale",
-            help="Use zimg library for scaling instead of ffmpeg's scale",
-            action=argparse.BooleanOptionalAction,
-            default=config.zscale,
-        )
-    if "libfdk_aac" in ffmpeg.ff_bin.aencoders:
-        audio_parser.add_argument(
-            "--fdk",
-            help="Use libfdk instead of ffmpeg's aac encoder",
-            action=argparse.BooleanOptionalAction,
-            default=config.fdk,
-        )
+    video_parser.add_argument(
+        "--zscale",
+        help="Use zimg library for scaling instead of ffmpeg's scale",
+        action=argparse.BooleanOptionalAction,
+        default=config.zscale,
+    )
+    audio_parser.add_argument(
+        "--fdk",
+        help="Use libfdk instead of ffmpeg's aac encoder",
+        action=argparse.BooleanOptionalAction,
+        default=config.fdk,
+    )
     output_parser.add_argument(
         "-f",
         "--outfile",
@@ -1110,20 +1097,18 @@ def main() -> None:
     parser.add_argument(
         "-c", "--copy", help="pass a/v to copy audio/video", type=str, action="append"
     )
-    if "hevc_nvenc" in supported_vencoders:
-        vencoder_group.add_argument(
-            "-H", "--hevc-nvenc", help="encode with NVENC HEVC", action="store_true"
-        )
-        video_parser.add_argument(
-            "-8",
-            "--eightbit",
-            help="encode with 8-bit NVENC HEVC (default 10-bit)",
-            action="store_true",
-        )
-    if "h264_nvenc" in supported_vencoders:
-        vencoder_group.add_argument(
-            "--h264-nvenc", help="encode with NVENC H264", action="store_true"
-        )
+    vencoder_group.add_argument(
+        "-H", "--hevc-nvenc", help="encode with NVENC HEVC", action="store_true"
+    )
+    video_parser.add_argument(
+        "-8",
+        "--eightbit",
+        help="encode with 8-bit NVENC HEVC (default 10-bit)",
+        action="store_true",
+    )
+    vencoder_group.add_argument(
+        "--h264-nvenc", help="encode with NVENC H264", action="store_true"
+    )
     vencoder_group.add_argument(
         "-x", "--x264", help="encode with x264", action="store_true"
     )
@@ -1139,7 +1124,7 @@ def main() -> None:
         type=ffmpeg_vencoder,
         help="video encoder to use (default: %(default)s)",
         default=config.vencoder,
-        choices=supported_vencoders,
+        choices=encode.StaticEncodeVars.VIDEO_ENCODERS,
     )
     video_parser.add_argument(
         "-u",
@@ -1266,17 +1251,28 @@ def main() -> None:
 
     logger.info(f"parsed configs: {read_configs!r}")
 
-    if "hevc_nvenc" in args and args.hevc_nvenc:
+    if args.hevc_nvenc:
         args.vencoder = "hevc_nvenc"
-    elif "h264_nvenc" in args and args.h264_nvenc:
+    elif args.h264_nvenc:
         args.vencoder = "h264_nvenc"
-    elif "x264" in args and args.x264:
+    elif args.x264:
         args.vencoder = "libx264"
 
-    if args.vencoder not in supported_vencoders:
+    if args.vencoder not in (
+        encode.StaticEncodeVars.VIDEO_ENCODERS & ffmpeg.ff_bin.vencoders
+    ):
         parser.error(
             f"selected vencoder {args.vencoder!r} not supported by ffmpeg installation"
         )
+
+    if args.soxr and "--enable-libsoxr" not in ffmpeg.ff_bin.build_config:
+        parser.error("soxr specified, but using an ffmpeg build without support")
+
+    if args.zscale and "zscale" not in ffmpeg.ff_bin.filters:
+        parser.error("zscale specified, but using an ffmpeg build without support")
+
+    if args.fdk and "libfdk_aac" not in ffmpeg.ff_bin.aencoders:
+        parser.error("fdk encoder specified, but using an ffmpeg build without support")
 
     if args.obs:
         args.live = True
@@ -1299,10 +1295,10 @@ def main() -> None:
     if args.startdelay and args.timestamp is not None:
         parser.error("timestamp seeking cannot be used with a start delay")
 
-    if "eightbit" in args and args.eightbit and not args.hevc_nvenc:
+    if args.eightbit and not args.hevc_nvenc:
         parser.error("8-bit HEVC encoding must be specified with HEVC")
 
-    if "eightbit" in args and args.eightbit:
+    if args.eightbit:
         logger.warning(
             "8-bit NVENC encoding is vastly inferior to 10-bit. Consider using H264"
             " instead if you require 8-bit."

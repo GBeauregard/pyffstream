@@ -30,7 +30,7 @@ To install pyffstream download a binary from `Github releases`_, or run
 this command in your terminal:
 
 .. _Github releases:
-   https://github.com/GBeauregard/pyffstream
+   https://github.com/GBeauregard/pyffstream/releases
 
 .. code-block:: console
 

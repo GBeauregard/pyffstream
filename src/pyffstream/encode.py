@@ -553,16 +553,11 @@ class StaticEncodeVars:
         evars.dynamicnorm = args.dynamicnorm
         evars.normfile = args.normfile
         evars.anormalize = args.anormalize
-        if "zscale" in args:
-            evars.zscale = args.zscale
-        if "eightbit" in args:
-            evars.eightbit = args.eightbit
-        if "soxr" in args:
-            evars.soxr = args.soxr
-        if "vulkan" in args:
-            evars.vulkan = args.vulkan
-        if "fdk" in args:
-            evars.fdk = args.fdk
+        evars.soxr = args.soxr
+        evars.zscale = args.zscale
+        evars.eightbit = args.eightbit
+        evars.vulkan = args.vulkan
+        evars.fdk = args.fdk
         evars.upscale = args.upscale
         evars.crop = args.crop
         evars.deinterlace = args.deinterlace
