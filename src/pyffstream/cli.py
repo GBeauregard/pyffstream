@@ -1234,6 +1234,8 @@ def main() -> None:
     if platform.system() == "Windows":
         if args.redownload:
             download_win_ffmpeg(args.dltype)
+            if not args.files or not args.obs:
+                raise SystemExit(0)
         if args.downloaded_ffmpeg:
             win_set_local_ffmpeg(args.dltype, config.env)
 
