@@ -37,6 +37,10 @@ dev = [
   #"mypy",
   #"flake8",
 ]
+docs = [
+  "sphinx",
+  "sphinx_autodoc_typehints",
+]
 
 [project.scripts]
 pyffstream = "pyffstream.cli:main"
