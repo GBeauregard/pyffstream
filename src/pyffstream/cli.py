@@ -850,32 +850,6 @@ def main() -> None:
         default=0,
         help="increase verbosity level",
     )
-    ff_binary_group.add_argument(
-        "--system-ffmpeg",
-        help="use system ffmpeg binaries instead of configured (default is system)",
-        action="store_true",
-    )
-    if platform.system() == "Windows":
-        ff_binary_group.add_argument(
-            "--downloaded-ffmpeg",
-            help=(
-                "Use downloaded local Windows ffmpeg instead of configured or system"
-                " ffmpeg (default is to only use as a fallback)"
-            ),
-            action="store_true",
-        )
-        parser.add_argument(
-            "--redownload",
-            help="Redownload stored local Windows ffmpeg binaries",
-            action="store_true",
-        )
-        parser.add_argument(
-            "--dltype",
-            help="Type of Windows ffmpeg binary to download (default: %(default)s)",
-            type=str.lower,
-            default="git",
-            choices={"git", "stable"},
-        )
     video_parser.add_argument(
         "-b",
         "--vbitrate",
@@ -1211,6 +1185,32 @@ def main() -> None:
         action="append",
         metavar="SHADER",
     )
+    ff_binary_group.add_argument(
+        "--system-ffmpeg",
+        help="use system ffmpeg binaries instead of configured (default is system)",
+        action="store_true",
+    )
+    if platform.system() == "Windows":
+        ff_binary_group.add_argument(
+            "--downloaded-ffmpeg",
+            help=(
+                "Use downloaded local Windows ffmpeg instead of configured or system"
+                " ffmpeg (default is to only use as a fallback)"
+            ),
+            action="store_true",
+        )
+        input_group.add_argument(
+            "--redownload",
+            help="Redownload stored local Windows ffmpeg binaries",
+            action="store_true",
+        )
+        parser.add_argument(
+            "--dltype",
+            help="Type of Windows ffmpeg binary to download (default: %(default)s)",
+            type=str.lower,
+            default="git",
+            choices={"git", "stable"},
+        )
     input_group.add_argument(
         "--write",
         help="write chosen arguments as defaults to config if not already default",
