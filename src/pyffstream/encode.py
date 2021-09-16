@@ -986,6 +986,8 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
     subpath = fv.fopts.sfpath
     subindex = fv.ev.sindex
     if not fv.ev.subfile_provided or fv.ev.timestamp is not None:
+        subpath = fv.ev.tempdir / "subs.mkv"
+        subindex = 0
         # fmt: off
         subargs = [
             ffmpeg.ff_bin.ffmpeg,
@@ -1003,7 +1005,8 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
             "-c", "copy",
             "-map", f"0:s:{fv.ev.sindex}",
             "-map", "0:t?",
-            str(fv.ev.tempdir / "subs.mkv"),
+            "-y",
+            str(subpath),
         ]
         # fmt: on
         # TODO: does -an -vn make a difference if playlist isn't duration'd?
@@ -1039,8 +1042,6 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
         if result.returncode != 0:
             fv.subs.setstatus("fail")
             return []
-        subpath = fv.ev.tempdir / "subs.mkv"
-        subindex = 0
         if fv.ev.is_playlist and fv.fv("s", "codec_name") == "ass":
             fv.subs.setstatus("merge")
             stylefuture = fv.executor.submit(
@@ -1178,7 +1179,7 @@ def determine_scale(fv: EncodeSession) -> None:
             logger.warning("Could not find all specified shaders in list.")
         if custom_shaders:
             shader_concat = fv.ev.tempdir / "customshaders.glsl"
-            with shader_concat.open(mode="x") as f:
+            with shader_concat.open(mode="w") as f:
                 for shader in custom_shaders:
                     f.write(shader.read_text())
             libplacebo.append(

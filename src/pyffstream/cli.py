@@ -20,7 +20,7 @@ import tempfile
 import textwrap
 import time
 from collections.abc import Iterable, Sequence
-from typing import Any, Final, NamedTuple
+from typing import Any, NamedTuple
 
 import platformdirs
 import requests
@@ -704,7 +704,6 @@ def main() -> None:
     )
 
     conf_parser = argparse.ArgumentParser(add_help=False)
-    ff_binary_group = conf_parser.add_mutually_exclusive_group()
     conf_parser.add_argument(
         "--config", help="Path to config file", type=pathlib.Path, metavar="FILE"
     )
@@ -713,32 +712,6 @@ def main() -> None:
         help="Print out config search locations",
         action="store_true",
     )
-    ff_binary_group.add_argument(
-        "--system-ffmpeg",
-        help="use system ffmpeg binaries instead of configured (default is system)",
-        action="store_true",
-    )
-    if platform.system() == "Windows":
-        ff_binary_group.add_argument(
-            "--downloaded-ffmpeg",
-            help=(
-                "Use downloaded local Windows ffmpeg instead of configured or system"
-                " ffmpeg (default is to only use as a fallback)"
-            ),
-            action="store_true",
-        )
-        conf_parser.add_argument(
-            "--redownload",
-            help="Redownload stored local Windows ffmpeg binaries",
-            action="store_true",
-        )
-        conf_parser.add_argument(
-            "--dltype",
-            help="Type of Windows ffmpeg binary to download (default: %(default)s)",
-            type=str.lower,
-            default="git",
-            choices={"git", "stable"},
-        )
     conf_args, _ = conf_parser.parse_known_args()
     conf_file = conf_args.config
 
@@ -791,31 +764,6 @@ def main() -> None:
         env_config.read(conf_list)
         for key in env_config["env"]:
             config.env[key] = env_config["env"][key]
-
-    if not conf_args.system_ffmpeg:
-        ffmpeg.ff_bin = ffmpeg.FFBin(
-            ffmpeg=config.ffmpeg_bin, ffprobe=config.ffprobe_bin, env=config.env
-        )
-
-    if platform.system() == "Windows":
-        if conf_args.redownload:
-            download_win_ffmpeg(conf_args.dltype)
-        if conf_args.downloaded_ffmpeg:
-            win_set_local_ffmpeg(conf_args.dltype, config.env)
-
-    if (
-        shutil.which(ffmpeg.ff_bin.ffmpeg) is None
-        or shutil.which(ffmpeg.ff_bin.ffprobe) is None
-    ):
-        if platform.system() == "Windows":
-            win_set_local_ffmpeg(conf_args.dltype, config.env)
-        else:
-            console.print("Cannot find ffmpeg and ffprobe utilities in path")
-            console.print(
-                "Consider downloading ffmpeg from your package manager or at"
-                " https://ffmpeg.org/download.html"
-            )
-            raise SystemExit(1)
 
     parser = argparse.ArgumentParser(
         description=__doc__,
@@ -888,6 +836,7 @@ def main() -> None:
     output_parser = parser.add_argument_group("output arguments")
 
     input_group = input_parser.add_mutually_exclusive_group(required=True)
+    ff_binary_group = parser.add_mutually_exclusive_group()
     aencoder_group = audio_parser.add_mutually_exclusive_group()
     vencoder_group = video_parser.add_mutually_exclusive_group()
     decimate_group = input_parser.add_mutually_exclusive_group()
@@ -901,6 +850,32 @@ def main() -> None:
         default=0,
         help="increase verbosity level",
     )
+    ff_binary_group.add_argument(
+        "--system-ffmpeg",
+        help="use system ffmpeg binaries instead of configured (default is system)",
+        action="store_true",
+    )
+    if platform.system() == "Windows":
+        ff_binary_group.add_argument(
+            "--downloaded-ffmpeg",
+            help=(
+                "Use downloaded local Windows ffmpeg instead of configured or system"
+                " ffmpeg (default is to only use as a fallback)"
+            ),
+            action="store_true",
+        )
+        parser.add_argument(
+            "--redownload",
+            help="Redownload stored local Windows ffmpeg binaries",
+            action="store_true",
+        )
+        parser.add_argument(
+            "--dltype",
+            help="Type of Windows ffmpeg binary to download (default: %(default)s)",
+            type=str.lower,
+            default="git",
+            choices={"git", "stable"},
+        )
     video_parser.add_argument(
         "-b",
         "--vbitrate",
@@ -1250,6 +1225,31 @@ def main() -> None:
     set_console_logger(args.verbose)
 
     logger.info(f"parsed configs: {read_configs!r}")
+
+    if not args.system_ffmpeg:
+        ffmpeg.ff_bin = ffmpeg.FFBin(
+            ffmpeg=config.ffmpeg_bin, ffprobe=config.ffprobe_bin, env=config.env
+        )
+
+    if platform.system() == "Windows":
+        if args.redownload:
+            download_win_ffmpeg(args.dltype)
+        if args.downloaded_ffmpeg:
+            win_set_local_ffmpeg(args.dltype, config.env)
+
+    if (
+        shutil.which(ffmpeg.ff_bin.ffmpeg) is None
+        or shutil.which(ffmpeg.ff_bin.ffprobe) is None
+    ):
+        if platform.system() == "Windows":
+            win_set_local_ffmpeg(args.dltype, config.env)
+        else:
+            console.print("Cannot find ffmpeg and ffprobe utilities in path")
+            console.print(
+                "Consider downloading ffmpeg from your package manager or at"
+                " https://ffmpeg.org/download.html"
+            )
+            raise SystemExit(1)
 
     if args.hevc_nvenc:
         args.vencoder = "hevc_nvenc"
