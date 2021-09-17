@@ -35,3 +35,10 @@ this command in your terminal:
 .. code-block:: console
 
    $ pip install pyffstream
+
+CLI Usage
+---------
+
+.. autoprogram:: pyffstream.cli:get_parserconfig()[0]
+   :prog: pyffstream
+   :groups:

@@ -9,6 +9,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
     "sphinx_autodoc_typehints",
+    "sphinxcontrib.autoprogram",
 ]
 intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 always_document_param_types = True
