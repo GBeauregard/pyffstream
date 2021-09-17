@@ -766,8 +766,7 @@ def main() -> None:
             config.env[key] = env_config["env"][key]
 
     parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="CLI frontend for streaming over SRT and RTMP.",
         parents=[conf_parser],
     )
 
@@ -835,7 +834,7 @@ def main() -> None:
     subtitle_parser = parser.add_argument_group("subtitle arguments")
     output_parser = parser.add_argument_group("output arguments")
 
-    input_group = input_parser.add_mutually_exclusive_group(required=True)
+    input_group = input_parser.add_mutually_exclusive_group()
     ff_binary_group = parser.add_mutually_exclusive_group()
     aencoder_group = audio_parser.add_mutually_exclusive_group()
     vencoder_group = video_parser.add_mutually_exclusive_group()
@@ -1199,7 +1198,7 @@ def main() -> None:
             ),
             action="store_true",
         )
-        input_group.add_argument(
+        parser.add_argument(
             "--redownload",
             help="Redownload stored local Windows ffmpeg binaries",
             action="store_true",
@@ -1211,7 +1210,7 @@ def main() -> None:
             default="git",
             choices={"git", "stable"},
         )
-    input_group.add_argument(
+    parser.add_argument(
         "--write",
         help="write chosen arguments as defaults to config if not already default",
         action="store_true",
@@ -1221,6 +1220,20 @@ def main() -> None:
         parser.error("Passed config file must be a file.")
 
     args = parser.parse_args()
+
+    required_args = [args.files, args.obs, args.write]
+    if platform.system() == "Windows":
+        required_args.append(args.redownload)
+    if sum(bool(i) for i in required_args) != 1:
+        if args.write:
+            parser.error(
+                "--write cannot be used with an output argument or other action"
+            )
+        if platform.system() == "Windows" and args.redownload:
+            parser.error(
+                "--redownload cannot be used with an output argument or other action"
+            )
+        parser.error("Must specify at least one output argument")
 
     set_console_logger(args.verbose)
 
@@ -1234,8 +1247,7 @@ def main() -> None:
     if platform.system() == "Windows":
         if args.redownload:
             download_win_ffmpeg(args.dltype)
-            if not args.files or not args.obs:
-                raise SystemExit(0)
+            raise SystemExit(0)
         if args.downloaded_ffmpeg:
             win_set_local_ffmpeg(args.dltype, config.env)
 
