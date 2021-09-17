@@ -1232,20 +1232,6 @@ def main() -> None:
     parser, config = get_parserconfig(False)
     args = parser.parse_args()
 
-    required_args = [args.files, args.obs, args.write]
-    if platform.system() == "Windows":
-        required_args.append(args.redownload)
-    if sum(bool(i) for i in required_args) != 1:
-        if args.write:
-            parser.error(
-                "--write cannot be used with an output argument or other action"
-            )
-        if platform.system() == "Windows" and args.redownload:
-            parser.error(
-                "--redownload cannot be used with an output argument or other action"
-            )
-        parser.error("Must specify at least one output argument")
-
     set_console_logger(args.verbose)
 
     if not args.system_ffmpeg:
@@ -1273,6 +1259,20 @@ def main() -> None:
                 " https://ffmpeg.org/download.html"
             )
             raise SystemExit(1)
+
+    required_args = [args.files, args.obs, args.write]
+    if platform.system() == "Windows":
+        required_args.append(args.redownload)
+    if sum(bool(i) for i in required_args) != 1:
+        if args.write:
+            parser.error(
+                "--write cannot be used with an output argument or other action"
+            )
+        if platform.system() == "Windows" and args.redownload:
+            parser.error(
+                "--redownload cannot be used with an output argument or other action"
+            )
+        parser.error("Must specify at least one output argument")
 
     if args.hevc_nvenc:
         args.vencoder = "hevc_nvenc"
