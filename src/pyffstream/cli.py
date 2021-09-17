@@ -690,18 +690,21 @@ def win_set_local_ffmpeg(dltype: str, env: dict[str, str]) -> None:
     )
 
 
-def main() -> None:
-    """Process config and CLI arguments then send off for processing."""
+def get_parserconfig(
+    reproducible: bool = True,
+) -> tuple[argparse.ArgumentParser, DefaultConfig]:
+    """Return parser and config used."""
     config = DefaultConfig()
 
     conf_list: list[str | os.PathLike[Any]] = []
 
-    conf_list.append(
-        platformdirs.site_config_path(defaults.APPNAME) / f"{defaults.APPNAME}.conf"
-    )
-    conf_list.append(
-        platformdirs.user_config_path(defaults.APPNAME) / f"{defaults.APPNAME}.conf"
-    )
+    if not reproducible:
+        conf_list.append(
+            platformdirs.site_config_path(defaults.APPNAME) / f"{defaults.APPNAME}.conf"
+        )
+        conf_list.append(
+            platformdirs.user_config_path(defaults.APPNAME) / f"{defaults.APPNAME}.conf"
+        )
 
     conf_parser = argparse.ArgumentParser(add_help=False)
     conf_parser.add_argument(
@@ -870,7 +873,7 @@ def main() -> None:
         type=ffmpeg_astandard,
         help="audio encoding standard to use (default: %(default)s)",
         default=config.astandard,
-        choices=encode.StaticEncodeVars.AUDIO_STANDARDS,
+        choices=sorted(encode.StaticEncodeVars.AUDIO_STANDARDS),
     )
     input_group.add_argument(
         "files",
@@ -919,7 +922,7 @@ def main() -> None:
         type=ffmpeg_protocol,
         help="streaming protocol to use (default: %(default)s)",
         default=config.protocol,
-        choices=encode.StaticEncodeVars.STREAM_PROTOCOLS,
+        choices=sorted(encode.StaticEncodeVars.STREAM_PROTOCOLS),
     )
     output_parser.add_argument(
         "-U",
@@ -1072,7 +1075,7 @@ def main() -> None:
         type=ffmpeg_vencoder,
         help="video encoder to use (default: %(default)s)",
         default=config.vencoder,
-        choices=encode.StaticEncodeVars.VIDEO_ENCODERS,
+        choices=sorted(encode.StaticEncodeVars.VIDEO_ENCODERS),
     )
     video_parser.add_argument(
         "-u",
@@ -1189,7 +1192,7 @@ def main() -> None:
         help="use system ffmpeg binaries instead of configured (default is system)",
         action="store_true",
     )
-    if platform.system() == "Windows":
+    if platform.system() == "Windows" or reproducible:
         ff_binary_group.add_argument(
             "--downloaded-ffmpeg",
             help=(
@@ -1208,7 +1211,7 @@ def main() -> None:
             help="Type of Windows ffmpeg binary to download (default: %(default)s)",
             type=str.lower,
             default="git",
-            choices={"git", "stable"},
+            choices=["git", "stable"],
         )
     parser.add_argument(
         "--write",
@@ -1219,6 +1222,14 @@ def main() -> None:
     if conf_file is not None and not conf_file.is_file():
         parser.error("Passed config file must be a file.")
 
+    logger.info(f"parsed configs: {read_configs!r}")
+
+    return parser, config
+
+
+def main() -> None:
+    """Process config and CLI arguments then send off for processing."""
+    parser, config = get_parserconfig(False)
     args = parser.parse_args()
 
     required_args = [args.files, args.obs, args.write]
@@ -1236,8 +1247,6 @@ def main() -> None:
         parser.error("Must specify at least one output argument")
 
     set_console_logger(args.verbose)
-
-    logger.info(f"parsed configs: {read_configs!r}")
 
     if not args.system_ffmpeg:
         ffmpeg.ff_bin = ffmpeg.FFBin(
