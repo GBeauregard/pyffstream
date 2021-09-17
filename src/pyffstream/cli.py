@@ -1261,16 +1261,10 @@ def main() -> None:
             raise SystemExit(1)
 
     required_args = [args.files, args.obs, args.write]
-    if platform.system() == "Windows":
-        required_args.append(args.redownload)
     if sum(bool(i) for i in required_args) != 1:
         if args.write:
             parser.error(
                 "--write cannot be used with an output argument or other action"
-            )
-        if platform.system() == "Windows" and args.redownload:
-            parser.error(
-                "--redownload cannot be used with an output argument or other action"
             )
         parser.error("Must specify at least one output argument")
 
