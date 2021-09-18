@@ -668,7 +668,7 @@ def determine_autocrop(fv: EncodeSession) -> None:
     # fmt: on
     with subprocess.Popen(
         cropargs,
-        text=True,
+        text=False,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
         env=ffmpeg.ff_bin.env,
@@ -681,16 +681,19 @@ def determine_autocrop(fv: EncodeSession) -> None:
         )
         cropfilt = None
         while result.poll() is None:
-            if line := result.stderr.readline().rstrip():
-                logger.debug(line)
-                for match in crop_regex.finditer(line):
-                    if match.group("time"):
-                        fv.crop.setprogress(
-                            min(float(match.group("time")) / crop_len_num, 1)
-                        )
-                    if match.group("filter"):
-                        cropfilt = match.group("filter")
-        remaining = result.stderr.read()
+            blines = bytearray()
+            for _ in range(5):
+                blines += result.stderr.readline()
+            lines = blines.decode()
+            logger.debug(lines)
+            for match in crop_regex.finditer(lines):
+                if match.group("time"):
+                    fv.crop.setprogress(
+                        min(float(match.group("time")) / crop_len_num, 1)
+                    )
+                if match.group("filter"):
+                    cropfilt = match.group("filter")
+        remaining = result.stderr.read().decode()
         logger.debug(remaining)
         for match in crop_regex.finditer(remaining):
             if match.group("filter"):
