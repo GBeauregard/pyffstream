@@ -5,6 +5,7 @@ import argparse
 import collections
 import concurrent.futures
 import dataclasses
+import enum
 import fractions
 import json
 import logging
@@ -143,7 +144,7 @@ class EncodeSession:
                 self.norm = StatusThread(self, "normalize")
                 self.statuses.append(self.norm)
             if self.ev.subs:
-                self.subs = StatusThread(self, "subs")
+                self.subs = StatusThread(self, "subtitles")
                 self.statuses.append(self.subs)
         (
             self.vstreamvals,
@@ -340,30 +341,31 @@ class FileStreamVals:
 
 
 class StatusThread:
+    class Code(enum.IntEnum):
+        FAILED = 0
+        FINISHED = 1
+        NOT_STARTED = 2
+        RUNNING = 3
+        OTHER = 4
+
     def __init__(self, fv: EncodeSession, name: str):
         self.__lock = threading.RLock()
         self.fv = fv
         self.name = name
-        self.status = "pre"
-        self.filt = None
+        self.status: int = self.Code.NOT_STARTED
+        self.long_status = "starting"
         self.progress = 0.0
 
-    def setstatus(self, status: str) -> None:
+    def setstatus(self, status: int, long_status: str) -> None:
         with self.__lock:
             self.status = status
+            self.long_status = long_status
             self.fv.update_avail.set()
 
     def setprogress(self, progress: float | int) -> None:
         with self.__lock:
             self.progress = progress
             self.fv.update_avail.set()
-
-    def getstatus(self) -> str:
-        with self.__lock:
-            if self.status == "run":
-                return f"{self.progress:.1%}"
-            else:
-                return self.status
 
 
 class FilterList:
@@ -635,7 +637,6 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
 
 
 def determine_autocrop(fv: EncodeSession) -> None:
-    fv.crop.setstatus("start")
     crop_ts_num = ffmpeg.duration(fv.ev.crop_ts)
     crop_len_num = ffmpeg.duration(fv.ev.crop_len)
     flength = ffmpeg.duration(fv.v("f", "duration"))
@@ -652,16 +653,17 @@ def determine_autocrop(fv: EncodeSession) -> None:
     cropargs = [
         ffmpeg.ff_bin.ffmpeg,
         *fv.ev.ff_deepprobe_flags,
-        '-hide_banner',
-        '-hwaccel', 'auto',
-        *(('-ss', crop_ts_string) if not fv.ev.slowseek else ()),
+        "-hide_banner",
+        "-nostats",
+        "-hwaccel", "auto",
+        *(("-ss", crop_ts_string) if not fv.ev.slowseek else ()),
         *fv.fopts.main,
-        *(('-ss', crop_ts_string) if fv.ev.slowseek else ()),
-        '-an', '-sn',
-        '-t', crop_len_string,
-        '-vf', 'cropdetect=round=2',
-        '-map', f'0:v:{fv.ev.vindex}',
-        '-f', 'null', '-',
+        *(("-ss", crop_ts_string) if fv.ev.slowseek else ()),
+        "-an", "-sn",
+        "-t", crop_len_string,
+        "-vf", "cropdetect=round=2",
+        "-map", f"0:v:{fv.ev.vindex}",
+        "-f", "null", "-",
     ]
     # fmt: on
     with subprocess.Popen(
@@ -672,26 +674,33 @@ def determine_autocrop(fv: EncodeSession) -> None:
         env=ffmpeg.ff_bin.env,
     ) as result:
         assert result.stderr is not None
-        fv.crop.setstatus("run")
-        cropregex = re.compile(r"t:\s*(?P<time>[\d\.]*)\s+(?P<filter>crop=\S+)")
+        fv.crop.setstatus(StatusThread.Code.RUNNING, "calculating")
+        crop_regex = re.compile(
+            r"t:\s*(?P<time>[\d\.]*)\s+(?P<filter>crop=\S+)",
+            flags=re.ASCII | re.MULTILINE,
+        )
         cropfilt = None
         while result.poll() is None:
             line = result.stderr.readline()
             logger.debug(line.rstrip())
-            if (match := cropregex.search(line)) is not None:
+            if (match := crop_regex.search(line)) is not None:
                 if match.group("time"):
                     fv.crop.setprogress(
                         min(float(match.group("time")) / crop_len_num, 1)
                     )
                 if match.group("filter"):
                     cropfilt = match.group("filter")
+        a = result.stderr.read()
+        logger.debug(a)
+        if (match := crop_regex.search(a)) is not None and match.group("filter"):
+            cropfilt = match.group("filter")
     if result.returncode == 0 and cropfilt:
         fv.filts["vcrop"] = cropfilt
         logger.info(f"determined crop filter: {cropfilt}")
-        fv.crop.setstatus("done")
+        fv.crop.setstatus(StatusThread.Code.FINISHED, "success")
     else:
         logger.warning("crop failed")
-        fv.crop.setstatus("fail")
+        fv.crop.setstatus(StatusThread.Code.FAILED, "[red]failed")
 
 
 def determine_afilters(fv: EncodeSession) -> None:
@@ -742,7 +751,6 @@ def determine_afilters(fv: EncodeSession) -> None:
 
 
 def determine_anormalize(fv: EncodeSession) -> None:
-    fv.norm.setstatus("start")
     if fv.ev.dynamicnorm:
         fv.filts["anormalize"] = [
             "loudnorm",
@@ -752,7 +760,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
             "dual_mono=true",
             "linear=false",
         ]
-        fv.norm.setstatus("done")
+        fv.norm.setstatus(StatusThread.Code.FINISHED, "success")
     else:
 
         def json_to_normfilt(json_map: Mapping[str, str]) -> None:
@@ -772,11 +780,11 @@ def determine_anormalize(fv: EncodeSession) -> None:
                     f'offset={json_map["target_offset"]}',
                 ]
             except KeyError as e:
-                fv.norm.setstatus("fail")
+                fv.norm.setstatus(StatusThread.Code.FAILED, "[red]failed")
                 logger.error("normalization json didn't contain expected keys")
                 raise e
             else:
-                fv.norm.setstatus("done")
+                fv.norm.setstatus(StatusThread.Code.FINISHED, "success")
 
         if fv.ev.normfile is None or not fv.ev.normfile.exists():
             normanalyze = [
@@ -815,7 +823,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
             ) as result:
                 assert result.stderr is not None
                 ffprogress = ffmpeg.Progress()
-                fv.norm.setstatus("run")
+                fv.norm.setstatus(StatusThread.Code.RUNNING, "calculating")
                 length = ffmpeg.duration(fv.v("f", "duration"))
                 output: collections.deque[str] = collections.deque(maxlen=50)
 
@@ -843,21 +851,21 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 if fv.ev.normfile is not None:
                     fv.ev.normfile.write_text(jsonmatch.group("json"))
                 jsonout = json.loads(jsonmatch.group("json"))
-                fv.norm.setstatus("read")
+                fv.norm.setstatus(StatusThread.Code.OTHER, "read json")
                 json_to_normfilt(jsonout)
             else:
                 logger.info("\n".join(output))
                 logger.warning("Normalization failed")
-                fv.norm.setstatus("fail")
+                fv.norm.setstatus(StatusThread.Code.FAILED, "[red]failed")
         elif fv.ev.normfile.is_file():
-            fv.norm.setstatus("open")
+            fv.norm.setstatus(StatusThread.Code.OTHER, "opening")
             jsonout = json.loads(fv.ev.normfile.read_text())
-            fv.norm.setstatus("read")
+            fv.norm.setstatus(StatusThread.Code.OTHER, "read file")
             json_to_normfilt(jsonout)
         else:
-            fv.norm.setstatus("fail")
+            fv.norm.setstatus(StatusThread.Code.FAILED, "[red]failed")
             raise ValueError("provided normalization file isn't a file")
-    if fv.norm.status != "fail":
+    if fv.norm.status == StatusThread.Code.FINISHED:
         logger.info(f'anormalize filter:\n{fv.filts["anormalize"]}')
 
 
@@ -884,9 +892,8 @@ def determine_bounds(fv: EncodeSession) -> None:
 
 
 def determine_subtitles(fv: EncodeSession) -> None:
-    fv.subs.setstatus("start")
     if fv.fv("s", "codec_type") != "subtitle":
-        fv.subs.setstatus("fail")
+        fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
         logger.error(
             "No subtitles detected in file, but subtitles were marked as enabled."
         )
@@ -1024,7 +1031,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
             env=ffmpeg.ff_bin.env,
         ) as result:
             assert result.stderr is not None
-            fv.subs.setstatus("run")
+            fv.subs.setstatus(StatusThread.Code.RUNNING, "extracting")
             ffprogress = ffmpeg.Progress()
             length = ffmpeg.duration(fv.v("f", "duration"))
 
@@ -1036,10 +1043,10 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
             while result.poll() is None:
                 update_progress(result.stderr.readline().rstrip())
         if result.returncode != 0:
-            fv.subs.setstatus("fail")
+            fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
             return []
         if fv.ev.is_playlist and fv.fv("s", "codec_name") == "ass":
-            fv.subs.setstatus("merge")
+            fv.subs.setstatus(StatusThread.Code.OTHER, "merging")
             stylefuture = fv.executor.submit(
                 extract_styles,
                 fv.fopts.allpaths,
@@ -1066,7 +1073,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
                 stderr=subprocess.DEVNULL,
             )
             if extract_result.returncode != 0:
-                fv.subs.setstatus("fail")
+                fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
                 return []
             sublines = subass.read_text().splitlines()
             mainstyle = parse_stylelines(sublines)
@@ -1107,12 +1114,12 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
             )
             subass.unlink()
             if merge_result.returncode != 0:
-                fv.subs.setstatus("fail")
+                fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
                 return []
     subfilter = ffmpeg.Filter(
         "subtitles", ffmpeg.Filter.full_escape(str(subpath)), f"si={subindex}"
     )
-    fv.subs.setstatus("done")
+    fv.subs.setstatus(StatusThread.Code.FINISHED, "success")
     return [subfilter]
 
 
@@ -1137,7 +1144,7 @@ def get_picsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
     )
     if not fv.ev.vulkan:
         subfilter_list.append(ffmpeg.Filter(f"format={fv.ev.pix_fmt}"))
-    fv.subs.setstatus("done")
+    fv.subs.setstatus(StatusThread.Code.FINISHED, "success")
     return subfilter_list
 
 

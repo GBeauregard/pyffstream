@@ -226,23 +226,50 @@ def status_wait(
         if fv.ev.verbosity > 0:
             unfinished = fv.statuses
         else:
-            unfinished = [s for s in fv.statuses if s.getstatus() != "done"]
+            unfinished = [
+                s for s in fv.statuses if s.status != encode.StatusThread.Code.FINISHED
+            ]
 
-        def get_futurestatus() -> rich.text.Text:
-            status_texts = []
-            fv.update_avail.clear()
-            for status in unfinished:
-                status_texts.append(f"{status.name}: {status.getstatus():>6}")
-            output = "status: " + "  ".join(status_texts)
-            return rich.text.Text(output, end="")
+        with rich.progress.Progress(
+            "[progress.description]{task.description}",
+            "•",
+            "[green]{task.fields[status]}",
+            rich.progress.BarColumn(),
+            "[progress.percentage]{task.percentage:>3.0f}%",
+            rich.progress.TimeRemainingColumn(),
+            console=console,
+        ) as progress:
+            task_ids = [
+                progress.add_task(
+                    status.name, status=status.long_status, start=False, total=1.0
+                )
+                for status in unfinished
+            ]
 
-        with rich.live.Live(
-            get_futurestatus(), console=console, auto_refresh=False
-        ) as live:
+            def update_tasks() -> None:
+                for task_id, status in zip(task_ids, unfinished):
+                    fv.update_avail.clear()
+                    # TODO: 3.10 match case
+                    if status.status == encode.StatusThread.Code.RUNNING:
+                        progress.start_task(task_id)
+                        completed = status.progress
+                    elif status.status == encode.StatusThread.Code.FINISHED:
+                        completed = 1.0
+                    elif status.status == encode.StatusThread.Code.FAILED:
+                        completed = 0
+                    else:
+                        progress.reset(task_id, start=False)
+                        completed = 0
+                    progress.update(
+                        task_id,
+                        status=status.long_status,
+                        completed=completed,
+                    )
+
             while concurrent.futures.wait(futures, 0.1).not_done:
                 if fv.update_avail.is_set():
-                    live.update(get_futurestatus(), refresh=True)
-            live.update(get_futurestatus(), refresh=True)
+                    update_tasks()
+            update_tasks()
 
 
 def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
