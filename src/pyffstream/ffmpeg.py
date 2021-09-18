@@ -752,9 +752,27 @@ class Filter:
 
 
 class Progress:
-    flags: Final = ["-progress", "pipe:2", "-nostats"]
-    _status_regex: Final = re.compile(
-        r"^(?P<key>[a-z_0-9]+)=(?P<val>.+)$", flags=re.MULTILINE
+    # flags: Final = ["-progress", "pipe:2", "-nostats"]
+    # _status_regex: Final = re.compile(
+    #     r"^(?P<key>[a-z_0-9]+)=(?P<val>.+)$", flags=re.MULTILINE
+    # )
+    flags: Final[list[str]] = []
+    _status_regex = re.compile(
+        r"""
+        time=\s*
+        (?:(?P<out_time>[\d:\.]+)|N\/A)
+        (?:
+            .*?
+            bitrate=\s*
+            (?:(?P<bitrate>[\d\.]+[kbit/s]*)|N\/A)
+        )?
+        (?:
+            .*?
+            speed=\s*
+            (?:(?P<speed>[\d\.]+x)|N\/A)
+        )?
+        """,
+        flags=re.VERBOSE,
     )
 
     def __init__(self) -> None:
@@ -775,9 +793,17 @@ class Progress:
 
     def update(self, line: str) -> set[str]:
         keylist = set()
+
         for match in self._status_regex.finditer(line):
-            keylist.add(match.group("key"))
-            self.status[match.group("key")] = match.group("val")
+            # keylist.add(match.group("key"))
+            # self.status[match.group("key")] = match.group("val")
+            groupd = {k: v for k, v in match.groupdict().items() if v is not None}
+            self.status |= groupd
+            keylist |= set(groupd.keys())
+
+        if "out_time" in keylist:
+            keylist.add("out_time_us")
+
         return keylist
 
     @property
@@ -786,6 +812,10 @@ class Progress:
             return int(utime)
         return 0
 
+    # @property
+    # def time_s(self) -> float:
+    #     return self.time_us / 1_000_000
+
     @property
     def time_s(self) -> float:
-        return self.time_us / 1_000_000
+        return duration(self.status["out_time"])

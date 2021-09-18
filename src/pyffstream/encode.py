@@ -828,8 +828,8 @@ def determine_anormalize(fv: EncodeSession) -> None:
 
                 while result.poll() is None:
                     update_progress(result.stderr.readline().rstrip())
-                for line in result.stderr.read().splitlines():
-                    update_progress(line)
+                for line in result.stderr:
+                    update_progress(line.rstrip())
             if (
                 result.returncode == 0
                 and (
