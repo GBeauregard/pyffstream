@@ -799,7 +799,7 @@ class Progress:
             # self.status[match.group("key")] = match.group("val")
             groupd = {k: v for k, v in match.groupdict().items() if v is not None}
             self.status |= groupd
-            keylist |= set(groupd.keys())
+            keylist |= groupd.keys()
 
         if "out_time" in keylist:
             keylist.add("out_time_us")
