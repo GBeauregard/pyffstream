@@ -577,9 +577,11 @@ def set_console_logger(verbosity: int) -> None:
         logging.getLogger("").setLevel(logging.INFO)
     else:
         logging.getLogger("").setLevel(logging.WARNING)
-    logging.getLogger("").addHandler(
-        rich.logging.RichHandler(console=console, show_time=False, show_path=False)
+
+    rhandler = rich.logging.RichHandler(
+        console=console, show_time=False, show_path=False
     )
+    logging.getLogger("").addHandler(rhandler)
 
 
 def download_win_ffmpeg(dltype: str = "git") -> bool:

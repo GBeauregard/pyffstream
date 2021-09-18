@@ -681,19 +681,20 @@ def determine_autocrop(fv: EncodeSession) -> None:
         )
         cropfilt = None
         while result.poll() is None:
-            line = result.stderr.readline()
-            logger.debug(line.rstrip())
-            if (match := crop_regex.search(line)) is not None:
-                if match.group("time"):
-                    fv.crop.setprogress(
-                        min(float(match.group("time")) / crop_len_num, 1)
-                    )
-                if match.group("filter"):
-                    cropfilt = match.group("filter")
-        a = result.stderr.read()
-        logger.debug(a)
-        if (match := crop_regex.search(a)) is not None and match.group("filter"):
-            cropfilt = match.group("filter")
+            if line := result.stderr.readline().rstrip():
+                logger.debug(line)
+                for match in crop_regex.finditer(line):
+                    if match.group("time"):
+                        fv.crop.setprogress(
+                            min(float(match.group("time")) / crop_len_num, 1)
+                        )
+                    if match.group("filter"):
+                        cropfilt = match.group("filter")
+        remaining = result.stderr.read()
+        logger.debug(remaining)
+        for match in crop_regex.finditer(remaining):
+            if match.group("filter"):
+                cropfilt = match.group("filter")
     if result.returncode == 0 and cropfilt:
         fv.filts["vcrop"] = cropfilt
         logger.info(f"determined crop filter: {cropfilt}")
