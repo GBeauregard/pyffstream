@@ -820,16 +820,17 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 output: collections.deque[str] = collections.deque(maxlen=50)
 
                 def update_progress(text: str) -> None:
-                    nonlocal output
                     output.append(text)
                     logger.debug(text)
                     if "out_time_us" in ffprogress.update(text):
                         fv.norm.setprogress(min(ffprogress.time_s / length, 1))
 
                 while result.poll() is None:
-                    update_progress(result.stderr.readline().rstrip())
+                    if line := result.stderr.readline().rstrip():
+                        update_progress(line)
                 for line in result.stderr:
-                    update_progress(line.rstrip())
+                    if line := line.rstrip():
+                        update_progress(line)
             if (
                 result.returncode == 0
                 and (
