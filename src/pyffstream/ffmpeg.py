@@ -792,7 +792,7 @@ class Progress:
         }
 
     def update(self, line: str) -> set[str]:
-        keylist = set()
+        keylist: set[str] = set()
 
         for match in self._status_regex.finditer(line):
             # keylist.add(match.group("key"))
