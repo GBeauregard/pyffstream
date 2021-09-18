@@ -846,6 +846,8 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 fv.norm.setstatus("read")
                 json_to_normfilt(jsonout)
             else:
+                logger.info("\n".join(output))
+                logger.warning("Normalization failed")
                 fv.norm.setstatus("fail")
         elif fv.ev.normfile.is_file():
             fv.norm.setstatus("open")
