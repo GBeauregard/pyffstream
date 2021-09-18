@@ -817,15 +817,16 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 ffprogress = ffmpeg.Progress()
                 fv.norm.setstatus("run")
                 length = ffmpeg.duration(fv.v("f", "duration"))
-                output = collections.deque(maxlen=50)
+                output: collections.deque[str] = collections.deque(maxlen=50)
 
                 def update_progress(text: str) -> None:
                     nonlocal output
                     output.append(text)
                     logger.debug(text.rstrip())
-                    if updated_keys := ffprogress.update(text):
-                        if "out_time_us" in updated_keys:
-                            fv.norm.setprogress(min(ffprogress.time_s / length, 1))
+                    if (
+                        updated_keys := ffprogress.update(text)
+                    ) and "out_time_us" in updated_keys:
+                        fv.norm.setprogress(min(ffprogress.time_s / length, 1))
 
                 while result.poll() is None:
                     update_progress(result.stderr.readline())
