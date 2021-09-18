@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import collections
 import concurrent.futures
 import dataclasses
 import fractions
@@ -793,13 +794,16 @@ def determine_anormalize(fv: EncodeSession) -> None:
             normargs = [
                 ffmpeg.ff_bin.ffmpeg,
                 *fv.ev.ff_deepprobe_flags,
-                '-hide_banner',
-                '-hwaccel', 'auto',
+                *ffmpeg.Progress.flags,
+                "-hide_banner",
+                "-hwaccel", "auto",
                 *fv.fopts.main,
-                '-vn', '-sn',
-                '-map', f'0:a:{fv.ev.aindex}',
-                '-af', ffmpeg.Filter.vf_join(normanalyze),
-                '-f', 'null', '-',
+                "-vn",
+                "-sn",
+                "-map", f"0:a:{fv.ev.aindex}",
+                "-af", ffmpeg.Filter.vf_join(normanalyze),
+                "-f", "null",
+                "-",
             ]
             # fmt: on
             with subprocess.Popen(
@@ -810,32 +814,29 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 env=ffmpeg.ff_bin.env,
             ) as result:
                 assert result.stderr is not None
+                ffprogress = ffmpeg.Progress()
                 fv.norm.setstatus("run")
-                statusregex = re.compile(
-                    r"""
-                    time=\s*
-                    (?:(?P<time>[\d:\.]+)|N\/A)
-                    .*
-                    speed=\s*
-                    (?:(?P<speed>[\d\.]+x)|N\/A)
-                    """,
-                    flags=re.VERBOSE,
-                )
                 length = ffmpeg.duration(fv.v("f", "duration"))
-                output = ""
+                output = collections.deque(maxlen=50)
+
+                def update_progress(text: str) -> None:
+                    nonlocal output
+                    output.append(text)
+                    logger.debug(text.rstrip())
+                    if updated_keys := ffprogress.update(text):
+                        if "out_time_us" in updated_keys:
+                            fv.norm.setprogress(min(ffprogress.time_s / length, 1))
+
                 while result.poll() is None:
-                    line = result.stderr.readline()
-                    output += line
-                    logger.debug(line.rstrip())
-                    if (match := statusregex.search(line)) is not None:
-                        if match.group("time"):
-                            ts = ffmpeg.duration(match.group("time"))
-                            fv.norm.setprogress(min(ts / length, 1))
-                        if match.group("speed"):
-                            logger.info(f'norm speed: {match.group("speed")}')
+                    update_progress(result.stderr.readline())
+                update_progress(result.stderr.read())
             if (
                 result.returncode == 0
-                and (jsonmatch := re.search(r"(?P<json>{[^{]+})[^}]*$", output))
+                and (
+                    jsonmatch := re.search(
+                        r"(?P<json>{[^{]+})[^}]*$", "\n".join(output)
+                    )
+                )
                 is not None
             ):
                 if fv.ev.normfile is not None:
@@ -853,7 +854,8 @@ def determine_anormalize(fv: EncodeSession) -> None:
         else:
             fv.norm.setstatus("fail")
             raise ValueError("provided normalization file isn't a file")
-    logger.info(f'anormalize filter:\n{fv.filts["anormalize"]}')
+    if fv.norm.status != "fail":
+        logger.info(f'anormalize filter:\n{fv.filts["anormalize"]}')
 
 
 def determine_timeseek(fv: EncodeSession) -> None:
@@ -1562,6 +1564,7 @@ def set_filter_flags(fv: EncodeSession) -> None:
 def set_ffmpeg_flags(fv: EncodeSession) -> None:
     ff_flags = [
         ffmpeg.ff_bin.ffmpeg,
+        *ffmpeg.Progress.flags,
         *fv.ev.input_flags,
         *fv.ev.filter_flags,
         *fv.ev.encode_flags,

@@ -304,7 +304,6 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
 
 def start_stream(fv: encode.EncodeSession) -> None:
     """Start and track the actual encode."""
-    fv.ev.ff_flags += ffmpeg.Progress.progress_flags
     with subprocess.Popen(
         fv.ev.ff_flags,
         text=True,

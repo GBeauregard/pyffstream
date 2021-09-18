@@ -752,7 +752,7 @@ class Filter:
 
 
 class Progress:
-    progress_flags: Final = ["-progress", "pipe:1", "-nostats"]
+    flags: Final = ["-progress", "pipe:2", "-nostats"]
     status_regex: Final = re.compile(
         r"^(?P<key>[a-z_0-9]+)=(?P<val>.+)$", flags=re.MULTILINE
     )
