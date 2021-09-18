@@ -822,13 +822,14 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 def update_progress(text: str) -> None:
                     nonlocal output
                     output.append(text)
-                    logger.debug(text.rstrip())
+                    logger.debug(text)
                     if "out_time_us" in ffprogress.update(text):
                         fv.norm.setprogress(min(ffprogress.time_s / length, 1))
 
                 while result.poll() is None:
-                    update_progress(result.stderr.readline())
-                update_progress(result.stderr.read())
+                    update_progress(result.stderr.readline().rstrip())
+                for line in result.stderr.read().splitlines():
+                    update_progress(line)
             if (
                 result.returncode == 0
                 and (
@@ -1025,13 +1026,12 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
             length = ffmpeg.duration(fv.v("f", "duration"))
 
             def update_progress(text: str) -> None:
-                logger.debug(text.rstrip())
+                logger.debug(text)
                 if "out_time_us" in ffprogress.update(text):
                     fv.subs.setprogress(min(ffprogress.time_s / length, 1))
 
             while result.poll() is None:
-                update_progress(result.stderr.readline())
-            update_progress(result.stderr.read())
+                update_progress(result.stderr.readline().rstrip())
         if result.returncode != 0:
             fv.subs.setstatus("fail")
             return []
