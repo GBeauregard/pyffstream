@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import collections
 import concurrent.futures
 import configparser
 import contextlib
@@ -355,9 +356,14 @@ def start_stream(fv: encode.EncodeSession) -> None:
         )
         progress.update(task_id, total=length)
         progress.start_task(task_id)
-        while result.poll() is None:
-            line = result.stdout.readline()
-            logger.info(line.rstrip())
+        output_lines: collections.deque[str] = collections.deque(maxlen=50)
+
+        def update_progress(line: str) -> None:
+            nonlocal ts
+            if not (line := line.rstrip()):
+                return
+            output_lines.append(line)
+            logger.info(line)
             if updated_keys := ffprogress.update(line):
                 if "out_time_us" in updated_keys:
                     ts = ffprogress.time_s + ts_offset
@@ -368,6 +374,12 @@ def start_stream(fv: encode.EncodeSession) -> None:
                     speed=ffprogress.status["speed"],
                     timestamp=f"{sec_to_str(ts)}/{length_str}",
                 )
+
+        while result.poll() is None:
+            update_progress(result.stdout.readline())
+        for line in result.stdout:
+            update_progress(line)
+
         ts = length
         progress.update(
             task_id,
@@ -378,6 +390,7 @@ def start_stream(fv: encode.EncodeSession) -> None:
             timestamp=f"{sec_to_str(ts)}/{length_str}",
         )
     if result.returncode != 0:
+        logger.error("\n".join(output_lines))
         console.print(f"stream finished with exit code {result.returncode}")
     else:
         console.print("stream finished")

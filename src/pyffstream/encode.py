@@ -819,18 +819,18 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 length = ffmpeg.duration(fv.v("f", "duration"))
                 output: collections.deque[str] = collections.deque(maxlen=50)
 
-                def update_progress(text: str) -> None:
-                    output.append(text)
-                    logger.debug(text)
-                    if "out_time_us" in ffprogress.update(text):
+                def update_progress(line: str) -> None:
+                    if not (line := line.rstrip()):
+                        return
+                    output.append(line)
+                    logger.debug(line)
+                    if "out_time_us" in ffprogress.update(line):
                         fv.norm.setprogress(min(ffprogress.time_s / length, 1))
 
                 while result.poll() is None:
-                    if line := result.stderr.readline().rstrip():
-                        update_progress(line)
+                    update_progress(result.stderr.readline())
                 for line in result.stderr:
-                    if line := line.rstrip():
-                        update_progress(line)
+                    update_progress(line)
             if (
                 result.returncode == 0
                 and (

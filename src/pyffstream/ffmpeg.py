@@ -752,6 +752,8 @@ class Filter:
 
 
 class Progress:
+    """Assists in monitoring the progress output of an ffmpeg encode."""
+
     flags: Final = ["-progress", "pipe:2", "-nostats"]
     _status_regex: Final = re.compile(
         r"^(?P<key>[a-z_0-9]+)=(?P<val>.+)$", flags=re.MULTILINE
