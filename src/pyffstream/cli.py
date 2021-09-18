@@ -230,7 +230,7 @@ def status_wait(
 
         def get_futurestatus() -> rich.text.Text:
             status_texts = []
-            fv.update_avail = False
+            fv.update_avail.clear()
             for status in unfinished:
                 status_texts.append(f"{status.name}: {status.getstatus():>6}")
             output = "status: " + "  ".join(status_texts)
@@ -240,7 +240,7 @@ def status_wait(
             get_futurestatus(), console=console, auto_refresh=False
         ) as live:
             while concurrent.futures.wait(futures, 0.1).not_done:
-                if fv.update_avail:
+                if fv.update_avail.is_set():
                     live.update(get_futurestatus(), refresh=True)
             live.update(get_futurestatus(), refresh=True)
 

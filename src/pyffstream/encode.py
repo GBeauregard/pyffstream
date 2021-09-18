@@ -135,7 +135,7 @@ class EncodeSession:
             streamfutures = executor.map(lambda p: FileStreamVals(*p), iargs)
             self.filts = FilterList()
             self.statuses = []
-            self.update_avail = False
+            self.update_avail = threading.Event()
             if self.ev.crop:
                 self.crop = StatusThread(self, "crop")
                 self.statuses.append(self.crop)
@@ -351,12 +351,12 @@ class StatusThread:
     def setstatus(self, status: str) -> None:
         with self.__lock:
             self.status = status
-            self.fv.update_avail = True
+            self.fv.update_avail.set()
 
     def setprogress(self, progress: float | int) -> None:
         with self.__lock:
             self.progress = progress
-            self.fv.update_avail = True
+            self.fv.update_avail.set()
 
     def getstatus(self) -> str:
         with self.__lock:
