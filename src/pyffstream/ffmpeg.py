@@ -753,7 +753,7 @@ class Filter:
 
 class Progress:
     flags: Final = ["-progress", "pipe:2", "-nostats"]
-    status_regex: Final = re.compile(
+    _status_regex: Final = re.compile(
         r"^(?P<key>[a-z_0-9]+)=(?P<val>.+)$", flags=re.MULTILINE
     )
 
@@ -775,7 +775,7 @@ class Progress:
 
     def update(self, line: str) -> set[str]:
         keylist = set()
-        for match in self.status_regex.finditer(line):
+        for match in self._status_regex.finditer(line):
             keylist.add(match.group("key"))
             self.status[match.group("key")] = match.group("val")
         return keylist
