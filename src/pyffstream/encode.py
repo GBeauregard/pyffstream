@@ -898,7 +898,7 @@ def determine_bounds(fv: EncodeSession) -> None:
 def determine_subtitles(fv: EncodeSession) -> None:
     if fv.fv("s", "codec_type") != "subtitle":
         fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
-        logger.error(
+        logger.warning(
             "No subtitles detected in file, but subtitles were marked as enabled."
         )
         return
@@ -1048,6 +1048,9 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
                 update_progress(result.stderr.readline().rstrip())
         if result.returncode != 0:
             fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
+            logger.warning(
+                f"extracting subtitles failed with exit code {result.returncode}"
+            )
             return []
         if fv.ev.is_playlist and fv.fv("s", "codec_name") == "ass":
             fv.subs.setstatus(StatusThread.Code.OTHER, "merging")
@@ -1078,6 +1081,10 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
             )
             if extract_result.returncode != 0:
                 fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
+                logger.warning(
+                    "extracting merged subtitles failed with exit code"
+                    f" {result.returncode}"
+                )
                 return []
             sublines = subass.read_text().splitlines()
             mainstyle = parse_stylelines(sublines)
@@ -1119,6 +1126,10 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
             subass.unlink()
             if merge_result.returncode != 0:
                 fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
+                logger.warning(
+                    "merging subtitles with attachments failed with exit code"
+                    f" {result.returncode}"
+                )
                 return []
     subfilter = ffmpeg.Filter(
         "subtitles", ffmpeg.Filter.full_escape(str(subpath)), f"si={subindex}"
