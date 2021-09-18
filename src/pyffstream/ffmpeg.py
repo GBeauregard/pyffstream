@@ -580,7 +580,7 @@ def num(val: str | int | float) -> float:
         )?
         (?P<byte>B)?
         """,
-        flags=re.VERBOSE,
+        flags=re.VERBOSE | re.ASCII,
     )
     if (match := input_regex.fullmatch(val)) is None:
         raise ValueError(f"Invalid ffmpeg number string: {val!r}")
@@ -607,12 +607,17 @@ def duration(timestamp: str | float | int) -> float:
     https://ffmpeg.org/ffmpeg-utils.html#Time-duration
     """
     timestamp = str(timestamp)
-    if re.fullmatch(r"(\d+:)?\d?\d:\d\d(\.\d*)?", timestamp) is not None:
+    if (
+        re.fullmatch(r"(\d+:)?\d?\d:\d\d(\.\d*)?", timestamp, flags=re.ASCII)
+        is not None
+    ):
         return sum(
             s * float(t) for s, t in zip([1, 60, 3600], reversed(timestamp.split(":")))
         )
     if (
-        match := re.fullmatch(r"(-?(?:\d+\.?\d*|\.\d+))([mu]?s)?", timestamp)
+        match := re.fullmatch(
+            r"(-?(?:\d+\.?\d*|\.\d+))([mu]?s)?", timestamp, flags=re.ASCII
+        )
     ) is not None:
         val = float(match.group(1))
         if match.group(2) == "ms":
@@ -744,3 +749,43 @@ class Filter:
             return self.basefilter + "=" + ":".join(self.opts)
         else:
             return self.basefilter
+
+
+class Progress:
+    progress_flags: Final = ["-progress", "pipe:1", "-nostats"]
+    status_regex: Final = re.compile(
+        r"^(?P<key>[a-z_0-9]+)=(?P<val>.+)$", flags=re.MULTILINE
+    )
+
+    def __init__(self) -> None:
+        self.status: dict[str, str] = {
+            "frame": "0",
+            "fps": "0",
+            "stream_0_0_q": "0.0",
+            "bitrate": "0kbit/s",
+            "total_size": "0",
+            "out_time_us": "0",
+            "out_time_ms": "0",
+            "out_time": "00:00:00",
+            "dup_frames": "0",
+            "drop_frames": "0",
+            "speed": "0x",
+            "progress": "continue",
+        }
+
+    def update(self, line: str) -> set[str]:
+        keylist = set()
+        for match in self.status_regex.finditer(line):
+            keylist.add(match.group("key"))
+            self.status[match.group("key")] = match.group("val")
+        return keylist
+
+    @property
+    def time_us(self) -> int:
+        if (utime := self.status["out_time_us"]).isdigit():
+            return int(utime)
+        return 0
+
+    @property
+    def time_s(self) -> float:
+        return self.time_us / 1_000_000

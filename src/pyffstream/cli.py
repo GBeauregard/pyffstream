@@ -304,6 +304,7 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
 
 def start_stream(fv: encode.EncodeSession) -> None:
     """Start and track the actual encode."""
+    fv.ev.ff_flags += ffmpeg.Progress.progress_flags
     with subprocess.Popen(
         fv.ev.ff_flags,
         text=True,
@@ -320,30 +321,12 @@ def start_stream(fv: encode.EncodeSession) -> None:
         "[red]{task.fields[bitrate]}",
         "•",
         "[cyan]{task.fields[speed]:<6}",
-        auto_refresh=False,
+        refresh_per_second=2,
         console=console,
     ) as progress:
         assert result.stdout is not None
-        statusregex = re.compile(
-            r"""
-            time=\s*
-            (?:(?P<time>[\d:\.]+)|N\/A)
-            (?:
-                .*?
-                bitrate=\s*
-                (?:(?P<bitrate>[\d\.]+[kbit/s]*)|N\/A)
-            )?
-            (?:
-                .*?
-                speed=\s*
-                (?:(?P<speed>[\d\.]+x)|N\/A)
-            )?
-            """,
-            flags=re.VERBOSE,
-        )
-        ts = 0.0
-        br = "0kbit/s"
-        speed = "0x"
+
+        ffprogress = ffmpeg.Progress()
 
         if fv.ev.clip_length:
             length = ffmpeg.duration(fv.ev.clip_length)
@@ -354,6 +337,7 @@ def start_stream(fv: encode.EncodeSession) -> None:
         else:
             ts_offset = 0.0
 
+        ts = 0.0
         ts += ts_offset
 
         def sec_to_str(seconds: float | int) -> str:
@@ -365,8 +349,8 @@ def start_stream(fv: encode.EncodeSession) -> None:
 
         task_id = progress.add_task(
             "Encode",
-            bitrate=br,
-            speed=speed,
+            bitrate=ffprogress.status["bitrate"],
+            speed=ffprogress.status["speed"],
             timestamp=f"{sec_to_str(ts)}/{length_str}",
             start=False,
         )
@@ -375,19 +359,14 @@ def start_stream(fv: encode.EncodeSession) -> None:
         while result.poll() is None:
             line = result.stdout.readline()
             logger.info(line.rstrip())
-            if (match := statusregex.search(line)) is not None:
-                if match.group("time"):
-                    ts = ffmpeg.duration(match.group("time")) + ts_offset
-                if match.group("bitrate"):
-                    br = match.group("bitrate")
-                if match.group("speed"):
-                    speed = match.group("speed")
+            if updated_keys := ffprogress.update(line):
+                if "out_time_us" in updated_keys:
+                    ts = ffprogress.time_s + ts_offset
                 progress.update(
                     task_id,
-                    refresh=True,
                     completed=ts,
-                    bitrate=br,
-                    speed=speed,
+                    bitrate=ffprogress.status["bitrate"],
+                    speed=ffprogress.status["speed"],
                     timestamp=f"{sec_to_str(ts)}/{length_str}",
                 )
         ts = length
@@ -395,8 +374,8 @@ def start_stream(fv: encode.EncodeSession) -> None:
             task_id,
             refresh=True,
             completed=ts,
-            bitrate=br,
-            speed=speed,
+            bitrate=ffprogress.status["bitrate"],
+            speed=ffprogress.status["speed"],
             timestamp=f"{sec_to_str(ts)}/{length_str}",
         )
     if result.returncode != 0:

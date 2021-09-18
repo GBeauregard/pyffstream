@@ -498,7 +498,7 @@ class StaticEncodeVars:
     filter_flags: MutableSequence[str] = dataclasses.field(default_factory=list)
     output_flags: MutableSequence[str] = dataclasses.field(default_factory=list)
     shader_list: MutableSequence[str] = dataclasses.field(default_factory=list)
-    ff_flags: Sequence[str] = dataclasses.field(default_factory=list)
+    ff_flags: MutableSequence[str] = dataclasses.field(default_factory=list)
     srt_passphrase: str = ""
     ff_verbosity_flags: Sequence[str] = dataclasses.field(default_factory=list)
     ff_deepprobe_flags: Sequence[str] = dataclasses.field(default_factory=list)
