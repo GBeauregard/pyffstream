@@ -254,8 +254,10 @@ def status_wait(
                         progress.start_task(task_id)
                         completed = status.progress
                     elif status.status == encode.StatusThread.Code.FINISHED:
+                        progress.stop_task(task_id)
                         completed = 1.0
                     elif status.status == encode.StatusThread.Code.FAILED:
+                        progress.stop_task(task_id)
                         completed = 0
                     else:
                         progress.reset(task_id, start=False)
