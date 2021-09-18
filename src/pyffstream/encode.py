@@ -793,8 +793,8 @@ def determine_anormalize(fv: EncodeSession) -> None:
             # fmt: off
             normargs = [
                 ffmpeg.ff_bin.ffmpeg,
-                *fv.ev.ff_deepprobe_flags,
                 *ffmpeg.Progress.flags,
+                *fv.ev.ff_deepprobe_flags,
                 "-hide_banner",
                 "-hwaccel", "auto",
                 *fv.fopts.main,
@@ -823,9 +823,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
                     nonlocal output
                     output.append(text)
                     logger.debug(text.rstrip())
-                    if (
-                        updated_keys := ffprogress.update(text)
-                    ) and "out_time_us" in updated_keys:
+                    if "out_time_us" in ffprogress.update(text):
                         fv.norm.setprogress(min(ffprogress.time_s / length, 1))
 
                 while result.poll() is None:
@@ -994,6 +992,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
         # fmt: off
         subargs = [
             ffmpeg.ff_bin.ffmpeg,
+            *ffmpeg.Progress.flags,
             *fv.ev.ff_deepprobe_flags,
             "-hide_banner",
             "-hwaccel", "auto",
@@ -1022,26 +1021,17 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
         ) as result:
             assert result.stderr is not None
             fv.subs.setstatus("run")
-            statusregex = re.compile(
-                r"""
-                time=\s*
-                (?:(?P<time>[\d:\.]+)|N\/A)
-                .*
-                speed=\s*
-                (?:(?P<speed>[\d\.]+x)|N\/A)
-                """,
-                flags=re.VERBOSE,
-            )
+            ffprogress = ffmpeg.Progress()
             length = ffmpeg.duration(fv.v("f", "duration"))
+
+            def update_progress(text: str) -> None:
+                logger.debug(text.rstrip())
+                if "out_time_us" in ffprogress.update(text):
+                    fv.subs.setprogress(min(ffprogress.time_s / length, 1))
+
             while result.poll() is None:
-                line = result.stderr.readline()
-                logger.debug(line.rstrip())
-                if (match := statusregex.search(line)) is not None:
-                    if match.group("time"):
-                        ts = ffmpeg.duration(match.group("time"))
-                        fv.subs.setprogress(min(ts / length, 1))
-                    if match.group("speed"):
-                        logger.info(f'sub speed: {match.group("speed")}')
+                update_progress(result.stderr.readline())
+            update_progress(result.stderr.read())
         if result.returncode != 0:
             fv.subs.setstatus("fail")
             return []
@@ -1448,6 +1438,7 @@ def set_input_flags(fv: EncodeSession) -> None:
     if fv.ev.vulkan and "vulkan" in ffmpeg.ff_bin.hwaccels:
         hwaccel_flags += ["init_hw_device", "vulkan=vulk"]
     input_flags = [
+        *ffmpeg.Progress.flags,
         *fv.ev.ff_verbosity_flags,
         *fv.ev.ff_deepprobe_flags,
         *hwaccel_flags,
@@ -1565,7 +1556,6 @@ def set_filter_flags(fv: EncodeSession) -> None:
 def set_ffmpeg_flags(fv: EncodeSession) -> None:
     ff_flags = [
         ffmpeg.ff_bin.ffmpeg,
-        *ffmpeg.Progress.flags,
         *fv.ev.input_flags,
         *fv.ev.filter_flags,
         *fv.ev.encode_flags,
