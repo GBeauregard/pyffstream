@@ -217,9 +217,9 @@ class FileStreamVals:
 
     def getval(self, key: str, t: ffmpeg.StrProbetype = "stream") -> str:
         with self.__lock:
-            if (fileval := self.getfileval(key, t)) is not None:
-                return fileval
-            elif (fileval := self.getdefault(key, t)) is not None:
+            if (fileval := self.getfileval(key, t)) is not None or (
+                fileval := self.getdefault(key, t)
+            ) is not None:
                 return fileval
             else:
                 raise ValueError(
@@ -1424,13 +1424,12 @@ def get_vflags(fv: EncodeSession) -> list[str]:
     vflags = []
     if fv.ev.copy_video:
         fv.ev.vstandard = fv.v("v", "codec_name")
-        if (bitrate := fv.fv("v", "bit_rate")) is not None:
-            fv.ev.vbitrate = bitrate
-        elif (bitrate := fv.fv("v", "BPS", "tags")) is not None:
-            fv.ev.vbitrate = bitrate
-        elif (bitrate := fv.fv("v", "BPS-eng", "tags")) is not None:
-            fv.ev.vbitrate = bitrate
-        elif (bitrate := fv.fv("f", "bit_rate")) is not None:
+        if (
+            (bitrate := fv.fv("v", "bit_rate")) is not None
+            or (bitrate := fv.fv("v", "BPS", "tags")) is not None
+            or (bitrate := fv.fv("v", "BPS-eng", "tags")) is not None
+            or (bitrate := fv.fv("f", "bit_rate")) is not None
+        ):
             fv.ev.vbitrate = bitrate
         vflags += ["-c:v", "copy"]
         logger.debug(f"Using vbitrate for copy: {fv.ev.vbitrate}")
