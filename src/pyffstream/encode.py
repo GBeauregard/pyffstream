@@ -684,7 +684,7 @@ def determine_autocrop(fv: EncodeSession) -> None:
             blines = bytearray()
             for _ in range(5):
                 blines += result.stderr.readline()
-            lines = blines.decode()
+            lines = blines.decode().rstrip()
             logger.debug(lines)
             for match in crop_regex.finditer(lines):
                 if match.group("time"):

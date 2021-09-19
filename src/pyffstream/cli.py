@@ -9,10 +9,12 @@ import contextlib
 import copy
 import dataclasses
 import logging
+import logging.handlers
 import math
 import os
 import pathlib
 import platform
+import queue
 import re
 import shutil
 import subprocess
@@ -573,17 +575,22 @@ class DefaultConfig:
 
 def set_console_logger(verbosity: int) -> None:
     """Set loglevel."""
+    root_logger = logging.getLogger("")
     if verbosity >= 2:
-        logging.getLogger("").setLevel(logging.DEBUG)
+        root_logger.setLevel(logging.DEBUG)
     elif verbosity >= 1:
-        logging.getLogger("").setLevel(logging.INFO)
+        root_logger.setLevel(logging.INFO)
     else:
-        logging.getLogger("").setLevel(logging.WARNING)
+        root_logger.setLevel(logging.WARNING)
 
     rhandler = rich.logging.RichHandler(
         console=console, show_time=False, show_path=False
     )
-    logging.getLogger("").addHandler(rhandler)
+    que = queue.Queue()
+    queue_handler = logging.handlers.QueueHandler(que)
+    listener = logging.handlers.QueueListener(que, rhandler)
+    root_logger.addHandler(queue_handler)
+    listener.start()
 
 
 def download_win_ffmpeg(dltype: str = "git") -> bool:
