@@ -320,6 +320,16 @@ class FFProbeJSON(TypedDict, total=False):
     format: Mapping[str, str]
 
 
+_QUERY_PREFIX = {
+    ProbeType.STREAM: "stream=",
+    ProbeType.TAGS: "stream_tags=",
+    ProbeType.DISPOSITION: "stream_disposition=",
+    ProbeType.FORMAT: "format=",
+    ProbeType.RAW_STREAM: "",
+    ProbeType.RAW_FORMAT: "",
+}
+
+
 @overload
 def probe(
     streamquery: str,
@@ -418,9 +428,11 @@ def probe(
     probeargs = [
         ff_bin.ffprobe,
         *deep_probe_flags,
-        '-v', '0',
-        '-of', 'json=c=1',
-        *([extraargs] if isinstance(extraargs, str) else extraargs),
+        "-v", "0",
+        "-of", "json=c=1",
+        *((extraargs,) if isinstance(extraargs, str) else extraargs),
+        "-show_entries", _QUERY_PREFIX[probetype] + streamquery,
+        *((fileargs,) if isinstance(fileargs, str) else fileargs),
     ]
     # fmt: on
     if probetype in {
@@ -430,22 +442,6 @@ def probe(
         ProbeType.RAW_STREAM,
     }:
         probeargs += ["-select_streams", streamtype]
-    probeargs += ["-show_entries"]
-    # TODO: change to match case in 3.10
-    if probetype is ProbeType.STREAM:
-        probeargs += ["stream=" + streamquery]
-    elif probetype is ProbeType.TAGS:
-        probeargs += ["stream_tags=" + streamquery]
-    elif probetype is ProbeType.DISPOSITION:
-        probeargs += ["stream_disposition=" + streamquery]
-    elif probetype is ProbeType.FORMAT:
-        probeargs += ["format=" + streamquery]
-    elif probetype in {ProbeType.RAW_STREAM, ProbeType.RAW_FORMAT}:
-        probeargs += [streamquery]
-    else:
-        raise ValueError("invalid probe type query")
-
-    probeargs += fileargs if not isinstance(fileargs, str) else [fileargs]
     result = subprocess.run(
         probeargs, capture_output=True, env=ff_bin.env, text=True, check=False
     )
@@ -470,10 +466,7 @@ def probe(
     except (KeyError, IndexError):
         # TODO: remove parentheses in 3.10
         return fallback
-    if returnval not in {"N/A", "unknown"}:
-        return returnval
-    else:
-        return fallback
+    return fallback if returnval in {"N/A", "unknown"} else returnval
 
 
 def make_playlist(
