@@ -586,7 +586,7 @@ def set_console_logger(verbosity: int) -> None:
     rhandler = rich.logging.RichHandler(
         console=console, show_time=False, show_path=False
     )
-    que = queue.Queue()
+    que: queue.Queue[Any] = queue.Queue()
     queue_handler = logging.handlers.QueueHandler(que)
     listener = logging.handlers.QueueListener(que, rhandler)
     root_logger.addHandler(queue_handler)
