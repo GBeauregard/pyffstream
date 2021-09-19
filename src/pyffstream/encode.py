@@ -147,59 +147,50 @@ class EncodeSession:
                 self.subs = StatusThread(self, "subtitles")
                 self.statuses.append(self.subs)
         (
-            self.vstreamvals,
-            self.astreamvals,
-            self.sstreamvals,
-            self.fstreamvals,
+            vstreamvals,
+            astreamvals,
+            sstreamvals,
+            fstreamvals,
         ) = streamfutures
+        self.streamvals = {
+            "v": vstreamvals,
+            "a": astreamvals,
+            "s": sstreamvals,
+            "f": fstreamvals,
+        }
 
     def __del__(self) -> None:
         self.executor.shutdown()
 
-    def streamvals(self, stype: str) -> FileStreamVals:
-        # TODO: change to match case in 3.10
-        if stype == "v":
-            return self.vstreamvals
-        elif stype == "a":
-            return self.astreamvals
-        elif stype == "s":
-            return self.sstreamvals
-        elif stype == "f":
-            return self.fstreamvals
-        else:
-            raise ValueError(f"invalid query type: {stype!r}")
-
-    def v(
-        self, stype: str, key: str, ptype: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM
-    ) -> str:
+    def v(self, stype: str, key: str, ptype: ffmpeg.StrProbetype | None = None) -> str:
         """Get file val (with default fallback)."""
-        return self.streamvals(stype).getval(key, ptype)
+        return self.streamvals[stype].getval(key, ptype)
 
     def fv(
-        self, stype: str, key: str, ptype: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM
+        self, stype: str, key: str, ptype: ffmpeg.StrProbetype | None = None
     ) -> str | None:
         """Get file val (without default fallback)."""
-        return self.streamvals(stype).getfileval(key, ptype)
+        return self.streamvals[stype].getfileval(key, ptype)
 
     def dv(
-        self, stype: str, key: str, ptype: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM
+        self, stype: str, key: str, ptype: ffmpeg.StrProbetype | None = None
     ) -> str | None:
         """Get default val."""
-        return self.streamvals(stype).getdefault(key, ptype)
+        return self.streamvals[stype].getdefault(key, ptype)
 
     def sdv(
         self,
         stype: str,
         key: str,
         val: str,
-        ptype: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM,
+        ptype: ffmpeg.StrProbetype | None = None,
     ) -> str | None:
         """Set default val."""
-        return self.streamvals(stype).setdefault(key, val, ptype)
+        return self.streamvals[stype].setdefault(key, val, ptype)
 
     def sdvs(self, stype: str, vals: Mapping[str, str | Mapping[str, str]]) -> None:
         """Set default vals by specifying dict to merge in."""
-        self.streamvals(stype).setdefaults(vals)
+        self.streamvals[stype].setdefaults(vals)
 
 
 class FileStreamVals:
