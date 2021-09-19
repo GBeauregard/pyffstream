@@ -204,28 +204,25 @@ class EncodeSession:
 
 class FileStreamVals:
     def get_t_valdict(
-        self, t: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM
+        self, t: ffmpeg.StrProbetype | None = None
     ) -> tuple[ffmpeg.StrProbetype, dict[str, str | None], dict[str, str | None]]:
         with self.__lock:
-            if not self.is_stream:
-                t = ffmpeg.ProbeType.FORMAT
+            probetype = self.default_probetype if t is None else t
             # TODO: 3.10 match case
-            if t in {ffmpeg.ProbeType.STREAM, ffmpeg.ProbeType.FORMAT}:
-                filedict = self.filevals
-                defaultdict = self.defaultvals
-                return t, filedict, defaultdict
-            elif t in {ffmpeg.ProbeType.TAGS, ffmpeg.ProbeType.DISPOSITION}:
-                if t is ffmpeg.ProbeType.TAGS:
-                    key = "tags"
-                elif t is ffmpeg.ProbeType.DISPOSITION:
-                    key = "disposition"
-                subfiledict = self.filevals[key]
-                subdefaultdict = self.defaultvals[key]
-                return t, subfiledict, subdefaultdict
+            if probetype in {ffmpeg.ProbeType.STREAM, ffmpeg.ProbeType.FORMAT}:
+                file_dict = self.filevals
+                default_dict = self.defaultvals
+            elif probetype is ffmpeg.ProbeType.TAGS:
+                file_dict = self.filevals["tags"]
+                default_dict = self.defaultvals["tags"]
+            elif probetype is ffmpeg.ProbeType.DISPOSITION:
+                file_dict = self.filevals["disposition"]
+                default_dict = self.defaultvals["disposition"]
             else:
                 raise ValueError(f"Invalid streamtype {t!r} passed to get_t_valdict")
+            return probetype, file_dict, default_dict
 
-    def getval(self, key: str, t: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM) -> str:
+    def getval(self, key: str, t: ffmpeg.StrProbetype | None = None) -> str:
         with self.__lock:
             if (fileval := self.getfileval(key, t)) is not None or (
                 fileval := self.getdefault(key, t)
@@ -237,16 +234,14 @@ class FileStreamVals:
                     " function."
                 )
 
-    def getfileval(
-        self, key: str, t: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM
-    ) -> str | None:
+    def getfileval(self, key: str, t: ffmpeg.StrProbetype | None = None) -> str | None:
         with self.__lock:
-            t, valdict, _ = self.get_t_valdict(t)
+            probetype, valdict, _ = self.get_t_valdict(t)
             try:
                 return valdict[key]
             except KeyError:
                 logger.warning(
-                    f"File probed for uncached val {key} of type {t} for"
+                    f"File probed for uncached val {key} of type {probetype} for"
                     f" {self.selector}"
                 )
                 if self.fv.ev.live or (not self.fv.ev.subs and self.selector[0] == "s"):
@@ -256,20 +251,18 @@ class FileStreamVals:
                         key,
                         self.fileargs,
                         self.selector,
-                        probetype=t,
+                        probetype=probetype,
                         deep_probe=self.fv.ev.deep_probe,
                     )
                 valdict[key] = readval
                 return readval
 
-    def getdefault(
-        self, key: str, t: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM
-    ) -> str | None:
+    def getdefault(self, key: str, t: ffmpeg.StrProbetype | None = None) -> str | None:
         with self.__lock:
             return self.get_t_valdict(t)[2].get(key)
 
     def setdefault(
-        self, key: str, val: str, t: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM
+        self, key: str, val: str, t: ffmpeg.StrProbetype | None = None
     ) -> str:
         with self.__lock:
             self.get_t_valdict(t)[2][key] = val
@@ -297,17 +290,20 @@ class FileStreamVals:
         self.selector, self.fileargs = selector, list(fileargs).copy()
         self.fileargs.pop(-2)
         emptydict: dict[str, Any] = {}
-        self.probetype: ffmpeg.JsonProbetype
+        init_probetype: ffmpeg.JsonProbetype
+        self.default_probetype: ffmpeg.StrProbetype
         if self.selector[0] in {"v", "a", "s"}:
             self.is_stream = True
-            self.probetype = ffmpeg.ProbeType.RAW_STREAM
+            self.default_probetype = ffmpeg.ProbeType.STREAM
+            init_probetype = ffmpeg.ProbeType.RAW_STREAM
             emptydict = {
                 "disposition": {},
                 "tags": {},
             }
         elif self.selector[0] == "f":
             self.is_stream = False
-            self.probetype = ffmpeg.ProbeType.RAW_FORMAT
+            self.default_probetype = ffmpeg.ProbeType.FORMAT
+            init_probetype = ffmpeg.ProbeType.RAW_FORMAT
             emptydict = {}
         else:
             raise ValueError(f"invalid selector: {self.selector!r}")
@@ -323,7 +319,7 @@ class FileStreamVals:
                     probestr,
                     self.fileargs,
                     self.selector,
-                    probetype=self.probetype,
+                    probetype=init_probetype,
                     deep_probe=self.fv.ev.deep_probe,
                 )
                 if outjson is not None:
