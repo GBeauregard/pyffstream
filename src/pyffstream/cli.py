@@ -451,7 +451,14 @@ def stream_file(fopts: encode.FileOpts, args: argparse.Namespace) -> None:
     encode.set_filter_flags(fv)
     encode.set_ffmpeg_flags(fv)
     if fv.ev.wait:
-        console.input(rich.text.Text("Press Enter to continue...", end=""))
+        with rich.live.Live(
+            rich.text.Text("Press Enter to continue...", end=""),
+            auto_refresh=False,
+            transient=True,
+            console=console,
+        ):
+            console.input()
+
     if fv.ev.pyffserver and not fv.ev.outfile:
         setup_pyffserver_stream(fv)
     start_stream(fv)
