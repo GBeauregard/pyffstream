@@ -1233,7 +1233,10 @@ def get_parserconfig(
     )
     ff_binary_group.add_argument(
         "--system-ffmpeg",
-        help="use system ffmpeg binaries instead of configured (default is system)",
+        help=(
+            "use system ffmpeg binaries instead of configured (default is system if"
+            " unconfigured)"
+        ),
         action="store_true",
     )
     if platform.system() == "Windows" or reproducible:
