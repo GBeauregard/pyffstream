@@ -230,7 +230,9 @@ def status_wait(
             unfinished = fv.statuses
         else:
             unfinished = [
-                s for s in fv.statuses if s.status != encode.StatusThread.Code.FINISHED
+                s
+                for s in fv.statuses
+                if s.status is not encode.StatusThread.Code.FINISHED
             ]
 
         with rich.progress.Progress(
@@ -253,13 +255,13 @@ def status_wait(
                 for task_id, status in zip(task_ids, unfinished):
                     fv.update_avail.clear()
                     # TODO: 3.10 match case
-                    if status.status == encode.StatusThread.Code.RUNNING:
+                    if status.status is encode.StatusThread.Code.RUNNING:
                         progress.start_task(task_id)
                         completed = status.progress
-                    elif status.status == encode.StatusThread.Code.FINISHED:
+                    elif status.status is encode.StatusThread.Code.FINISHED:
                         progress.stop_task(task_id)
                         completed = 1.0
-                    elif status.status == encode.StatusThread.Code.FAILED:
+                    elif status.status is encode.StatusThread.Code.FAILED:
                         progress.stop_task(task_id)
                         completed = 0
                     else:

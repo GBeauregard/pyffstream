@@ -859,7 +859,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 json_to_normfilt(jsonout)
             else:
                 logger.info("\n".join(output))
-                logger.warning("Normalization failed")
+                logger.warning("normalization failed")
                 fv.norm.setstatus(StatusThread.Code.FAILED, "[red]failed")
         elif fv.ev.normfile.is_file():
             fv.norm.setstatus(StatusThread.Code.OTHER, "opening")
@@ -869,7 +869,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
         else:
             fv.norm.setstatus(StatusThread.Code.FAILED, "[red]failed")
             raise ValueError("provided normalization file isn't a file")
-    if fv.norm.status == StatusThread.Code.FINISHED:
+    if fv.norm.status is StatusThread.Code.FINISHED:
         logger.info(f'anormalize filter:\n{fv.filts["anormalize"]}')
 
 
