@@ -9,7 +9,7 @@ license = {file = "LICENSE"}
 version = "0.0.3.dev1"
 authors = [{email = "pyffstream@gably.net"}]
 dynamic = ["description"]
-keywords = ["ffmpeg", "streaming", "srt"]
+keywords = ["ffmpeg", "streaming", "srt", "rtmp"]
 classifiers = [
   "License :: OSI Approved :: MIT License",
   "Development Status :: 3 - Alpha",
