@@ -169,24 +169,30 @@ class EncodeSession:
         else:
             raise ValueError(f"invalid query type: {stype!r}")
 
-    def v(self, stype: str, key: str, ptype: ffmpeg.StrProbetype = "stream") -> str:
+    def v(
+        self, stype: str, key: str, ptype: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM
+    ) -> str:
         """Get file val (with default fallback)."""
         return self.streamvals(stype).getval(key, ptype)
 
     def fv(
-        self, stype: str, key: str, ptype: ffmpeg.StrProbetype = "stream"
+        self, stype: str, key: str, ptype: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM
     ) -> str | None:
         """Get file val (without default fallback)."""
         return self.streamvals(stype).getfileval(key, ptype)
 
     def dv(
-        self, stype: str, key: str, ptype: ffmpeg.StrProbetype = "stream"
+        self, stype: str, key: str, ptype: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM
     ) -> str | None:
         """Get default val."""
         return self.streamvals(stype).getdefault(key, ptype)
 
     def sdv(
-        self, stype: str, key: str, val: str, ptype: ffmpeg.StrProbetype = "stream"
+        self,
+        stype: str,
+        key: str,
+        val: str,
+        ptype: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM,
     ) -> str | None:
         """Set default val."""
         return self.streamvals(stype).setdefault(key, val, ptype)
@@ -198,24 +204,28 @@ class EncodeSession:
 
 class FileStreamVals:
     def get_t_valdict(
-        self, t: ffmpeg.StrProbetype = "stream"
+        self, t: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM
     ) -> tuple[ffmpeg.StrProbetype, dict[str, str | None], dict[str, str | None]]:
         with self.__lock:
             if not self.is_stream:
-                t = "format"
+                t = ffmpeg.ProbeType.FORMAT
             # TODO: 3.10 match case
-            if t in ["stream", "format"]:
+            if t in {ffmpeg.ProbeType.STREAM, ffmpeg.ProbeType.FORMAT}:
                 filedict = self.filevals
                 defaultdict = self.defaultvals
                 return t, filedict, defaultdict
-            elif t in ["tags", "disposition"]:
-                subfiledict = self.filevals[t]
-                subdefaultdict = self.defaultvals[t]
+            elif t in {ffmpeg.ProbeType.TAGS, ffmpeg.ProbeType.DISPOSITION}:
+                if t is ffmpeg.ProbeType.TAGS:
+                    key = "tags"
+                elif t is ffmpeg.ProbeType.DISPOSITION:
+                    key = "disposition"
+                subfiledict = self.filevals[key]
+                subdefaultdict = self.defaultvals[key]
                 return t, subfiledict, subdefaultdict
             else:
                 raise ValueError(f"Invalid streamtype {t!r} passed to get_t_valdict")
 
-    def getval(self, key: str, t: ffmpeg.StrProbetype = "stream") -> str:
+    def getval(self, key: str, t: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM) -> str:
         with self.__lock:
             if (fileval := self.getfileval(key, t)) is not None or (
                 fileval := self.getdefault(key, t)
@@ -227,7 +237,9 @@ class FileStreamVals:
                     " function."
                 )
 
-    def getfileval(self, key: str, t: ffmpeg.StrProbetype = "stream") -> str | None:
+    def getfileval(
+        self, key: str, t: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM
+    ) -> str | None:
         with self.__lock:
             t, valdict, _ = self.get_t_valdict(t)
             try:
@@ -250,11 +262,15 @@ class FileStreamVals:
                 valdict[key] = readval
                 return readval
 
-    def getdefault(self, key: str, t: ffmpeg.StrProbetype = "stream") -> str | None:
+    def getdefault(
+        self, key: str, t: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM
+    ) -> str | None:
         with self.__lock:
             return self.get_t_valdict(t)[2].get(key)
 
-    def setdefault(self, key: str, val: str, t: ffmpeg.StrProbetype = "stream") -> str:
+    def setdefault(
+        self, key: str, val: str, t: ffmpeg.StrProbetype = ffmpeg.ProbeType.STREAM
+    ) -> str:
         with self.__lock:
             self.get_t_valdict(t)[2][key] = val
             return val
@@ -284,14 +300,14 @@ class FileStreamVals:
         self.probetype: ffmpeg.JsonProbetype
         if self.selector[0] in {"v", "a", "s"}:
             self.is_stream = True
-            self.probetype = "rawstream"
+            self.probetype = ffmpeg.ProbeType.RAW_STREAM
             emptydict = {
                 "disposition": {},
                 "tags": {},
             }
         elif self.selector[0] == "f":
             self.is_stream = False
-            self.probetype = "rawformat"
+            self.probetype = ffmpeg.ProbeType.RAW_FORMAT
             emptydict = {}
         else:
             raise ValueError(f"invalid selector: {self.selector!r}")
@@ -974,7 +990,7 @@ def extract_style(
         "extradata",
         str(file),
         f"s:{sindex}",
-        "stream",
+        ffmpeg.ProbeType.STREAM,
         deep_probe,
         None,
         "-show_data",
@@ -1426,8 +1442,8 @@ def get_vflags(fv: EncodeSession) -> list[str]:
         fv.ev.vstandard = fv.v("v", "codec_name")
         if (
             (bitrate := fv.fv("v", "bit_rate")) is not None
-            or (bitrate := fv.fv("v", "BPS", "tags")) is not None
-            or (bitrate := fv.fv("v", "BPS-eng", "tags")) is not None
+            or (bitrate := fv.fv("v", "BPS", ffmpeg.ProbeType.TAGS)) is not None
+            or (bitrate := fv.fv("v", "BPS-eng", ffmpeg.ProbeType.TAGS)) is not None
             or (bitrate := fv.fv("f", "bit_rate")) is not None
         ):
             fv.ev.vbitrate = bitrate

@@ -13,6 +13,7 @@ from __future__ import annotations
 import collections
 import concurrent.futures
 import copy
+import enum
 import functools
 import json
 import os
@@ -294,9 +295,21 @@ class FFBin:
 
 ff_bin = FFBin("ffmpeg", "ffprobe", os.environ.copy())
 
+
+class ProbeType(enum.Enum):
+    STREAM = enum.auto()
+    TAGS = enum.auto()
+    DISPOSITION = enum.auto()
+    FORMAT = enum.auto()
+    RAW_STREAM = enum.auto()
+    RAW_FORMAT = enum.auto()
+
+
 # TODO: use typing.TypeAlias in 3.10
-StrProbetype = Literal["stream", "tags", "disposition", "format"]
-JsonProbetype = Literal["rawstream", "rawformat"]
+StrProbetype = Literal[
+    ProbeType.STREAM, ProbeType.TAGS, ProbeType.DISPOSITION, ProbeType.FORMAT
+]
+JsonProbetype = Literal[ProbeType.RAW_STREAM, ProbeType.RAW_FORMAT]
 StreamQueryTuple = tuple[Iterable[str], Iterable[str], Iterable[str]]
 # TODO: 3.10 | union syntax
 InitTuple = Union[StreamQueryTuple, Iterable[str]]
@@ -337,7 +350,7 @@ def probe(
     streamquery: str,
     fileargs: str | Sequence[str],
     streamtype: str = "v",
-    probetype: str = "stream",
+    probetype: ProbeType = ProbeType.STREAM,
     deep_probe: bool = False,
     fallback: str | None = None,
     extraargs: str | Sequence[str] | None = None,
@@ -363,13 +376,13 @@ def probe(
             Optional; Argument to pass on to the ``-select_streams``
             flag in ffprobe. Not needed if querying a format.
         probetype:
-            Optional; If one of "stream", "tags", "disposition",
-            "format", query file for metadata of selected probetype and
-            streamtype and return the requested streamquery of the first
-            matching stream.
-            If one of "rawstream", "rawformat", query file as before,
-            but return the raw JSON corresponding to the full
-            streamquery for all selected streamtype.
+            Optional; If one of STREAM, TAGS, DISPOSITION, FORMAT, query
+            file for metadata of selected probetype and streamtype and
+            return the requested streamquery of the first matching
+            stream.
+            If one of RAW_STREAM, RAW_FORMAT, query file as before, but
+            return the raw JSON corresponding to the full streamquery
+            for all selected streamtype.
         deep_probe:
             Optional; Pass extra arguments to ffprobe in order to probe
             the file more deeply. This is useful for containers that
@@ -410,19 +423,24 @@ def probe(
         *([extraargs] if isinstance(extraargs, str) else extraargs),
     ]
     # fmt: on
-    if probetype in {"stream", "tags", "disposition", "rawstream"}:
+    if probetype in {
+        ProbeType.STREAM,
+        ProbeType.TAGS,
+        ProbeType.DISPOSITION,
+        ProbeType.RAW_STREAM,
+    }:
         probeargs += ["-select_streams", streamtype]
     probeargs += ["-show_entries"]
     # TODO: change to match case in 3.10
-    if probetype == "stream":
+    if probetype is ProbeType.STREAM:
         probeargs += ["stream=" + streamquery]
-    elif probetype == "tags":
+    elif probetype is ProbeType.TAGS:
         probeargs += ["stream_tags=" + streamquery]
-    elif probetype == "disposition":
+    elif probetype is ProbeType.DISPOSITION:
         probeargs += ["stream_disposition=" + streamquery]
-    elif probetype == "format":
+    elif probetype is ProbeType.FORMAT:
         probeargs += ["format=" + streamquery]
-    elif probetype in {"rawstream", "rawformat"}:
+    elif probetype in {ProbeType.RAW_STREAM, ProbeType.RAW_FORMAT}:
         probeargs += [streamquery]
     else:
         raise ValueError("invalid probe type query")
@@ -434,18 +452,18 @@ def probe(
     if result.returncode != 0:
         return fallback
     jsonout: FFProbeJSON = json.loads(result.stdout)
-    if probetype in {"rawstream", "rawformat"}:
+    if probetype in {ProbeType.RAW_STREAM, ProbeType.RAW_FORMAT}:
         return jsonout
     try:
         # TODO: change to match case in 3.10
         returnval: str
-        if probetype == "stream":
+        if probetype is ProbeType.STREAM:
             returnval = jsonout["streams"][0][streamquery]
-        elif probetype == "tags":
+        elif probetype is ProbeType.TAGS:
             returnval = jsonout["streams"][0]["tags"][streamquery]
-        elif probetype == "disposition":
+        elif probetype is ProbeType.DISPOSITION:
             returnval = jsonout["streams"][0]["disposition"][streamquery]
-        elif probetype == "format":
+        elif probetype is ProbeType.FORMAT:
             returnval = jsonout["format"][streamquery]
         else:
             raise ValueError("invalid probe type query")
@@ -483,7 +501,8 @@ def make_playlist(
     durfutures = None
     if add_duration:
         iargs = [
-            ("duration", str(fpath), None, "format", deep_probe) for fpath in pathlist
+            ("duration", str(fpath), None, ProbeType.FORMAT, deep_probe)
+            for fpath in pathlist
         ]
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=config.MAX_IO_JOBS

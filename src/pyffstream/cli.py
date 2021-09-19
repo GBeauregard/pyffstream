@@ -64,7 +64,7 @@ def get_stream_list(
         ffmpeg.format_probestring(query_tuple, True),
         myfileargs,
         streamtype,
-        probetype="rawstream",
+        probetype=ffmpeg.ProbeType.RAW_STREAM,
         extraargs="-pretty",
         deep_probe=deep_probe,
     )
@@ -182,7 +182,7 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
             ffmpeg.probe,
             "duration",
             probefargs,
-            probetype="format",
+            probetype=ffmpeg.ProbeType.FORMAT,
             extraargs="-pretty",
             deep_probe=deep_probe,
         )
