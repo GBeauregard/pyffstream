@@ -6,7 +6,7 @@ build-backend = "flit_core.buildapi"
 name = "pyffstream"
 readme = "README.md"
 license = {file = "LICENSE"}
-version = "0.0.2.dev19"
+version = "0.0.2rc1"
 authors = [{email = "pyffstream@gably.net"}]
 dynamic = ["description"]
 keywords = ["ffmpeg", "streaming", "srt"]
