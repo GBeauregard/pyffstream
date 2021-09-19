@@ -341,28 +341,28 @@ class FileStreamVals:
 
 
 class StatusThread:
-    class Code(enum.IntEnum):
-        FAILED = 0
-        FINISHED = 1
-        NOT_STARTED = 2
-        RUNNING = 3
-        OTHER = 4
+    class Code(enum.Enum):
+        FAILED = enum.auto()
+        FINISHED = enum.auto()
+        NOT_STARTED = enum.auto()
+        RUNNING = enum.auto()
+        OTHER = enum.auto()
 
     def __init__(self, fv: EncodeSession, name: str):
         self.__lock = threading.RLock()
         self.fv = fv
         self.name = name
-        self.status: int = self.Code.NOT_STARTED
+        self.status: StatusThread.Code = self.Code.NOT_STARTED
         self.long_status = "starting"
         self.progress = 0.0
 
-    def setstatus(self, status: int, long_status: str) -> None:
+    def setstatus(self, status: StatusThread.Code, long_status: str) -> None:
         with self.__lock:
             self.status = status
             self.long_status = long_status
             self.fv.update_avail.set()
 
-    def setprogress(self, progress: float | int) -> None:
+    def setprogress(self, progress: float) -> None:
         with self.__lock:
             self.progress = progress
             self.fv.update_avail.set()
