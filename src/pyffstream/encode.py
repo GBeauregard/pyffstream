@@ -232,8 +232,8 @@ class FileStreamVals:
                 return valdict[key]
             except KeyError:
                 logger.warning(
-                    f"File probed for uncached val {key} of type {probetype} for"
-                    f" {self.selector}"
+                    f"File probed for uncached val {key!r} of type {probetype!r} for"
+                    f" {self.selector!r}"
                 )
                 if self.fv.ev.live or (not self.fv.ev.subs and self.selector[0] == "s"):
                     readval = None
