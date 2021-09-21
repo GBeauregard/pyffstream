@@ -3,10 +3,11 @@
 Script and tools to enable streaming files or OBS with ffmpeg to a
 remote server. Specializes in sending over SRT.
 """
-# import os
-# from typing import Final
+from typing import Final
 
-APPNAME = "pyffstream"
+# import os
+
+APPNAME: Final = "pyffstream"
 
 # try:
 #     _cpu_count = len(os.sched_getaffinity(0))
