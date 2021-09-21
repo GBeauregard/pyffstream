@@ -296,43 +296,45 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
         "bound_w": fv.ev.bound_w,
         "bound_h": fv.ev.bound_h,
     }
-    while True:
-        try:
-            req = requests.get(fv.ev.api_url + "/status", params=payload)
-            if req.status_code == 401:
-                console.print("API key rejected by server")
-                raise SystemExit(1)
-            elif req.status_code != 200:
-                console.print(f"API server returned status {req.status_code}")
-                console.print("waiting and trying again")
+    with requests.Session() as s:
+        while True:
+            try:
+                req = s.get(fv.ev.api_url + "/status", params=payload)
+                if req.status_code == 401:
+                    console.print("API key rejected by server")
+                    raise SystemExit(1)
+                elif req.status_code != 200:
+                    console.print(f"API server returned status {req.status_code}")
+                    console.print("waiting and trying again")
+                    time.sleep(1)
+                    continue
+                status = req.text.strip()
+            except requests.exceptions.RequestException:
+                status = "req_exception"
+            # TODO: 3.10 match case
+            if status == "ready":
+                break
+            elif status == "running":
+                console.print("Server running, waiting and trying again")
                 time.sleep(1)
-                continue
-            status = req.text.strip()
-        except requests.exceptions.RequestException:
-            status = "req_exception"
-        # TODO: 3.10 match case
-        if status == "ready":
-            break
-        elif status == "running":
-            console.print("Server running, waiting and trying again")
-            time.sleep(1)
-        elif status == "req_exception":
-            console.print("API request returned exception, waiting and trying again")
-            time.sleep(1)
-        else:
-            console.print("Unknown server status, waiting and trying again")
-            time.sleep(1)
-
-    try:
-        r = requests.post(fv.ev.api_url + "/stream", json=json_payload, params=payload)
-    except requests.exceptions.RequestException as e:
-        raise ValueError(
-            "Server returned unexpected error while initiating stream."
-        ) from e
-    if r.status_code != 200:
-        raise ValueError(
-            f"Server returned error {r.status_code} while initiating stream."
-        )
+            elif status == "req_exception":
+                console.print(
+                    "API request returned exception, waiting and trying again"
+                )
+                time.sleep(1)
+            else:
+                console.print("Unknown server status, waiting and trying again")
+                time.sleep(1)
+        try:
+            r = s.post(fv.ev.api_url + "/stream", json=json_payload, params=payload)
+        except requests.exceptions.RequestException as e:
+            raise ValueError(
+                "Server returned unexpected error while initiating stream."
+            ) from e
+        if r.status_code != 200:
+            raise ValueError(
+                f"Server returned error {r.status_code} while initiating stream."
+            )
 
 
 def start_stream(fv: encode.EncodeSession) -> None:
