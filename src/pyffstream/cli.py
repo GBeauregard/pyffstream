@@ -613,12 +613,12 @@ def download_win_ffmpeg(dltype: str = "git") -> bool:
         f"Starting download of ffmpeg {dltype} from"
         " https://github.com/BtbN/FFmpeg-Builds/releases"
     )
-    with tempfile.TemporaryDirectory(prefix=f"{APPNAME}-") as tempdir:
+    with tempfile.TemporaryDirectory(
+        prefix=f"{APPNAME}-"
+    ) as tempdir, requests.Session() as s:
         download = pathlib.Path(tempdir) / "ffmpeg.zip"
         try:
-            r = requests.get(
-                "https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest"
-            )
+            r = s.get("https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest")
             if r.status_code != 200:
                 logger.error(f"Fetch failed, server returned response {r.status_code}")
                 return False
@@ -661,7 +661,7 @@ def download_win_ffmpeg(dltype: str = "git") -> bool:
                 task_id = progress.add_task(
                     "download", filename=ff_url.split("/")[-1], start=False
                 )
-                response = requests.get(
+                response = s.get(
                     ff_url, stream=True, headers={"Cache-Control": "no-cache"}
                 )
                 progress.update(
