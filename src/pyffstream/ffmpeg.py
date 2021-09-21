@@ -890,9 +890,10 @@ class Progress:
 
     @property
     def time_us(self) -> int:
-        if (utime := self.status["out_time_us"]).isdigit():
-            return int(utime)
-        return 0
+        try:
+            return int(self.status["out_time_us"])
+        except ValueError:
+            return 0
 
     @property
     def time_s(self) -> float:
