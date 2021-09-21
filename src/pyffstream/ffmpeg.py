@@ -882,7 +882,7 @@ class Progress:
             "-progress",
             "tcp://" + ":".join(map(str, self.sock.getsockname())),
             "-stats_period",
-            f"{update_period:.5f}",
+            f"{update_period:.6f}",
         ]
 
     def __del__(self) -> None:
