@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import collections
 import concurrent.futures
+import contextlib
 import copy
 import enum
 import functools
@@ -22,14 +23,12 @@ import pathlib
 import queue
 import re
 import shlex
+import socket
 import subprocess
-import tempfile
 import threading
 import typing
 from collections.abc import Iterable, Mapping, MutableSequence, Sequence
 from typing import Any, Final, Literal, NamedTuple, TypedDict, Union, overload
-
-from . import APPNAME
 
 logger = logging.getLogger(__name__)
 
@@ -772,10 +771,9 @@ class Progress:
     """Assists in monitoring the progress output of an ffmpeg encode."""
 
     def __init__(self) -> None:
-        # pylint: disable=consider-using-with
-        self._pfifodir = tempfile.TemporaryDirectory(prefix=f"{APPNAME}-")
-        self._pfifo = pathlib.Path(self._pfifodir.name) / "pfifo"
-        os.mkfifo(self._pfifo)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.bind(("localhost", 0))
+        self.sock.listen(1)
         self._packet_avail = threading.Event()
         self._packet_lock = threading.Lock()
         self._progress_packet: list[str] = []
@@ -846,7 +844,10 @@ class Progress:
             self.output_que.put(line)
 
     def _read_progress(self, result: subprocess.Popen[str]) -> None:
-        with self._pfifo.open(buffering=1) as f:
+        conn, _ = self.sock.accept()
+        with contextlib.closing(conn), contextlib.closing(
+            self.sock
+        ), conn.makefile() as f:
             while result.poll() is None:
                 packet = []
                 while line := f.readline():
@@ -858,7 +859,6 @@ class Progress:
                     with self._packet_lock:
                         self._progress_packet = packet
                     self._packet_avail.set()
-        self._pfifodir.cleanup()
 
     def _parse_progress(self) -> None:
         self._packet_avail.wait()
@@ -880,13 +880,13 @@ class Progress:
             "-nostats",
             "-nostdin",
             "-progress",
-            str(self._pfifo),
+            "tcp://" + ":".join(map(str, self.sock.getsockname())),
             "-stats_period",
             f"{update_period:.5f}",
         ]
 
     def __del__(self) -> None:
-        self._pfifodir.cleanup()
+        self.sock.close()
 
     @property
     def time_us(self) -> int:
