@@ -10,7 +10,6 @@ import copy
 import dataclasses
 import logging
 import logging.handlers
-import math
 import os
 import pathlib
 import platform
@@ -375,7 +374,7 @@ def start_stream(fv: encode.EncodeSession) -> None:
         def sec_to_str(seconds: float | int) -> str:
             m, s = divmod(seconds, 60)
             h, m = divmod(m, 60)
-            return f"{int(h):02d}:{int(m):02d}:{math.trunc(s):02d}"
+            return f"{int(h):02d}:{int(m):02d}:{int(s):02d}"
 
         length_str = sec_to_str(length)
 
