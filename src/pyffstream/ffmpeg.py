@@ -811,6 +811,8 @@ class Progress:
     ) -> None:
         self._loglevel = loglevel
         self._make_queue = make_queue
+        if self._make_queue:
+            self.output_que = queue.Queue()
         self.output = collections.deque(maxlen=maxlen)
         executor = concurrent.futures.ThreadPoolExecutor()
         fut = executor.submit(self._read_outstream, result, outstream)

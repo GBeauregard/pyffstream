@@ -655,8 +655,10 @@ def determine_autocrop(fv: EncodeSession) -> None:
             crop_len_num = flength - crop_ts_num
             crop_len_string = f"{crop_len_num:.3f}".rstrip("0").rstrip(".")
     # fmt: off
+    ffprogress = ffmpeg.Progress()
     cropargs = [
         ffmpeg.ff_bin.ffmpeg,
+        *ffprogress.flags(0.1),
         *fv.ev.ff_deepprobe_flags,
         "-hide_banner",
         "-nostats",
@@ -673,36 +675,38 @@ def determine_autocrop(fv: EncodeSession) -> None:
     # fmt: on
     with subprocess.Popen(
         cropargs,
-        text=False,
+        text=True,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
         env=ffmpeg.ff_bin.env,
     ) as result:
         assert result.stderr is not None
         fv.crop.setstatus(StatusThread.Code.RUNNING, "calculating")
-        crop_regex = re.compile(
-            r"t:\s*(?P<time>[\d\.]*)\s+(?P<filter>crop=\S+)",
-            flags=re.ASCII | re.MULTILINE,
-        )
-        cropfilt = None
-        while result.poll() is None:
-            blines = bytearray()
-            for _ in range(5):
-                blines += result.stderr.readline()
-            lines = blines.decode().rstrip()
-            logger.debug(lines)
-            for match in crop_regex.finditer(lines):
-                if match.group("time"):
-                    fv.crop.setprogress(
-                        min(float(match.group("time")) / crop_len_num, 1)
-                    )
-                if match.group("filter"):
+
+        def consume_output() -> str | None:
+            cropfilt = None
+            crop_regex = re.compile(
+                r"t:\s*(?P<time>[\d\.]*)\s+(?P<filter>crop=\S+)",
+                flags=re.ASCII | re.MULTILINE,
+            )
+            for line in iter(ffprogress.output_que.get, None):
+                if (match := crop_regex.search(line)) is not None:
                     cropfilt = match.group("filter")
-        remaining = result.stderr.read().decode()
-        logger.debug(remaining)
-        for match in crop_regex.finditer(remaining):
-            if match.group("filter"):
-                cropfilt = match.group("filter")
+            return cropfilt
+
+        ffprogress.monitor_progress(
+            result, result.stderr, make_queue=True, maxlen=50, loglevel=logging.DEBUG
+        )
+        future = fv.executor.submit(consume_output)
+        ffprogress.progress_avail.wait()
+
+        while not ffprogress.finished.is_set():
+            fv.crop.setprogress(min(ffprogress.time_s / crop_len_num, 1))
+            ffprogress.progress_avail.wait()
+            ffprogress.progress_avail.clear()
+
+        cropfilt = future.result()
+
     if result.returncode == 0 and cropfilt:
         fv.filts["vcrop"] = cropfilt
         logger.info(f"determined crop filter: {cropfilt}")
