@@ -423,21 +423,22 @@ def start_stream(fv: encode.EncodeSession) -> None:
 
 def stream_file(fopts: encode.FileOpts, args: argparse.Namespace) -> None:
     """Manage calculating of all stream parameters."""
-    console.print(
-        f"starting:[bright_magenta] {rich.markup.escape(str(fopts.fpath))}",
-        highlight=False,
-    )
-    fv = encode.EncodeSession(fopts, encode.StaticEncodeVars.from_args(args))
-    futures = []
-    encode.determine_timeseek(fv)
-    if not fv.ev.copy_audio:
-        futures.append(fv.executor.submit(encode.determine_afilters, fv))
-    if not fv.ev.copy_video:
-        futures.append(fv.executor.submit(encode.determine_vfilters, fv))
-    encode.do_framerate_calcs(fv)
-    encode.determine_bounds(fv)
-    fv.ev.encode_flags = [*encode.get_vflags(fv), *encode.get_aflags(fv)]
-    encode.set_output_flags(fv)
+    with console.status("calculating stream parameters"):
+        console.print(
+            f"starting:[bright_magenta] {rich.markup.escape(str(fopts.fpath))}",
+            highlight=False,
+        )
+        fv = encode.EncodeSession(fopts, encode.StaticEncodeVars.from_args(args))
+        futures = []
+        encode.determine_timeseek(fv)
+        if not fv.ev.copy_audio:
+            futures.append(fv.executor.submit(encode.determine_afilters, fv))
+        if not fv.ev.copy_video:
+            futures.append(fv.executor.submit(encode.determine_vfilters, fv))
+        encode.do_framerate_calcs(fv)
+        encode.determine_bounds(fv)
+        fv.ev.encode_flags = [*encode.get_vflags(fv), *encode.get_aflags(fv)]
+        encode.set_output_flags(fv)
     status_wait(fv, futures)
     encode.close_futures(futures)
     fv.executor.shutdown()
@@ -454,7 +455,8 @@ def stream_file(fopts: encode.FileOpts, args: argparse.Namespace) -> None:
             console.input()
 
     if fv.ev.pyffserver and not fv.ev.outfile:
-        setup_pyffserver_stream(fv)
+        with console.status("connecting to server"):
+            setup_pyffserver_stream(fv)
     start_stream(fv)
 
 
