@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import atexit
-import collections
 import concurrent.futures
 import configparser
 import contextlib
@@ -39,8 +38,7 @@ import rich.prompt
 import rich.table
 import rich.text
 
-from . import config as defaults
-from . import encode, ffmpeg
+from . import APPNAME, encode, ffmpeg
 
 # import rich.traceback
 # rich.traceback.install(console=console)
@@ -355,12 +353,10 @@ def start_stream(fv: encode.EncodeSession) -> None:
         "[red]{task.fields[bitrate]}",
         "•",
         "[cyan]{task.fields[speed]:<6}",
-        refresh_per_second=2,
+        refresh_per_second=4,
         console=console,
     ) as progress:
         assert result.stdout is not None
-
-        ffprogress = ffmpeg.Progress()
 
         if fv.ev.clip_length:
             length = ffmpeg.duration(fv.ev.clip_length)
@@ -383,49 +379,44 @@ def start_stream(fv: encode.EncodeSession) -> None:
 
         task_id = progress.add_task(
             "Encode",
-            bitrate=ffprogress.status["bitrate"],
-            speed=ffprogress.status["speed"],
+            bitrate=fv.ev.ffprogress.status["bitrate"],
+            speed=fv.ev.ffprogress.status["speed"],
             timestamp=f"{sec_to_str(ts)}/{length_str}",
             start=False,
         )
         progress.update(task_id, total=length)
         progress.start_task(task_id)
-        output_lines: collections.deque[str] = collections.deque(maxlen=50)
 
-        def update_progress(line: str) -> None:
-            nonlocal ts
-            if not (line := line.rstrip()):
-                return
-            output_lines.append(line)
-            logger.info(line)
-            if updated_keys := ffprogress.update(line):
-                if "out_time_us" in updated_keys:
-                    ts = ffprogress.time_s + ts_offset
-                progress.update(
-                    task_id,
-                    completed=ts,
-                    bitrate=ffprogress.status["bitrate"],
-                    speed=ffprogress.status["speed"],
-                    timestamp=f"{sec_to_str(ts)}/{length_str}",
-                )
+        fv.ev.ffprogress.monitor_progress(
+            result, result.stdout, maxlen=50, loglevel=logging.INFO
+        )
 
-        while result.poll() is None:
-            update_progress(result.stdout.readline())
-        for line in result.stdout:
-            update_progress(line)
+        fv.ev.ffprogress.progress_avail.wait()
+        while not fv.ev.ffprogress.finished.is_set():
+            ts = fv.ev.ffprogress.time_s + ts_offset
+            progress.update(
+                task_id,
+                completed=ts,
+                bitrate=fv.ev.ffprogress.status["bitrate"],
+                speed=fv.ev.ffprogress.status["speed"],
+                timestamp=f"{sec_to_str(ts)}/{length_str}",
+            )
+            fv.ev.ffprogress.progress_avail.wait()
+            fv.ev.ffprogress.progress_avail.clear()
 
         ts = length
         progress.update(
             task_id,
             refresh=True,
             completed=ts,
-            bitrate=ffprogress.status["bitrate"],
-            speed=ffprogress.status["speed"],
+            bitrate=fv.ev.ffprogress.status["bitrate"],
+            speed=fv.ev.ffprogress.status["speed"],
             timestamp=f"{sec_to_str(ts)}/{length_str}",
         )
+
     if result.returncode != 0:
-        logger.error("\n".join(output_lines))
-        console.print(f"stream finished with exit code {result.returncode}")
+        logger.error("\n".join(fv.ev.ffprogress.output))
+        logger.error(f"stream finished with exit code {result.returncode}")
     else:
         console.print("stream finished")
 
@@ -618,7 +609,7 @@ def download_win_ffmpeg(dltype: str = "git") -> bool:
         f"Starting download of ffmpeg {dltype} from"
         " https://github.com/BtbN/FFmpeg-Builds/releases"
     )
-    with tempfile.TemporaryDirectory(prefix="pyffstream-") as tempdir:
+    with tempfile.TemporaryDirectory(prefix=f"{APPNAME}-") as tempdir:
         download = pathlib.Path(tempdir) / "ffmpeg.zip"
         try:
             r = requests.get(
@@ -685,7 +676,7 @@ def download_win_ffmpeg(dltype: str = "git") -> bool:
             logger.error("Fetch failed, requests could not communicate with server.")
             return False
         with console.status("extracting archive..."):
-            data_path = platformdirs.user_data_path(defaults.APPNAME)
+            data_path = platformdirs.user_data_path(APPNAME)
             data_path.mkdir(parents=True, exist_ok=True)
             ffmpeg_dir = data_path / "ffmpeg"
             shutil.unpack_archive(download, tempdir)
@@ -702,20 +693,20 @@ def win_set_local_ffmpeg(dltype: str, env: dict[str, str]) -> None:
     If ffmpeg is not already available in user_data_path, offer to
     download it from a public repository.
     """
-    local_bin = platformdirs.user_data_path(defaults.APPNAME) / "ffmpeg/bin"
+    local_bin = platformdirs.user_data_path(APPNAME) / "ffmpeg/bin"
     if (
         shutil.which(local_bin / "ffmpeg.exe") is None
         or shutil.which(local_bin / "ffprobe.exe") is None
     ):
         if not sys.__stdin__.isatty():
-            console.print(f"ffmpeg required to run {defaults.APPNAME}")
+            console.print(f"ffmpeg required to run {APPNAME}")
             raise SystemExit(1)
         console.print(
             "No local ffmpeg found. We can download from"
             " https://github.com/BtbN/FFmpeg-Builds/releases"
         )
         if not rich.prompt.Confirm.ask("Would you like to download?", console=console):
-            console.print(f"ffmpeg required to run {defaults.APPNAME}")
+            console.print(f"ffmpeg required to run {APPNAME}")
             raise SystemExit(1)
         if (
             not download_win_ffmpeg(dltype)
@@ -743,12 +734,8 @@ def get_parserconfig(
     conf_list: list[str | os.PathLike[Any]] = []
 
     if not reproducible:
-        conf_list.append(
-            platformdirs.site_config_path(defaults.APPNAME) / f"{defaults.APPNAME}.conf"
-        )
-        conf_list.append(
-            platformdirs.user_config_path(defaults.APPNAME) / f"{defaults.APPNAME}.conf"
-        )
+        conf_list.append(platformdirs.site_config_path(APPNAME) / f"{APPNAME}.conf")
+        conf_list.append(platformdirs.user_config_path(APPNAME) / f"{APPNAME}.conf")
 
     conf_parser = argparse.ArgumentParser(add_help=False)
     conf_parser.add_argument(
@@ -1429,9 +1416,9 @@ def main() -> None:
         parser.error("the srt protocol must be used when streaming to a pyffserver")
 
     if args.write:
-        config_dir = platformdirs.user_config_path(defaults.APPNAME)
+        config_dir = platformdirs.user_config_path(APPNAME)
         config_dir.mkdir(parents=True, exist_ok=True)
-        config_path = config_dir / f"{defaults.APPNAME}.conf"
+        config_path = config_dir / f"{APPNAME}.conf"
         new_config = configparser.ConfigParser()
         new_config.read(config_path)
         # keep case for env section
@@ -1479,7 +1466,7 @@ def main() -> None:
             new_full_config.write(f)
         raise SystemExit(0)
 
-    with tempfile.TemporaryDirectory(prefix="pyffstream-") as tempdir:
+    with tempfile.TemporaryDirectory(prefix=f"{APPNAME}-") as tempdir:
         if args.tempdir is None:
             args.tempdir = pathlib.Path(tempdir)
         try:

@@ -16,15 +16,22 @@ import copy
 import enum
 import functools
 import json
+import logging
 import os
 import pathlib
+import queue
 import re
 import shlex
 import subprocess
+import tempfile
+import threading
+import typing
 from collections.abc import Iterable, Mapping, MutableSequence, Sequence
 from typing import Any, Final, Literal, NamedTuple, TypedDict, Union, overload
 
-from . import config
+from . import APPNAME
+
+logger = logging.getLogger(__name__)
 
 
 @functools.total_ordering
@@ -497,9 +504,7 @@ def make_playlist(
             ("duration", str(fpath), None, ProbeType.FORMAT, deep_probe)
             for fpath in pathlist
         ]
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=config.MAX_IO_JOBS
-        ) as executor:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
             durfutures = executor.map(lambda p: probe(*p), iargs)
     playlistpath = directory / name
     with playlistpath.open(mode="x", newline="\n") as f:
@@ -766,12 +771,21 @@ class Filter:
 class Progress:
     """Assists in monitoring the progress output of an ffmpeg encode."""
 
-    flags: Final = ["-progress", "pipe:2", "-nostats"]
-    _status_regex: Final = re.compile(
-        r"^(?P<key>[a-z_0-9]+)=(?P<val>.+)$", flags=re.MULTILINE
-    )
-
     def __init__(self) -> None:
+        # pylint: disable=consider-using-with
+        self._pfifodir = tempfile.TemporaryDirectory(prefix=f"{APPNAME}-")
+        self._pfifo = pathlib.Path(self._pfifodir.name) / "pfifo"
+        os.mkfifo(self._pfifo)
+        self._packet_avail = threading.Event()
+        self._packet_lock = threading.Lock()
+        self._progress_packet: list[str] = []
+        self._loglevel: int
+        self.progress_avail = threading.Event()
+        self.finished = threading.Event()
+        self.match_que: queue.Queue[re.Match[str] | None]
+        self.output: collections.deque[str]
+        self.output_que: queue.Queue[str | None]
+        self._make_queue: bool
         self.status: dict[str, str] = {
             "frame": "0",
             "fps": "0",
@@ -787,14 +801,87 @@ class Progress:
             "progress": "continue",
         }
 
-    def update(self, line: str) -> set[str]:
-        keylist: set[str] = set()
+    def monitor_progress(
+        self,
+        result: subprocess.Popen[str],
+        outstream: typing.IO[str],
+        make_queue: bool = False,
+        maxlen: int | None = None,
+        loglevel: int = logging.DEBUG,
+    ) -> None:
+        self._loglevel = loglevel
+        self._make_queue = make_queue
+        self.output = collections.deque(maxlen=maxlen)
+        executor = concurrent.futures.ThreadPoolExecutor()
+        fut = executor.submit(self._read_outstream, result, outstream)
+        fut.add_done_callback(self._exit_callback)
+        executor.submit(self._read_progress, result)
+        executor.submit(self._parse_progress)
+        executor.shutdown(wait=False)
 
-        for match in self._status_regex.finditer(line):
-            keylist.add(match.group("key"))
-            self.status[match.group("key")] = match.group("val")
+    def _exit_callback(self, future: concurrent.futures.Future[None]) -> None:
+        # pylint: disable=unused-argument
+        self.finished.set()
+        self._packet_avail.set()
+        self.progress_avail.set()
 
-        return keylist
+    def _read_outstream(
+        self, result: subprocess.Popen[str], outstream: typing.IO[str]
+    ) -> None:
+        while result.poll() is None:
+            self._parse_outputline(outstream.readline().rstrip())
+        for line in outstream:
+            self._parse_outputline(line.rstrip())
+        if self._make_queue:
+            self.output_que.put(None)
+
+    def _parse_outputline(self, line: str) -> None:
+        if not line:
+            return
+        logger.log(self._loglevel, line)
+        self.output.append(line)
+        if self._make_queue:
+            self.output_que.put(line)
+
+    def _read_progress(self, result: subprocess.Popen[str]) -> None:
+        with self._pfifo.open(buffering=1) as f:
+            while result.poll() is None:
+                packet = []
+                while line := f.readline():
+                    if line.startswith("progress="):
+                        break
+                    if line := line.rstrip():
+                        packet.append(line)
+                if packet:
+                    with self._packet_lock:
+                        self._progress_packet = packet
+                    self._packet_avail.set()
+        self._pfifodir.cleanup()
+
+    def _parse_progress(self) -> None:
+        self._packet_avail.wait()
+        while not self.finished.is_set():
+            with self._packet_lock:
+                packet = self._progress_packet.copy()
+            for line in packet:
+                split = line.split("=", 1)
+                self.status[split[0]] = "".join(split[1:])
+            self.progress_avail.set()
+            self._packet_avail.wait()
+            self._packet_avail.clear()
+
+    def flags(self, update_period: float = 0.5) -> list[str]:
+        return [
+            "-nostats",
+            "-nostdin",
+            "-progress",
+            str(self._pfifo),
+            "-stats_period",
+            f"{update_period:.5f}",
+        ]
+
+    def __del__(self) -> None:
+        self._pfifodir.cleanup()
 
     @property
     def time_us(self) -> int:

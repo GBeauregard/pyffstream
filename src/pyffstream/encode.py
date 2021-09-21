@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import collections
 import concurrent.futures
 import dataclasses
 import enum
@@ -19,7 +18,7 @@ import threading
 from collections.abc import Iterable, Mapping, MutableMapping, MutableSequence, Sequence
 from typing import Any, ClassVar, Final, NamedTuple, cast
 
-from . import config, ffmpeg
+from . import ffmpeg
 
 logger = logging.getLogger(__name__)
 
@@ -539,6 +538,7 @@ class StaticEncodeVars:
     fdk: bool = False
     pyffserver: bool = False
     shader_dir: pathlib.Path = pathlib.Path.home()
+    ffprogress = ffmpeg.Progress()
 
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> StaticEncodeVars:
@@ -806,9 +806,10 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 ),
             ]
             # fmt: off
+            ffprogress = ffmpeg.Progress()
             normargs = [
                 ffmpeg.ff_bin.ffmpeg,
-                *ffmpeg.Progress.flags,
+                *ffprogress.flags(),
                 *fv.ev.ff_deepprobe_flags,
                 "-hide_banner",
                 "-hwaccel", "auto",
@@ -829,28 +830,22 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 env=ffmpeg.ff_bin.env,
             ) as result:
                 assert result.stderr is not None
-                ffprogress = ffmpeg.Progress()
                 fv.norm.setstatus(StatusThread.Code.RUNNING, "calculating")
                 length = ffmpeg.duration(fv.v("f", "duration"))
-                output: collections.deque[str] = collections.deque(maxlen=50)
+                ffprogress.monitor_progress(
+                    result, result.stderr, maxlen=50, loglevel=logging.DEBUG
+                )
+                ffprogress.progress_avail.wait()
+                while not ffprogress.finished.is_set():
+                    fv.norm.setprogress(min(ffprogress.time_s / length, 1))
+                    ffprogress.progress_avail.wait()
+                    ffprogress.progress_avail.clear()
 
-                def update_progress(line: str) -> None:
-                    if not (line := line.rstrip()):
-                        return
-                    output.append(line)
-                    logger.debug(line)
-                    if "out_time_us" in ffprogress.update(line):
-                        fv.norm.setprogress(min(ffprogress.time_s / length, 1))
-
-                while result.poll() is None:
-                    update_progress(result.stderr.readline())
-                for line in result.stderr:
-                    update_progress(line)
             if (
                 result.returncode == 0
                 and (
                     jsonmatch := re.search(
-                        r"(?P<json>{[^{]+})[^}]*$", "\n".join(output)
+                        r"(?P<json>{[^{]+})[^}]*$", "\n".join(ffprogress.output)
                     )
                 )
                 is not None
@@ -861,7 +856,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 fv.norm.setstatus(StatusThread.Code.OTHER, "read json")
                 json_to_normfilt(jsonout)
             else:
-                logger.info("\n".join(output))
+                logger.info("\n".join(ffprogress.output))
                 logger.warning("normalization failed")
                 fv.norm.setstatus(StatusThread.Code.FAILED, "[red]failed")
         elif fv.ev.normfile.is_file():
@@ -994,9 +989,7 @@ def extract_styles(
     files: Sequence[pathlib.Path], sindex: int, deep_probe: bool = False
 ) -> list[StyleFile]:
     iargs = [(file, sindex, deep_probe) for file in files]
-    with concurrent.futures.ThreadPoolExecutor(
-        max_workers=config.MAX_IO_JOBS
-    ) as executor:
+    with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = executor.map(lambda p: extract_style(*p), iargs)
     return [stylefile for stylefile in futures if stylefile is not None]
 
@@ -1008,9 +1001,10 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
         subpath = fv.ev.tempdir / "subs.mkv"
         subindex = 0
         # fmt: off
+        ffprogress = ffmpeg.Progress()
         subargs = [
             ffmpeg.ff_bin.ffmpeg,
-            *ffmpeg.Progress.flags,
+            *ffprogress.flags(),
             *fv.ev.ff_deepprobe_flags,
             "-hide_banner",
             "-hwaccel", "auto",
@@ -1039,16 +1033,16 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
         ) as result:
             assert result.stderr is not None
             fv.subs.setstatus(StatusThread.Code.RUNNING, "extracting")
-            ffprogress = ffmpeg.Progress()
             length = ffmpeg.duration(fv.v("f", "duration"))
+            ffprogress.monitor_progress(
+                result, result.stderr, maxlen=50, loglevel=logging.DEBUG
+            )
+            ffprogress.progress_avail.wait()
+            while not ffprogress.finished.is_set():
+                fv.subs.setprogress(min(ffprogress.time_s / length, 1))
+                ffprogress.progress_avail.wait()
+                ffprogress.progress_avail.clear()
 
-            def update_progress(text: str) -> None:
-                logger.debug(text)
-                if "out_time_us" in ffprogress.update(text):
-                    fv.subs.setprogress(min(ffprogress.time_s / length, 1))
-
-            while result.poll() is None:
-                update_progress(result.stderr.readline().rstrip())
         if result.returncode != 0:
             fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
             logger.warning(
@@ -1465,7 +1459,7 @@ def set_input_flags(fv: EncodeSession) -> None:
     if fv.ev.vulkan and "vulkan" in ffmpeg.ff_bin.hwaccels:
         hwaccel_flags += ["init_hw_device", "vulkan=vulk"]
     input_flags = [
-        *ffmpeg.Progress.flags,
+        *fv.ev.ffprogress.flags(0.25),
         *fv.ev.ff_verbosity_flags,
         *fv.ev.ff_deepprobe_flags,
         *hwaccel_flags,
