@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import collections
 import concurrent.futures
+import contextlib
 import copy
 import enum
 import functools
@@ -867,7 +868,8 @@ class Progress:
                 packet = self._progress_packet.copy()
             for line in packet:
                 split = line.split("=", 1)
-                self.status[split[0]] = "".join(split[1:])
+                with contextlib.suppress(IndexError):
+                    self.status[split[0]] = split[1]
             self.progress_avail.set()
             self._packet_avail.wait()
             self._packet_avail.clear()
