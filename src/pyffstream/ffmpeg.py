@@ -181,9 +181,7 @@ class FFBin:
     @functools.cached_property
     def _encoders(self) -> FFEncoders:
         """Read all encoders compiled in."""
-        vencoders = set()
-        aencoders = set()
-        sencoders = set()
+        encoders: dict[str, set[str]] = {"V": set(), "A": set(), "S": set()}
         encoderargs = [self.ffmpeg, "-hide_banner", "-v", "0", "-encoders"]
         result = subprocess.run(
             encoderargs, capture_output=True, env=self.env, text=True, check=False
@@ -200,15 +198,9 @@ class FFBin:
             flags=re.VERBOSE | re.MULTILINE,
         )
         for match in encoder_regex.finditer(result.stdout):
-            # TODO 3.10 match case
-            if encoder_type := match.group("type"):
-                if encoder_type == "V":
-                    vencoders.add(match.group("encoder"))
-                elif encoder_type == "A":
-                    aencoders.add(match.group("encoder"))
-                elif encoder_type == "S":
-                    sencoders.add(match.group("encoder"))
-        return FFEncoders(vencoders, aencoders, sencoders)
+            if (encoder_type := match.group("type")) and encoder_type in encoders:
+                encoders[encoder_type].add(match.group("encoder"))
+        return FFEncoders(*encoders.values())
 
     @property
     def vencoders(self) -> set[str]:
