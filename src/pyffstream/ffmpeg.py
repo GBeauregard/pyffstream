@@ -427,13 +427,10 @@ def probe(
     if extraargs is None:
         extraargs = []
 
-    deep_probe_flags = (
-        ["-analyzeduration", "100M", "-probesize", "100M"] if deep_probe else []
-    )
     # fmt: off
     probeargs = [
         ff_bin.ffprobe,
-        *deep_probe_flags,
+        *(["-analyzeduration", "100M", "-probesize", "100M"] if deep_probe else []),
         "-v", "0",
         "-of", "json=c=1",
         *((extraargs,) if isinstance(extraargs, str) else extraargs),
