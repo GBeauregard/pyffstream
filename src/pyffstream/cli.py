@@ -21,7 +21,7 @@ import tempfile
 import textwrap
 import time
 from collections.abc import Iterable, Sequence
-from typing import Any, NamedTuple
+from typing import Any, Final, NamedTuple
 
 import platformdirs
 import requests
@@ -96,25 +96,8 @@ def highlight_path(path: os.PathLike[Any]) -> str:
     return parent + name
 
 
-def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
-    """Prints to console formatted information about the input file.
-
-    Output is nicely formatted for console usage using rich tables.
-
-    Args:
-        fopts: The file to print information about.
-        deep_probe: Whether or not to probe the file deeply.
-    """
-    probefargs = copy.copy(fopts.main)
-    probesfargs = copy.copy(fopts.subtitle)
-    probefargs.pop(-2)
-    probesfargs.pop(-2)
-    console.print(
-        f"file: {highlight_path(fopts.fpath)}",
-        highlight=False,
-    )
-    # order determines order in output
-    vstreams = {
+class InfoKeys:
+    VSTREAMS: Final = {
         "codec_name",
         "width",
         "height",
@@ -127,11 +110,11 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
         "color_range",
         "start_time",
     }
-    vstreamtags = {
+    VSTREAM_TAGS: Final = {
         "title",
         "language",
     }
-    astreams = {
+    ASTREAMS: Final = {
         "codec_name",
         "channels",
         "channel_layout",
@@ -141,19 +124,19 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
         "bit_rate",
         "start_time",
     }
-    astreamtags = {
+    ASTREAM_TAGS: Final = {
         "title",
         "language",
     }
-    sstreams = {
+    SSTREAMS: Final = {
         "codec_name",
         "start_time",
     }
-    sstreamtags = {
+    SSTREAM_TAGS: Final = {
         "title",
         "language",
     }
-    dispositions = {
+    DISPOSITIONS: Final = {
         "default",
         "forced",
         "dub",
@@ -173,14 +156,48 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
         "still_image",
     }
 
-    iargs = []
-    iargs.append(("v", (vstreams, vstreamtags, dispositions), probefargs, deep_probe))
-    iargs.append(("a", (astreams, astreamtags, dispositions), probefargs, deep_probe))
-    iargs.append(("s", (sstreams, sstreamtags, dispositions), probesfargs, deep_probe))
+
+def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
+    """Prints to console formatted information about the input file.
+
+    Output is nicely formatted for console usage using rich tables.
+
+    Args:
+        fopts: The file to print information about.
+        deep_probe: Whether or not to probe the file deeply.
+    """
+    probefargs = copy.copy(fopts.main)
+    probesfargs = copy.copy(fopts.subtitle)
+    probefargs.pop(-2)
+    probesfargs.pop(-2)
+    console.print(
+        f"file: {highlight_path(fopts.fpath)}",
+        highlight=False,
+    )
     with concurrent.futures.ThreadPoolExecutor() as executor, console.status(
         "querying file..."
     ):
-        futurelists = executor.map(lambda p: get_stream_list(*p), iargs)
+        vfut = executor.submit(
+            get_stream_list,
+            "v",
+            (InfoKeys.VSTREAMS, InfoKeys.VSTREAM_TAGS, InfoKeys.DISPOSITIONS),
+            probefargs,
+            deep_probe,
+        )
+        afut = executor.submit(
+            get_stream_list,
+            "a",
+            (InfoKeys.ASTREAMS, InfoKeys.ASTREAM_TAGS, InfoKeys.DISPOSITIONS),
+            probefargs,
+            deep_probe,
+        )
+        sfut = executor.submit(
+            get_stream_list,
+            "s",
+            (InfoKeys.SSTREAMS, InfoKeys.SSTREAM_TAGS, InfoKeys.DISPOSITIONS),
+            probesfargs,
+            deep_probe,
+        )
         fileduration = executor.submit(
             ffmpeg.probe,
             "duration",
@@ -191,7 +208,7 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
         )
     if (duration := fileduration.result()) is not None:
         console.print("format_duration=[green]" + duration, highlight=False)
-    vlist, alist, slist = futurelists
+    vlist, alist, slist = vfut.result(), afut.result(), sfut.result()
 
     def make_columns(
         slist: list[list[tuple[str, str]]], title: str
