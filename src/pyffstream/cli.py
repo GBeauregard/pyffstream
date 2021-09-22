@@ -108,7 +108,6 @@ class InfoKeys:
         "color_transfer",
         "color_primaries",
         "color_range",
-        "start_time",
     }
     VSTREAM_TAGS: Final = {
         "title",
@@ -122,7 +121,6 @@ class InfoKeys:
         "bits_per_raw_sample",
         "sample_rate",
         "bit_rate",
-        "start_time",
     }
     ASTREAM_TAGS: Final = {
         "title",
@@ -130,7 +128,6 @@ class InfoKeys:
     }
     SSTREAMS: Final = {
         "codec_name",
-        "start_time",
     }
     SSTREAM_TAGS: Final = {
         "title",
