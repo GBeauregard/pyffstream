@@ -5,7 +5,6 @@ import argparse
 import atexit
 import concurrent.futures
 import configparser
-import contextlib
 import copy
 import dataclasses
 import logging
@@ -51,13 +50,13 @@ console = rich.console.Console()
 
 def get_stream_list(
     streamtype: str,
-    query_tuple: ffmpeg.StreamQueryTuple,
+    q_tuple: ffmpeg.StreamQueryTuple,
     myfileargs: Sequence[str],
     deep_probe: bool = False,
 ) -> list[list[tuple[str, str]]]:
     """Make and return tuples of (key,val) pairs for each stream."""
     outjson = ffmpeg.probe(
-        ffmpeg.format_probestring(query_tuple, True),
+        ffmpeg.format_probestring(q_tuple, True),
         myfileargs,
         streamtype,
         probetype=ffmpeg.ProbeType.RAW_STREAM,
@@ -72,30 +71,18 @@ def get_stream_list(
     stream_list = []
     for s in allstreams:
         val_list = []
-        for ptype, tup in enumerate(query_tuple):
-            forbidden = {"N/A", "unknown"}
-            # TODO: 3.10 match case
-            if ptype == 0:
-                t = ""
-            elif ptype == 1:
-                t = "tags"
-            elif ptype == 2:
-                t = "disposition"
-                forbidden.add("0")
-            else:
-                raise ValueError("too large of a query tuple")
-            if t:
-                if not (vdict := s.get(t)):
-                    continue
-                prefix = f"{t}: "
-            else:
-                vdict = s
-                prefix = ""
-            for key in tup:
-                if (rval := vdict.get(key)) is not None and (
-                    sval := str(rval)
-                ) not in forbidden:
-                    val_list.append((prefix + key, sval))
+        bad_vals: set[str | int] = {"N/A", "unknown"}
+        ituple = (
+            ("", s, q_tuple[0], bad_vals),
+            ("tags: ", s.get("tags", {}), q_tuple[1], bad_vals),
+            ("disposition: ", s.get("disposition", {}), q_tuple[2], bad_vals | {0}),
+        )
+        for prefix, sdict, valid_keys, forbidden in ituple:
+            val_list += [
+                (prefix + key, str(val))
+                for key, val in sdict.items()
+                if key in valid_keys and val not in forbidden
+            ]
         stream_list.append(val_list)
     return stream_list
 
@@ -127,7 +114,7 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
         highlight=False,
     )
     # order determines order in output
-    vstreams = [
+    vstreams = {
         "codec_name",
         "width",
         "height",
@@ -139,12 +126,12 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
         "color_primaries",
         "color_range",
         "start_time",
-    ]
-    vstreamtags = [
+    }
+    vstreamtags = {
         "title",
         "language",
-    ]
-    astreams = [
+    }
+    astreams = {
         "codec_name",
         "channels",
         "channel_layout",
@@ -153,20 +140,20 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
         "sample_rate",
         "bit_rate",
         "start_time",
-    ]
-    astreamtags = [
+    }
+    astreamtags = {
         "title",
         "language",
-    ]
-    sstreams = [
+    }
+    sstreams = {
         "codec_name",
         "start_time",
-    ]
-    sstreamtags = [
+    }
+    sstreamtags = {
         "title",
         "language",
-    ]
-    dispositions = [
+    }
+    dispositions = {
         "default",
         "forced",
         "dub",
@@ -184,7 +171,7 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
         "metadata",
         "dependent",
         "still_image",
-    ]
+    }
 
     iargs = []
     iargs.append(("v", (vstreams, vstreamtags, dispositions), probefargs, deep_probe))
