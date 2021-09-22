@@ -93,10 +93,10 @@ def get_stream_list(
 
 def highlight_path(path: os.PathLike[Any]) -> str:
     pl_path = pathlib.Path(path)
-    p_tuple = (str(pl_path.parent / "_")[:-1], str(pl_path.name))
-    parent, name = map(rich.markup.escape, p_tuple)
-    parent = f"[magenta]{parent}" if parent and parent != "." and parent != "./" else ""
-    name = f"[bright_magenta]{name}"
+    name = str(pl_path.name)
+    parent = str(pl_path).removesuffix(name)
+    parent = "[magenta]" + rich.markup.escape(parent) if parent else ""
+    name = "[bright_magenta]" + rich.markup.escape(name)
     return parent + name
 
 
