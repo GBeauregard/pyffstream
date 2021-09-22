@@ -193,78 +193,6 @@ class EncodeSession:
 
 
 class FileStreamVals:
-    def get_t_valdict(
-        self, t: ffmpeg.StrProbetype | None = None
-    ) -> tuple[ffmpeg.StrProbetype, dict[str, str | None], dict[str, str | None]]:
-        with self.__lock:
-            probetype = self.default_probetype if t is None else t
-            # TODO: 3.10 match case
-            if probetype in {ffmpeg.ProbeType.STREAM, ffmpeg.ProbeType.FORMAT}:
-                file_dict = self.filevals
-                default_dict = self.defaultvals
-            elif probetype is ffmpeg.ProbeType.TAGS:
-                file_dict = self.filevals["tags"]
-                default_dict = self.defaultvals["tags"]
-            elif probetype is ffmpeg.ProbeType.DISPOSITION:
-                file_dict = self.filevals["disposition"]
-                default_dict = self.defaultvals["disposition"]
-            else:
-                raise ValueError(f"Invalid streamtype {t!r} passed to get_t_valdict")
-            return probetype, file_dict, default_dict
-
-    def getval(self, key: str, t: ffmpeg.StrProbetype | None = None) -> str:
-        with self.__lock:
-            if (fileval := self.getfileval(key, t)) is not None or (
-                fileval := self.getdefault(key, t)
-            ) is not None:
-                return fileval
-            else:
-                raise ValueError(
-                    f"Key {key!r} of type {t!r} failed to return value with getval"
-                    " function."
-                )
-
-    def getfileval(self, key: str, t: ffmpeg.StrProbetype | None = None) -> str | None:
-        with self.__lock:
-            probetype, valdict, _ = self.get_t_valdict(t)
-            try:
-                return valdict[key]
-            except KeyError:
-                logger.warning(
-                    f"File probed for uncached val {key!r} of type {probetype!r} for"
-                    f" {self.selector!r}"
-                )
-                if self.fv.ev.live or (not self.fv.ev.subs and self.selector[0] == "s"):
-                    readval = None
-                else:
-                    readval = ffmpeg.probe(
-                        key,
-                        self.fileargs,
-                        self.selector,
-                        probetype=probetype,
-                        deep_probe=self.fv.ev.deep_probe,
-                    )
-                valdict[key] = readval
-                return readval
-
-    def getdefault(self, key: str, t: ffmpeg.StrProbetype | None = None) -> str | None:
-        with self.__lock:
-            return self.get_t_valdict(t)[2].get(key)
-
-    def setdefault(
-        self, key: str, val: str, t: ffmpeg.StrProbetype | None = None
-    ) -> str:
-        with self.__lock:
-            self.get_t_valdict(t)[2][key] = val
-            return val
-
-    def setdefaults(
-        self,
-        vals: Mapping[str, str | Mapping[str, str]],
-    ) -> None:
-        with self.__lock:
-            self.defaultvals |= vals
-
     def __init__(
         self,
         fv: EncodeSession,
@@ -340,6 +268,78 @@ class FileStreamVals:
             else:
                 assert isinstance(init_tuple, Iterable)
                 initval(self.filevals, init_tuple)
+
+    def get_t_valdict(
+        self, t: ffmpeg.StrProbetype | None = None
+    ) -> tuple[ffmpeg.StrProbetype, dict[str, str | None], dict[str, str | None]]:
+        with self.__lock:
+            probetype = self.default_probetype if t is None else t
+            # TODO: 3.10 match case
+            if probetype in {ffmpeg.ProbeType.STREAM, ffmpeg.ProbeType.FORMAT}:
+                file_dict = self.filevals
+                default_dict = self.defaultvals
+            elif probetype is ffmpeg.ProbeType.TAGS:
+                file_dict = self.filevals["tags"]
+                default_dict = self.defaultvals["tags"]
+            elif probetype is ffmpeg.ProbeType.DISPOSITION:
+                file_dict = self.filevals["disposition"]
+                default_dict = self.defaultvals["disposition"]
+            else:
+                raise ValueError(f"Invalid streamtype {t!r} passed to get_t_valdict")
+            return probetype, file_dict, default_dict
+
+    def getval(self, key: str, t: ffmpeg.StrProbetype | None = None) -> str:
+        with self.__lock:
+            if (fileval := self.getfileval(key, t)) is not None or (
+                fileval := self.getdefault(key, t)
+            ) is not None:
+                return fileval
+            else:
+                raise ValueError(
+                    f"Key {key!r} of type {t!r} failed to return value with getval"
+                    " function."
+                )
+
+    def getfileval(self, key: str, t: ffmpeg.StrProbetype | None = None) -> str | None:
+        with self.__lock:
+            probetype, valdict, _ = self.get_t_valdict(t)
+            try:
+                return valdict[key]
+            except KeyError:
+                logger.warning(
+                    f"File probed for uncached val {key!r} of type {probetype!r} for"
+                    f" {self.selector!r}"
+                )
+                if self.fv.ev.live or (not self.fv.ev.subs and self.selector[0] == "s"):
+                    readval = None
+                else:
+                    readval = ffmpeg.probe(
+                        key,
+                        self.fileargs,
+                        self.selector,
+                        probetype=probetype,
+                        deep_probe=self.fv.ev.deep_probe,
+                    )
+                valdict[key] = readval
+                return readval
+
+    def getdefault(self, key: str, t: ffmpeg.StrProbetype | None = None) -> str | None:
+        with self.__lock:
+            return self.get_t_valdict(t)[2].get(key)
+
+    def setdefault(
+        self, key: str, val: str, t: ffmpeg.StrProbetype | None = None
+    ) -> str:
+        with self.__lock:
+            self.get_t_valdict(t)[2][key] = val
+            return val
+
+    def setdefaults(
+        self,
+        vals: Mapping[str, str | Mapping[str, str]],
+    ) -> None:
+        with self.__lock:
+            self.defaultvals |= vals
 
 
 class StatusThread:
