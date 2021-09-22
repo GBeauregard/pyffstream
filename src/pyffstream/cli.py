@@ -167,10 +167,7 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
     probesfargs = copy.copy(fopts.subtitle)
     probefargs.pop(-2)
     probesfargs.pop(-2)
-    console.print(
-        f"file: {highlight_path(fopts.fpath)}",
-        highlight=False,
-    )
+    console.print(f"file: {highlight_path(fopts.fpath)}", highlight=False)
     with concurrent.futures.ThreadPoolExecutor() as executor, console.status(
         "querying file..."
     ):
@@ -445,10 +442,7 @@ def start_stream(fv: encode.EncodeSession) -> None:
 def stream_file(fopts: encode.FileOpts, args: argparse.Namespace) -> None:
     """Manage calculating of all stream parameters."""
     with console.status("calculating stream parameters"):
-        console.print(
-            f"starting: {highlight_path(fopts.fpath)}",
-            highlight=False,
-        )
+        console.print(f"starting: {highlight_path(fopts.fpath)}", highlight=False)
         fv = encode.EncodeSession(fopts, encode.StaticEncodeVars.from_args(args))
         futures = []
         encode.determine_timeseek(fv)
