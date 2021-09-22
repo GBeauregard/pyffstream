@@ -815,7 +815,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
             ffprogress = ffmpeg.Progress()
             normargs = [
                 ffmpeg.ff_bin.ffmpeg,
-                *ffprogress.flags(),
+                *ffprogress.flags(0.25),
                 *fv.ev.ff_deepprobe_flags,
                 "-hide_banner",
                 "-hwaccel", "auto",
@@ -1010,7 +1010,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
         ffprogress = ffmpeg.Progress()
         subargs = [
             ffmpeg.ff_bin.ffmpeg,
-            *ffprogress.flags(),
+            *ffprogress.flags(0.1),
             *fv.ev.ff_deepprobe_flags,
             "-hide_banner",
             "-hwaccel", "auto",
