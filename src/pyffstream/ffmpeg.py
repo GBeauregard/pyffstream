@@ -668,14 +668,8 @@ class Filter:
         if isinstance(filt, Filter):
             self.basefilter = filt.basefilter
             self.opts = filt.opts
-            if src != [None]:
-                self.src = src
-            else:
-                self.src = filt.src
-            if dst != [None]:
-                self.dst = dst
-            else:
-                self.dst = filt.dst
+            self.src = src if src != [None] else filt.src
+            self.dst = dst if dst != [None] else filt.dst
         else:
             self.src = list(src)
             self.dst = list(dst)
@@ -720,12 +714,8 @@ class Filter:
         basekey: str = "c",
     ) -> str:
         filts = copy.deepcopy(list(map(cls, filterlist)))
-        filts[0].src = [
-            startkey if key is None or key == 0 else key for key in filts[0].src
-        ]
-        filts[-1].dst = [
-            endkey if key is None or key == 0 else key for key in filts[-1].dst
-        ]
+        filts[0].src = [key or startkey for key in filts[0].src]
+        filts[-1].dst = [key or endkey for key in filts[-1].dst]
         output = ""
         produced: list[int | str] = []
         for i, f in enumerate(filts):
@@ -736,8 +726,7 @@ class Filter:
                     output += ";"
                 for key in f.src:
                     if isinstance(key, int) or key is None:
-                        key = key if key is not None else 0
-                        output += f"[{produced[key]}]"
+                        output += f"[{produced[key or 0]}]"
                     else:
                         output += f"[{key}]"
                 produced = [key for idx, key in enumerate(produced) if idx not in f.src]
@@ -753,8 +742,7 @@ class Filter:
 
     @staticmethod
     def vf_join(filterlist: Sequence[str | Filter]) -> str:
-        filtstring = ",".join(map(str, filterlist))
-        return filtstring
+        return ",".join(map(str, filterlist))
 
     # @classmethod
     # def parse_filtstring(cls, filtstr: str) -> Filter:
