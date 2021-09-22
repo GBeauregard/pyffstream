@@ -91,6 +91,15 @@ def get_stream_list(
     return stream_list
 
 
+def highlight_path(path: os.PathLike[Any]) -> str:
+    pl_path = pathlib.Path(path)
+    p_tuple = map(str, (pl_path.parent, pl_path.name))
+    parent, name = map(rich.markup.escape, p_tuple)
+    parent = f"[magenta]{parent}/" if parent and parent != "." else ""
+    name = f"[bright_magenta]{name}"
+    return parent + name
+
+
 def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
     """Prints to console formatted information about the input file.
 
@@ -105,7 +114,8 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
     probefargs.pop(-2)
     probesfargs.pop(-2)
     console.print(
-        f"file: [bright_magenta]{rich.markup.escape(str(fopts.fpath))}", highlight=False
+        f"file: {highlight_path(fopts.fpath)}",
+        highlight=False,
     )
     # order determines order in output
     vstreams = [
@@ -426,7 +436,7 @@ def stream_file(fopts: encode.FileOpts, args: argparse.Namespace) -> None:
     """Manage calculating of all stream parameters."""
     with console.status("calculating stream parameters"):
         console.print(
-            f"starting:[bright_magenta] {rich.markup.escape(str(fopts.fpath))}",
+            f"starting: {highlight_path(fopts.fpath)}",
             highlight=False,
         )
         fv = encode.EncodeSession(fopts, encode.StaticEncodeVars.from_args(args))
