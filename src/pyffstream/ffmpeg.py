@@ -606,14 +606,8 @@ def num(val: str | int | float) -> float:
         prefix = _SI_PREFIXES[si_prefix]
     else:
         prefix = 0
-    if match.group("binary") == "i":
-        power = 1024
-    else:
-        power = 1000
-    if match.group("byte") == "B":
-        byte = 8
-    else:
-        byte = 1
+    power = 1024 if match.group("binary") == "i" else 1000
+    byte = 8 if match.group("byte") == "B" else 1
     return float(basenum) * power ** prefix * byte
 
 
