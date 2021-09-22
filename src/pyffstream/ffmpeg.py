@@ -272,9 +272,9 @@ class FFBin:
         """Returns FFProtocols of compiled in input/output protocols."""
         in_protocols: set[str] = set()
         out_protocols: set[str] = set()
-        protocolargs = [self.ffmpeg, "-hide_banner", "-v", "0", "-protocols"]
+        protocol_args = [self.ffmpeg, "-hide_banner", "-v", "0", "-protocols"]
         result = subprocess.run(
-            protocolargs, capture_output=True, env=self.env, text=True, check=False
+            protocol_args, capture_output=True, env=self.env, text=True, check=False
         )
         if result.returncode != 0:
             return FFProtocols(in_protocols, {"rtmp"})
