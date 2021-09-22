@@ -95,7 +95,7 @@ def highlight_path(path: os.PathLike[Any]) -> str:
     pl_path = pathlib.Path(path)
     p_tuple = map(str, (pl_path.parent, pl_path.name))
     parent, name = map(rich.markup.escape, p_tuple)
-    parent = f"[magenta]{parent}/" if parent and parent != "." else ""
+    parent = f"[magenta]{parent}{os.sep}" if parent and parent != "." else ""
     name = f"[bright_magenta]{name}"
     return parent + name
 
