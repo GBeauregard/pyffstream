@@ -668,8 +668,14 @@ class Filter:
         if isinstance(filt, Filter):
             self.basefilter = filt.basefilter
             self.opts = filt.opts
-            self.src = src if src != [None] else filt.src
-            self.dst = dst if dst != [None] else filt.dst
+            if src != [None]:
+                self.src = src
+            else:
+                self.src = filt.src
+            if dst != [None]:
+                self.dst = dst
+            else:
+                self.dst = filt.dst
         else:
             self.src = list(src)
             self.dst = list(dst)
