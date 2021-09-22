@@ -56,7 +56,6 @@ def get_stream_list(
     deep_probe: bool = False,
 ) -> list[list[tuple[str, str]]]:
     """Make and return tuples of (key,val) pairs for each stream."""
-    stream_list = []
     outjson = ffmpeg.probe(
         ffmpeg.format_probestring(query_tuple, True),
         myfileargs,
@@ -67,27 +66,30 @@ def get_stream_list(
     )
     if outjson is None:
         logger.error(f"getting info for stream {streamtype} failed")
-    elif "streams" in outjson and len((allstreams := outjson["streams"])) > 0:
-        for s in allstreams:
-            val_list = []
-            for ptype, tup in enumerate(query_tuple):
-                forbidden = {"N/A", "unknown"}
-                # TODO: 3.10 match case
-                if ptype == 0:
-                    t = ""
-                elif ptype == 1:
-                    t = "tags"
-                elif ptype == 2:
-                    t = "disposition"
-                    forbidden.add("0")
-                else:
-                    raise ValueError("too large of a query tuple")
-                for key in tup:
-                    with contextlib.suppress(KeyError):
-                        val = str(s[t][key]) if t else str(s[key])
-                        if val not in forbidden:
-                            val_list.append((f"{t}{': ' if t else ''}{key}", val))
-            stream_list.append(val_list)
+        return []
+    if not (allstreams := outjson.get("streams")):
+        return []
+    stream_list = []
+    for s in allstreams:
+        val_list = []
+        for ptype, tup in enumerate(query_tuple):
+            forbidden = {"N/A", "unknown"}
+            # TODO: 3.10 match case
+            if ptype == 0:
+                t = ""
+            elif ptype == 1:
+                t = "tags"
+            elif ptype == 2:
+                t = "disposition"
+                forbidden.add("0")
+            else:
+                raise ValueError("too large of a query tuple")
+            for key in tup:
+                with contextlib.suppress(KeyError):
+                    val = str(s[t][key]) if t else str(s[key])
+                    if val not in forbidden:
+                        val_list.append((f"{t}{': ' if t else ''}{key}", val))
+        stream_list.append(val_list)
     return stream_list
 
 
