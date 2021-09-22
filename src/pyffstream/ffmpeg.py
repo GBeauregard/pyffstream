@@ -631,11 +631,10 @@ def duration(timestamp: str | float | int) -> float:
     ) is not None:
         val = float(match.group(1))
         if match.group(2) == "ms":
-            return val / 1000
+            val /= 1000
         elif match.group(2) == "us":
-            return val / 1_000_000
-        else:
-            return val
+            val /= 1_000_000
+        return val
     raise ValueError(f"Invalid ffmpeg duration: {timestamp!r}")
 
 
