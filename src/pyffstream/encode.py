@@ -899,6 +899,9 @@ def determine_bounds(fv: EncodeSession) -> None:
         fv.ev.bound_h = str(min(int(fv.v("v", "height")), int(fv.ev.target_h)))
 
 
+_PICSUB_NAMES: Final = {"dvb_subtitle", "dvd_subtitle", "hdmv_pgs_subtitle", "xsub"}
+
+
 def determine_subtitles(fv: EncodeSession) -> None:
     if fv.fv("s", "codec_type") != "subtitle":
         fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
@@ -906,8 +909,7 @@ def determine_subtitles(fv: EncodeSession) -> None:
             "No subtitles detected in file, but subtitles were marked as enabled."
         )
         return
-    picsub_names: Final = {"dvb_subtitle", "dvd_subtitle", "hdmv_pgs_subtitle", "xsub"}
-    if fv.fv("s", "codec_name") in picsub_names:
+    if fv.fv("s", "codec_name") in _PICSUB_NAMES:
         fv.ev.text_subs = False
         fv.ev.subfilter_list = get_picsub_list(fv)
     else:
