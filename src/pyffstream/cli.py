@@ -84,11 +84,18 @@ def get_stream_list(
                 forbidden.add("0")
             else:
                 raise ValueError("too large of a query tuple")
+            if t:
+                if not (vdict := s.get(t)):
+                    continue
+                prefix = f"{t}: "
+            else:
+                vdict = s
+                prefix = ""
             for key in tup:
-                with contextlib.suppress(KeyError):
-                    val = str(s[t][key]) if t else str(s[key])
-                    if val not in forbidden:
-                        val_list.append((f"{t}{': ' if t else ''}{key}", val))
+                if (rval := vdict.get(key)) is not None and (
+                    sval := str(rval)
+                ) not in forbidden:
+                    val_list.append((prefix + key, sval))
         stream_list.append(val_list)
     return stream_list
 
