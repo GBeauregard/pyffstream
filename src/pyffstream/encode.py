@@ -1091,7 +1091,12 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
                     f" {result.returncode}"
                 )
                 return []
-            sublines = subass.read_text().splitlines()
+            try:
+                sublines = subass.read_text().splitlines()
+            except UnicodeDecodeError as e:
+                fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
+                logger.warning(f"reading extracted merged subtitles failed:\n{e}")
+                return []
             mainstyle = parse_stylelines(sublines)
             if mainstyle is not None:
                 styles = stylefuture.result()
