@@ -241,61 +241,60 @@ def status_wait(
     """Wait on remaining background processes while showing status."""
     for future in concurrent.futures.wait(futures, 0).not_done:
         future.add_done_callback(lambda fut: fv.update_avail.set())
-    if concurrent.futures.wait(futures, 0).not_done or fv.ev.verbosity > 0:
-        if fv.ev.verbosity > 0:
-            unfinished = fv.statuses
-        else:
-            unfinished = [
-                s
-                for s in fv.statuses
-                if s.status is not encode.StatusThread.Code.FINISHED
-            ]
+    if not concurrent.futures.wait(futures, 0).not_done and fv.ev.verbosity == 0:
+        return
+    if fv.ev.verbosity > 0:
+        unfinished = fv.statuses
+    else:
+        unfinished = [
+            s for s in fv.statuses if s.status is not encode.StatusThread.Code.FINISHED
+        ]
 
-        REFRESH_PER_SEC: Final = 10
-        with rich.progress.Progress(
-            "[progress.description]{task.description}",
-            "•",
-            "[green]{task.fields[status]}",
-            rich.progress.BarColumn(),
-            "[progress.percentage]{task.percentage:>3.0f}%",
-            rich.progress.TimeRemainingColumn(),
-            console=console,
-            refresh_per_second=REFRESH_PER_SEC,
-        ) as progress:
-            task_ids = [
-                progress.add_task(
-                    status.name, status=status.long_status, start=False, total=1.0
+    REFRESH_PER_SEC: Final = 10
+    with rich.progress.Progress(
+        "[progress.description]{task.description}",
+        "•",
+        "[green]{task.fields[status]}",
+        rich.progress.BarColumn(),
+        "[progress.percentage]{task.percentage:>3.0f}%",
+        rich.progress.TimeRemainingColumn(),
+        console=console,
+        refresh_per_second=REFRESH_PER_SEC,
+    ) as progress:
+        task_ids = [
+            progress.add_task(
+                status.name, status=status.long_status, start=False, total=1.0
+            )
+            for status in unfinished
+        ]
+
+        def update_tasks() -> None:
+            for task_id, status in zip(task_ids, unfinished):
+                fv.update_avail.clear()
+                # TODO: 3.10 match case
+                if status.status is encode.StatusThread.Code.RUNNING:
+                    progress.start_task(task_id)
+                    completed = status.progress
+                elif status.status is encode.StatusThread.Code.FINISHED:
+                    progress.stop_task(task_id)
+                    completed = 1.0
+                elif status.status is encode.StatusThread.Code.FAILED:
+                    progress.stop_task(task_id)
+                    completed = 0
+                else:
+                    progress.reset(task_id, start=False)
+                    completed = 0
+                progress.update(
+                    task_id,
+                    status=status.long_status,
+                    completed=completed,
                 )
-                for status in unfinished
-            ]
 
-            def update_tasks() -> None:
-                for task_id, status in zip(task_ids, unfinished):
-                    fv.update_avail.clear()
-                    # TODO: 3.10 match case
-                    if status.status is encode.StatusThread.Code.RUNNING:
-                        progress.start_task(task_id)
-                        completed = status.progress
-                    elif status.status is encode.StatusThread.Code.FINISHED:
-                        progress.stop_task(task_id)
-                        completed = 1.0
-                    elif status.status is encode.StatusThread.Code.FAILED:
-                        progress.stop_task(task_id)
-                        completed = 0
-                    else:
-                        progress.reset(task_id, start=False)
-                        completed = 0
-                    progress.update(
-                        task_id,
-                        status=status.long_status,
-                        completed=completed,
-                    )
-
+        update_tasks()
+        while concurrent.futures.wait(futures, 1 / REFRESH_PER_SEC).not_done:
+            fv.update_avail.wait()
             update_tasks()
-            while concurrent.futures.wait(futures, 1 / REFRESH_PER_SEC).not_done:
-                fv.update_avail.wait()
-                update_tasks()
-            update_tasks()
+        update_tasks()
 
 
 def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
