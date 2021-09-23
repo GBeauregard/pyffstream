@@ -272,14 +272,12 @@ class FFBin:
             return FFProtocols(in_protocols, {"rtmp"})
         protocol_regex = re.compile(
             r"""
-            ^
-            \s*
+            ^\s*
             (?:
                 (?P<input>[\w-]+)(?=[^:]*:)
                 |
                 (?P<output>[\w-]+)(?!.*:)
-            )
-            $
+            )$
             """,
             flags=re.VERBOSE | re.MULTILINE,
         )
