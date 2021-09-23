@@ -239,6 +239,8 @@ def status_wait(
     fv: encode.EncodeSession, futures: Iterable[concurrent.futures.Future[Any]]
 ) -> None:
     """Wait on remaining background processes while showing status."""
+    for future in concurrent.futures.wait(futures, 0).not_done:
+        future.add_done_callback(lambda fut: fv.update_avail.set())
     if concurrent.futures.wait(futures, 0).not_done or fv.ev.verbosity > 0:
         if fv.ev.verbosity > 0:
             unfinished = fv.statuses
@@ -248,9 +250,6 @@ def status_wait(
                 for s in fv.statuses
                 if s.status is not encode.StatusThread.Code.FINISHED
             ]
-
-        for future in concurrent.futures.wait(futures, 0).not_done:
-            future.add_done_callback(lambda fut: fv.update_avail.set())
 
         REFRESH_PER_SEC: Final = 10
         with rich.progress.Progress(
