@@ -772,6 +772,16 @@ class Progress:
             "progress": "continue",
         }
 
+    def flags(self, update_period: float = 0.5) -> list[str]:
+        return [
+            "-nostats",
+            "-nostdin",
+            "-progress",
+            "tcp://" + ":".join(map(str, self._sock.getsockname())),
+            "-stats_period",
+            f"{update_period:.6f}",
+        ]
+
     def monitor_progress(
         self,
         result: subprocess.Popen[str],
@@ -847,16 +857,6 @@ class Progress:
             self.progress_avail.set()
             self._packet_avail.wait()
             self._packet_avail.clear()
-
-    def flags(self, update_period: float = 0.5) -> list[str]:
-        return [
-            "-nostats",
-            "-nostdin",
-            "-progress",
-            "tcp://" + ":".join(map(str, self._sock.getsockname())),
-            "-stats_period",
-            f"{update_period:.6f}",
-        ]
 
     def __del__(self) -> None:
         self._sock.close()
