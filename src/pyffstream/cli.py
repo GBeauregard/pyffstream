@@ -290,8 +290,12 @@ def status_wait(
                     completed=completed,
                 )
 
+        start_time = time.perf_counter()
+        sleep_time = 1 / REFRESH_PER_SEC
         update_tasks()
-        while concurrent.futures.wait(futures, 1 / REFRESH_PER_SEC).not_done:
+        while concurrent.futures.wait(
+            futures, sleep_time - (time.perf_counter() - start_time) % sleep_time
+        ).not_done:
             fv.update_avail.wait()
             update_tasks()
         update_tasks()
