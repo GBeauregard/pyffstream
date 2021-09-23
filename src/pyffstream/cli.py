@@ -249,6 +249,10 @@ def status_wait(
                 if s.status is not encode.StatusThread.Code.FINISHED
             ]
 
+        for future in concurrent.futures.wait(futures, 0).not_done:
+            future.add_done_callback(lambda fut: fv.update_avail.set())
+
+        REFRESH_PER_SEC: Final = 10
         with rich.progress.Progress(
             "[progress.description]{task.description}",
             "•",
@@ -257,6 +261,7 @@ def status_wait(
             "[progress.percentage]{task.percentage:>3.0f}%",
             rich.progress.TimeRemainingColumn(),
             console=console,
+            refresh_per_second=REFRESH_PER_SEC,
         ) as progress:
             task_ids = [
                 progress.add_task(
@@ -287,9 +292,10 @@ def status_wait(
                         completed=completed,
                     )
 
-            while concurrent.futures.wait(futures, 0.1).not_done:
-                if fv.update_avail.is_set():
-                    update_tasks()
+            update_tasks()
+            while concurrent.futures.wait(futures, 1 / REFRESH_PER_SEC).not_done:
+                fv.update_avail.wait()
+                update_tasks()
             update_tasks()
 
 
