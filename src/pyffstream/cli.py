@@ -1330,21 +1330,25 @@ def main() -> None:
     elif args.x264:
         args.vencoder = "libx264"
 
-    if args.vencoder not in (
-        encode.StaticEncodeVars.VIDEO_ENCODERS & ffmpeg.ff_bin.vencoders
-    ):
-        parser.error(
-            f"selected vencoder {args.vencoder!r} not supported by ffmpeg installation"
-        )
+    if not args.print_info:
+        if args.vencoder not in (
+            encode.StaticEncodeVars.VIDEO_ENCODERS & ffmpeg.ff_bin.vencoders
+        ):
+            parser.error(
+                f"selected vencoder {args.vencoder!r} not supported by ffmpeg"
+                " installation"
+            )
 
-    if args.soxr and "--enable-libsoxr" not in ffmpeg.ff_bin.build_config:
-        parser.error("soxr specified, but using an ffmpeg build without support")
+        if args.soxr and "--enable-libsoxr" not in ffmpeg.ff_bin.build_config:
+            parser.error("soxr specified, but using an ffmpeg build without support")
 
-    if args.zscale and "zscale" not in ffmpeg.ff_bin.filters:
-        parser.error("zscale specified, but using an ffmpeg build without support")
+        if args.zscale and "zscale" not in ffmpeg.ff_bin.filters:
+            parser.error("zscale specified, but using an ffmpeg build without support")
 
-    if args.fdk and "libfdk_aac" not in ffmpeg.ff_bin.aencoders:
-        parser.error("fdk encoder specified, but using an ffmpeg build without support")
+        if args.fdk and "libfdk_aac" not in ffmpeg.ff_bin.aencoders:
+            parser.error(
+                "fdk encoder specified, but using an ffmpeg build without support"
+            )
 
     if args.obs:
         args.live = True
