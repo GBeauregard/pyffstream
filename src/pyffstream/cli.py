@@ -617,11 +617,7 @@ def set_console_logger(verbosity: int) -> None:
     listener = logging.handlers.QueueListener(que, rhandler)
     root_logger.addHandler(queue_handler)
     listener.start()
-
-    def stop_listener(listen: logging.handlers.QueueListener) -> None:
-        listen.stop()
-
-    atexit.register(stop_listener, listener)
+    atexit.register(lambda x: x.stop(), listener)
 
 
 def download_win_ffmpeg(dltype: str = "git") -> bool:
