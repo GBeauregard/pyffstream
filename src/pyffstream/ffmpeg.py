@@ -747,16 +747,15 @@ class Progress:
     """Assists in monitoring the progress output of an ffmpeg encode."""
 
     def __init__(self) -> None:
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.bind(("localhost", 0))
-        self.sock.listen(1)
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._sock.bind(("localhost", 0))
+        self._sock.listen(1)
         self._packet_avail = threading.Event()
         self._packet_lock = threading.Lock()
         self._progress_packet: list[str] = []
         self._loglevel: int
         self.progress_avail = threading.Event()
         self.finished = threading.Event()
-        self.match_que: queue.Queue[re.Match[str] | None]
         self.output: collections.deque[str]
         self.output_que: queue.Queue[str | None]
         self._make_queue: bool
@@ -820,9 +819,9 @@ class Progress:
             self.output_que.put(line)
 
     def _read_progress(self, result: subprocess.Popen[str]) -> None:
-        conn, _ = self.sock.accept()
+        conn, _ = self._sock.accept()
         with contextlib.closing(conn), contextlib.closing(
-            self.sock
+            self._sock
         ), conn.makefile() as f:
             while result.poll() is None:
                 packet = []
@@ -856,13 +855,13 @@ class Progress:
             "-nostats",
             "-nostdin",
             "-progress",
-            "tcp://" + ":".join(map(str, self.sock.getsockname())),
+            "tcp://" + ":".join(map(str, self._sock.getsockname())),
             "-stats_period",
             f"{update_period:.6f}",
         ]
 
     def __del__(self) -> None:
-        self.sock.close()
+        self._sock.close()
 
     @property
     def time_us(self) -> int:
