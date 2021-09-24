@@ -385,12 +385,8 @@ class FilterList:
     def get(self, k: str, default: ffmpeg.Filter | str | None = None) -> str | None:
         """An implementation of the get method as in dicts."""
         with self.__lock:
-            if k in self.filts:
-                return str(self.filts[k])
-            elif default is not None:
-                return str(default)
-            else:
-                return None
+            out = self.filts.get(k, default)
+            return None if out is None else str(out)
 
     def __setitem__(self, key: str, val: str | ffmpeg.Filter | Sequence[str]) -> None:
         """Set filter.
