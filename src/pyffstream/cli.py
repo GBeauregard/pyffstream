@@ -69,13 +69,13 @@ def get_stream_list(
     if not (allstreams := outjson.get("streams")):
         return []
     stream_list = []
+    BAD_VALS: Final[set[str | int]] = {"N/A", "unknown"}
     for s in allstreams:
         val_list = []
-        bad_vals: set[str | int] = {"N/A", "unknown"}
         ituple = (
-            ("", s, q_tuple[0], bad_vals),
-            ("tags: ", s.get("tags", {}), q_tuple[1], bad_vals),
-            ("disposition: ", s.get("disposition", {}), q_tuple[2], bad_vals | {0}),
+            ("", s, q_tuple[0], BAD_VALS),
+            ("tags: ", s.get("tags", {}), q_tuple[1], BAD_VALS),
+            ("disposition: ", s.get("disposition", {}), q_tuple[2], BAD_VALS | {0}),
         )
         for prefix, sdict, valid_keys, forbidden in ituple:
             val_list += [
