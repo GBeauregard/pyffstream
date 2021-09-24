@@ -167,46 +167,9 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
     probesfargs = copy.copy(fopts.subtitle)
     probefargs.pop(-2)
     probesfargs.pop(-2)
-    console.print(f"file: {highlight_path(fopts.fpath)}", highlight=False)
-    with concurrent.futures.ThreadPoolExecutor() as executor, console.status(
-        "querying file..."
-    ):
-        vfut = executor.submit(
-            get_stream_list,
-            "v",
-            (InfoKeys.VSTREAMS, InfoKeys.VSTREAM_TAGS, InfoKeys.DISPOSITIONS),
-            probefargs,
-            deep_probe,
-        )
-        afut = executor.submit(
-            get_stream_list,
-            "a",
-            (InfoKeys.ASTREAMS, InfoKeys.ASTREAM_TAGS, InfoKeys.DISPOSITIONS),
-            probefargs,
-            deep_probe,
-        )
-        sfut = executor.submit(
-            get_stream_list,
-            "s",
-            (InfoKeys.SSTREAMS, InfoKeys.SSTREAM_TAGS, InfoKeys.DISPOSITIONS),
-            probesfargs,
-            deep_probe,
-        )
-        fileduration = executor.submit(
-            ffmpeg.probe,
-            "duration",
-            probefargs,
-            probetype=ffmpeg.ProbeType.FORMAT,
-            extraargs="-pretty",
-            deep_probe=deep_probe,
-        )
-    if (duration := fileduration.result()) is not None:
-        console.print("format_duration=[green]" + duration, highlight=False)
-    vlist, alist, slist = vfut.result(), afut.result(), sfut.result()
 
-    def make_columns(
-        slist: list[list[tuple[str, str]]], title: str
-    ) -> rich.columns.Columns:
+    def make_columns(title: str, *args: Any) -> str:
+        slist = get_stream_list(*args)
         table_list = []
         for subindex, vallist in enumerate(slist):
             table = rich.table.Table(
@@ -226,13 +189,54 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
                     rich.markup.escape(textwrap.fill(tup[1], 30)),
                 )
             table_list.append(table)
-        return rich.columns.Columns(
-            table_list, align="left", title=rich.text.Text(title, style="bold italic")
-        )
+        with console.capture() as capture:
+            console.print(
+                rich.columns.Columns(
+                    table_list,
+                    title=rich.text.Text(title, style="bold italic"),
+                )
+            )
+        return capture.get()
 
-    console.print(make_columns(vlist, "Video"))
-    console.print(make_columns(alist, "Audio"))
-    console.print(make_columns(slist, "Subtitles"))
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        fileduration = executor.submit(
+            ffmpeg.probe,
+            "duration",
+            probefargs,
+            probetype=ffmpeg.ProbeType.FORMAT,
+            extraargs="-pretty",
+            deep_probe=deep_probe,
+        )
+        vid_fut = executor.submit(
+            make_columns,
+            "Video",
+            "v",
+            (InfoKeys.VSTREAMS, InfoKeys.VSTREAM_TAGS, InfoKeys.DISPOSITIONS),
+            probefargs,
+            deep_probe,
+        )
+        aud_fut = executor.submit(
+            make_columns,
+            "Audio",
+            "a",
+            (InfoKeys.ASTREAMS, InfoKeys.ASTREAM_TAGS, InfoKeys.DISPOSITIONS),
+            probefargs,
+            deep_probe,
+        )
+        sub_fut = executor.submit(
+            make_columns,
+            "Subtitles",
+            "s",
+            (InfoKeys.SSTREAMS, InfoKeys.SSTREAM_TAGS, InfoKeys.DISPOSITIONS),
+            probesfargs,
+            deep_probe,
+        )
+        console.print(f"file: {highlight_path(fopts.fpath)}", highlight=False)
+        if (duration := fileduration.result()) is not None:
+            console.print("format_duration=[green]" + duration, highlight=False)
+        console.out(vid_fut.result(), highlight=False)
+        console.out(aud_fut.result(), highlight=False)
+        console.out(sub_fut.result(), highlight=False)
 
 
 def status_wait(
