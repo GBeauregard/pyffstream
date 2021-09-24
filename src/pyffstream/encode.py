@@ -11,8 +11,6 @@ import logging
 import math
 import pathlib
 import re
-import secrets
-import string
 import subprocess
 import threading
 from collections.abc import Iterable, Mapping, MutableMapping, MutableSequence, Sequence
@@ -1528,10 +1526,6 @@ def set_output_flags(fv: EncodeSession) -> None:
 
 
 def set_srt_flags(fv: EncodeSession) -> None:
-    alphabet = string.ascii_letters + string.digits
-    if fv.ev.pyffserver:
-        fv.ev.srt_passphrase = "".join(secrets.choice(alphabet) for i in range(43))
-        # fv.ev.srt_passphrase = secrets.token_urlsafe(32)
     srt_options = [
         *((f"passphrase={fv.ev.srt_passphrase}",) if fv.ev.srt_passphrase else ()),
         "pbkeylen=32",

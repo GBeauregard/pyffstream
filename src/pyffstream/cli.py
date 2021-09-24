@@ -309,7 +309,6 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
     """Communicate with a pyffserver API to set up encode session."""
     payload = {"key": fv.ev.api_key}
     json_payload = {
-        "srt_passphrase": fv.ev.srt_passphrase,
         "vstandard": fv.ev.vstandard,
         "pixfmt": fv.ev.pix_fmt,
         "astandard": fv.ev.astandard,
@@ -363,6 +362,11 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
             raise ValueError(
                 f"Server returned error {r.status_code} while initiating stream."
             )
+        json = r.json()
+        fv.ev.srt_passphrase = json.get("srt_passphrase")
+        fv.ev.endpoint = json.get("endpoint")
+        if not fv.ev.srt_passphrase or not fv.ev.endpoint:
+            raise ValueError("server did not return needed parameters")
 
 
 def start_stream(fv: encode.EncodeSession) -> None:
@@ -465,13 +469,11 @@ def stream_file(fopts: encode.FileOpts, args: argparse.Namespace) -> None:
         encode.do_framerate_calcs(fv)
         encode.determine_bounds(fv)
         fv.ev.encode_flags = [*encode.get_vflags(fv), *encode.get_aflags(fv)]
-        encode.set_output_flags(fv)
     status_wait(fv, futures)
     encode.close_futures(futures)
     fv.executor.shutdown()
     encode.set_input_flags(fv)
     encode.set_filter_flags(fv)
-    encode.set_ffmpeg_flags(fv)
     if fv.ev.wait:
         with rich.live.Live(
             rich.text.Text("Press Enter to continue...", end=""),
@@ -484,6 +486,8 @@ def stream_file(fopts: encode.FileOpts, args: argparse.Namespace) -> None:
     if fv.ev.pyffserver and not fv.ev.outfile:
         with console.status("connecting to server"):
             setup_pyffserver_stream(fv)
+    encode.set_output_flags(fv)
+    encode.set_ffmpeg_flags(fv)
     start_stream(fv)
 
 
