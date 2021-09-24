@@ -198,6 +198,7 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
             )
         return capture.get()
 
+    console.print(f"file: {highlight_path(fopts.fpath)}", highlight=False)
     with concurrent.futures.ThreadPoolExecutor() as executor:
         fileduration = executor.submit(
             ffmpeg.probe,
@@ -231,7 +232,6 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
             probesfargs,
             deep_probe,
         )
-        console.print(f"file: {highlight_path(fopts.fpath)}", highlight=False)
         if (duration := fileduration.result()) is not None:
             console.print("format_duration=[green]" + duration, highlight=False)
         console.out(vid_fut.result(), highlight=False)
