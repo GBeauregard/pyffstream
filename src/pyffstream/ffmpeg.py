@@ -813,6 +813,17 @@ class Progress:
             f"{update_period:.6f}",
         ]
 
+    @property
+    def time_us(self) -> int:
+        try:
+            return int(self.status["out_time_us"])
+        except ValueError:
+            return 0
+
+    @property
+    def time_s(self) -> float:
+        return self.time_us / 1_000_000
+
     def monitor_progress(
         self,
         result: subprocess.Popen[str],
@@ -897,14 +908,3 @@ class Progress:
         for future in self._futures:
             if exception := future.exception(5):
                 raise exception
-
-    @property
-    def time_us(self) -> int:
-        try:
-            return int(self.status["out_time_us"])
-        except ValueError:
-            return 0
-
-    @property
-    def time_s(self) -> float:
-        return self.time_us / 1_000_000
