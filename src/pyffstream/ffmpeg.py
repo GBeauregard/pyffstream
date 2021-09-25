@@ -165,7 +165,7 @@ class FFBin:
 
     @property
     def ffversion(self) -> str:
-        """Returns string representing ffmpeg release version.
+        """String representing ffmpeg release version.
 
         Note this might not always be sensible to use for simple
         comparison, for example in the case of versions compiled from
@@ -175,17 +175,17 @@ class FFBin:
 
     @property
     def build_config(self) -> list[str]:
-        """Returns list of build config options."""
+        """List of build config options."""
         return self._header.ffconfig
 
     @property
     def version(self) -> dict[str, FFVersion]:
-        """Returns dict of FFVersions indexed by component name."""
+        """Dict of FFVersions indexed by component name."""
         return self._header.versions
 
     @functools.cached_property
     def _encoders(self) -> FFEncoders:
-        """Read all encoders compiled in."""
+        """All encoders compiled in."""
         encoders: dict[str, set[str]] = {"V": set(), "A": set(), "S": set()}
         encoderargs = [self.ffmpeg, "-hide_banner", "-v", "0", "-encoders"]
         result = subprocess.run(
@@ -214,22 +214,22 @@ class FFBin:
 
     @property
     def vencoders(self) -> set[str]:
-        """Returns set of compiled-in video encoders."""
+        """Set of compiled-in video encoders."""
         return self._encoders.vencoders
 
     @property
     def aencoders(self) -> set[str]:
-        """Returns set of compiled-in audio encoders."""
+        """Set of compiled-in audio encoders."""
         return self._encoders.aencoders
 
     @property
     def sencoders(self) -> set[str]:
-        """Returns set of compiled-in subtitle encoders."""
+        """Set of compiled-in subtitle encoders."""
         return self._encoders.sencoders
 
     @functools.cached_property
     def filters(self) -> set[str]:
-        """Returns set of filters compiled into ffmpeg instance."""
+        """Set of filters compiled into ffmpeg instance."""
         filters = set()
         versionargs = [self.ffmpeg, "-hide_banner", "-v", "0", "-filters"]
         result = subprocess.run(
@@ -260,7 +260,7 @@ class FFBin:
 
     @functools.cached_property
     def hwaccels(self) -> set[str]:
-        """Returns hwaccels compiled in."""
+        """Set of hwaccels compiled into ffmpeg version."""
         hwaccels = set()
         hwaccelargs = [self.ffmpeg, "-hide_banner", "-v", "0", "-hwaccels"]
         result = subprocess.run(
@@ -281,7 +281,7 @@ class FFBin:
 
     @functools.cached_property
     def protocols(self) -> FFProtocols:
-        """Returns FFProtocols of compiled in input/output protocols."""
+        """FFProtocols of compiled in input/output protocols."""
         in_protocols: set[str] = set()
         out_protocols: set[str] = set()
         protocol_args = [self.ffmpeg, "-hide_banner", "-v", "0", "-protocols"]
