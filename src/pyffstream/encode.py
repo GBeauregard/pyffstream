@@ -670,6 +670,7 @@ def determine_autocrop(fv: EncodeSession) -> None:
     with subprocess.Popen(
         cropargs,
         text=True,
+        encoding="utf-8",
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
         env=ffmpeg.ff_bin.env,
@@ -825,6 +826,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
             with subprocess.Popen(
                 normargs,
                 text=True,
+                encoding="utf-8",
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.PIPE,
                 env=ffmpeg.ff_bin.env,
@@ -851,7 +853,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 is not None
             ):
                 if fv.ev.normfile is not None:
-                    fv.ev.normfile.write_text(jsonmatch.group("json"))
+                    fv.ev.normfile.write_text(jsonmatch.group("json"), encoding="utf-8")
                 jsonout = json.loads(jsonmatch.group("json"))
                 fv.norm.setstatus(StatusThread.Code.OTHER, "read json")
                 json_to_normfilt(jsonout)
@@ -861,7 +863,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 fv.norm.setstatus(StatusThread.Code.FAILED, "[red]failed")
         elif fv.ev.normfile.is_file():
             fv.norm.setstatus(StatusThread.Code.OTHER, "opening")
-            jsonout = json.loads(fv.ev.normfile.read_text())
+            jsonout = json.loads(fv.ev.normfile.read_text(encoding="utf-8"))
             fv.norm.setstatus(StatusThread.Code.OTHER, "read file")
             json_to_normfilt(jsonout)
         else:
@@ -1029,6 +1031,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
         with subprocess.Popen(
             subargs,
             text=True,
+            encoding="utf-8",
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,
             env=ffmpeg.ff_bin.env,
@@ -1086,7 +1089,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
                 )
                 return []
             try:
-                sublines = subass.read_text().splitlines()
+                sublines = subass.read_text(encoding="utf-8").splitlines()
             except UnicodeDecodeError as e:
                 fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
                 logger.warning(f"reading extracted merged subtitles failed:\n{e}")
@@ -1100,7 +1103,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
                             sublines.insert(mainstyle.insert_index, style.lines[i])
                             mainstyle.names.append(name)
                 sublines = [line + "\n" for line in sublines]
-                subass.write_text("".join(sublines))
+                subass.write_text("".join(sublines), encoding="utf-8")
             in_flags = []
             attach_flags = []
             for i, file in enumerate(fv.fopts.allpaths):
@@ -1201,9 +1204,9 @@ def determine_scale(fv: EncodeSession) -> None:
             logger.warning("Could not find all specified shaders in list.")
         if custom_shaders:
             shader_concat = fv.ev.tempdir / "customshaders.glsl"
-            with shader_concat.open(mode="w") as f:
+            with shader_concat.open(mode="w", encoding="utf-8") as f:
                 for shader in custom_shaders:
-                    f.write(shader.read_text())
+                    f.write(shader.read_text(encoding="utf-8"))
             libplacebo.append(
                 f"custom_shader_path={ffmpeg.Filter.full_escape(str(shader_concat))}"
             )

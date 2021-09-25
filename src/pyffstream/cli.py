@@ -374,6 +374,7 @@ def start_stream(fv: encode.EncodeSession) -> None:
     with subprocess.Popen(
         fv.ev.ff_flags,
         text=True,
+        encoding="utf-8",
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         env=ffmpeg.ff_bin.env,
@@ -794,7 +795,7 @@ def get_parserconfig(
         "path": lambda val: pathlib.Path(val),  # pylint: disable=W0108
     }
     parsed_config = configparser.ConfigParser(converters=converters)
-    read_configs = parsed_config.read(conf_list)
+    read_configs = parsed_config.read(conf_list, encoding="utf-8")
 
     if "pyffstream" in parsed_config.sections():
         main_conf = parsed_config["pyffstream"]
@@ -824,7 +825,7 @@ def get_parserconfig(
         env_config = configparser.ConfigParser()
         # https://github.com/python/mypy/issues/2427
         env_config.optionxform = str  # type: ignore
-        env_config.read(conf_list)
+        env_config.read(conf_list, encoding="utf-8")
         for key in env_config["env"]:
             config.env[key] = env_config["env"][key]
 
@@ -1453,11 +1454,11 @@ def main() -> None:
         config_dir.mkdir(parents=True, exist_ok=True)
         config_path = config_dir / f"{APPNAME}.conf"
         new_config = configparser.ConfigParser()
-        new_config.read(config_path)
+        new_config.read(config_path, encoding="utf-8")
         # keep case for env section
         new_full_config = configparser.ConfigParser()
         new_full_config.optionxform = str  # type: ignore
-        new_full_config.read(config_path)
+        new_full_config.read(config_path, encoding="utf-8")
 
         if "pyffstream" not in new_config.sections():
             new_config.add_section("pyffstream")
@@ -1495,7 +1496,7 @@ def main() -> None:
 
         console.print("Writing defaults to config path:")
         console.print(config_path)
-        with config_path.open(mode="w") as f:
+        with config_path.open(mode="w", encoding="utf-8") as f:
             new_full_config.write(f)
         raise SystemExit(0)
 

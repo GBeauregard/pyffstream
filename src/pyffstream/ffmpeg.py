@@ -130,7 +130,12 @@ class FFBin:
         version_dict = collections.defaultdict(lambda: FFVersion(0, 0, 0))
         versionargs = [self.ffmpeg, "-hide_banner", "-v", "0", "-version"]
         result = subprocess.run(
-            versionargs, capture_output=True, env=self.env, text=True, check=False
+            versionargs,
+            capture_output=True,
+            env=self.env,
+            text=True,
+            encoding="utf-8",
+            check=False,
         )
         header_regex = re.compile(
             r"""
@@ -184,7 +189,12 @@ class FFBin:
         encoders: dict[str, set[str]] = {"V": set(), "A": set(), "S": set()}
         encoderargs = [self.ffmpeg, "-hide_banner", "-v", "0", "-encoders"]
         result = subprocess.run(
-            encoderargs, capture_output=True, env=self.env, text=True, check=False
+            encoderargs,
+            capture_output=True,
+            env=self.env,
+            text=True,
+            encoding="utf-8",
+            check=False,
         )
         if result.returncode != 0:
             return FFEncoders({"libx264"}, {"aac"}, {"srt"})
@@ -223,7 +233,12 @@ class FFBin:
         filters = set()
         versionargs = [self.ffmpeg, "-hide_banner", "-v", "0", "-filters"]
         result = subprocess.run(
-            versionargs, capture_output=True, env=self.env, text=True, check=False
+            versionargs,
+            capture_output=True,
+            env=self.env,
+            text=True,
+            encoding="utf-8",
+            check=False,
         )
         if result.returncode != 0:
             return set()
@@ -249,7 +264,12 @@ class FFBin:
         hwaccels = set()
         hwaccelargs = [self.ffmpeg, "-hide_banner", "-v", "0", "-hwaccels"]
         result = subprocess.run(
-            hwaccelargs, capture_output=True, env=self.env, text=True, check=False
+            hwaccelargs,
+            capture_output=True,
+            env=self.env,
+            text=True,
+            encoding="utf-8",
+            check=False,
         )
         if result.returncode != 0:
             return set()
@@ -266,7 +286,12 @@ class FFBin:
         out_protocols: set[str] = set()
         protocol_args = [self.ffmpeg, "-hide_banner", "-v", "0", "-protocols"]
         result = subprocess.run(
-            protocol_args, capture_output=True, env=self.env, text=True, check=False
+            protocol_args,
+            capture_output=True,
+            env=self.env,
+            text=True,
+            encoding="utf-8",
+            check=False,
         )
         if result.returncode != 0:
             return FFProtocols(in_protocols, {"rtmp"})
@@ -436,7 +461,12 @@ def probe(
     }:
         probeargs += ["-select_streams", streamtype]
     result = subprocess.run(
-        probeargs, capture_output=True, env=ff_bin.env, text=True, check=False
+        probeargs,
+        capture_output=True,
+        env=ff_bin.env,
+        text=True,
+        encoding="utf-8",
+        check=False,
     )
     if result.returncode != 0:
         return fallback
@@ -493,7 +523,7 @@ def make_playlist(
         with concurrent.futures.ThreadPoolExecutor() as executor:
             durfutures = executor.map(lambda p: probe(*p), iargs)
     playlistpath = directory / name
-    with playlistpath.open(mode="x", newline="\n") as f:
+    with playlistpath.open(mode="x", newline="\n", encoding="utf-8") as f:
         print("ffconcat version 1.0", file=f)
         for fpath in pathlist:
             print("file " + shlex.quote(str(fpath.resolve())), file=f)
@@ -752,6 +782,7 @@ class Progress:
         self._packet_lock = threading.Lock()
         self._progress_packet: list[str] = []
         self._loglevel: int
+        self._futures: list[concurrent.futures.Future[Any]] = []
         self.progress_avail = threading.Event()
         self.finished = threading.Event()
         self.output: collections.deque[str]
@@ -796,14 +827,17 @@ class Progress:
             self.output_que = queue.Queue()
         self.output = collections.deque(maxlen=maxlen)
         executor = concurrent.futures.ThreadPoolExecutor()
-        fut = executor.submit(self._read_outstream, result, outstream)
-        fut.add_done_callback(self._exit_callback)
-        executor.submit(self._read_progress, result)
-        executor.submit(self._parse_progress)
+        out_future = executor.submit(self._read_outstream, result, outstream)
+        out_future.add_done_callback(self._exit_callback)
+        self._futures.append(out_future)
+        self._futures.append(executor.submit(self._read_progress, result))
+        self._futures.append(executor.submit(self._parse_progress))
         executor.shutdown(wait=False)
 
     def _exit_callback(self, future: concurrent.futures.Future[None]) -> None:
         # pylint: disable=unused-argument
+        if self._make_queue:
+            self.output_que.put(None)
         self.finished.set()
         self._packet_avail.set()
         self.progress_avail.set()
@@ -811,12 +845,11 @@ class Progress:
     def _read_outstream(
         self, result: subprocess.Popen[str], outstream: typing.IO[str]
     ) -> None:
-        while result.poll() is None:
-            self._parse_outputline(outstream.readline().rstrip())
-        for line in outstream:
-            self._parse_outputline(line.rstrip())
-        if self._make_queue:
-            self.output_que.put(None)
+        with contextlib.suppress(ValueError):
+            while result.poll() is None:
+                self._parse_outputline(outstream.readline().rstrip())
+            for line in outstream:
+                self._parse_outputline(line.rstrip())
 
     def _parse_outputline(self, line: str) -> None:
         if not line:
@@ -828,9 +861,9 @@ class Progress:
 
     def _read_progress(self, result: subprocess.Popen[str]) -> None:
         conn, _ = self._sock.accept()
-        with contextlib.closing(conn), contextlib.closing(
-            self._sock
-        ), conn.makefile() as f:
+        with contextlib.closing(conn), contextlib.closing(self._sock), conn.makefile(
+            encoding="utf-8"
+        ) as f:
             while result.poll() is None:
                 packet = []
                 while line := f.readline():
@@ -860,6 +893,10 @@ class Progress:
 
     def __del__(self) -> None:
         self._sock.close()
+        concurrent.futures.wait(self._futures)
+        for future in self._futures:
+            if exception := future.exception(5):
+                raise exception
 
     @property
     def time_us(self) -> int:
