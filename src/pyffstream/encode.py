@@ -1588,6 +1588,6 @@ def set_ffmpeg_flags(fv: EncodeSession) -> None:
         *fv.ev.encode_flags,
         *fv.ev.output_flags,
     ]
-    logger.debug(f"Encode command:\n{ff_flags}")
+    logger.debug(f"Encode command:\n{ff_flags!r}")
     logger.info(f"Encode command:\n{' '.join(ff_flags)}")
     fv.ev.ff_flags = ff_flags
