@@ -985,7 +985,7 @@ def extract_style(
         return None
     header = bytes.fromhex(
         "".join(line[10:49] for line in extradata.splitlines())
-    ).decode("utf-8")
+    ).decode("utf-8", errors="surrogateescape")
     return parse_stylelines(header.splitlines())
 
 
@@ -1089,7 +1089,9 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
                 )
                 return []
             try:
-                sublines = subass.read_text(encoding="utf-8").splitlines()
+                sublines = subass.read_text(
+                    encoding="utf-8", errors="surrogateescape"
+                ).splitlines()
             except UnicodeDecodeError as e:
                 fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
                 logger.warning(f"reading extracted merged subtitles failed:\n{e}")
@@ -1103,7 +1105,9 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
                             sublines.insert(mainstyle.insert_index, style.lines[i])
                             mainstyle.names.append(name)
                 sublines = [line + "\n" for line in sublines]
-                subass.write_text("".join(sublines), encoding="utf-8")
+                subass.write_text(
+                    "".join(sublines), encoding="utf-8", errors="surrogateescape"
+                )
             in_flags = []
             attach_flags = []
             for i, file in enumerate(fv.fopts.allpaths):
