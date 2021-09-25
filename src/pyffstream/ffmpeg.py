@@ -281,7 +281,7 @@ class FFBin:
 
     @functools.cached_property
     def protocols(self) -> FFProtocols:
-        """FFProtocols of compiled in input/output protocols."""
+        """A FFProtocols of compiled in input/output protocols."""
         in_protocols: set[str] = set()
         out_protocols: set[str] = set()
         protocol_args = [self.ffmpeg, "-hide_banner", "-v", "0", "-protocols"]
