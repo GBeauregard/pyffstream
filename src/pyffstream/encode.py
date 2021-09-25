@@ -631,8 +631,8 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
     kf_sec = kf_int / fractions.Fraction(fv.v("v", "r_frame_rate"))
     frag_sec = kf_sec / (2 * round(kf_sec))
     fv.ev.kf_int = str(kf_int)
-    fv.ev.kf_sec = f"{int(kf_sec*10**6)/10**6:.6f}".rstrip("0").rstrip(".")
-    fv.ev.frag_sec = f"{int(frag_sec*10**6)/10**6:.6f}".rstrip("0").rstrip(".")
+    fv.ev.kf_sec = f"{float(kf_sec):.7f}"[:-1].rstrip("0").rstrip(".")
+    fv.ev.frag_sec = f"{float(frag_sec):.7f}"[:-1].rstrip("0").rstrip(".")
 
 
 def determine_autocrop(fv: EncodeSession) -> None:
