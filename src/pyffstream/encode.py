@@ -1104,10 +1104,10 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
                         if name not in mainstyle.names:
                             sublines.insert(mainstyle.insert_index, style.lines[i])
                             mainstyle.names.append(name)
-                sublines = [line + "\n" for line in sublines]
-                subass.write_text(
-                    "".join(sublines), encoding="utf-8", errors="surrogateescape"
-                )
+                with subass.open(
+                    mode="w", encoding="utf-8", errors="surrogateescape"
+                ) as f:
+                    f.writelines(line + "\n" for line in sublines)
             in_flags = []
             attach_flags = []
             for i, file in enumerate(fv.fopts.allpaths):
