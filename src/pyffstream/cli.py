@@ -7,6 +7,7 @@ import concurrent.futures
 import configparser
 import copy
 import dataclasses
+import itertools
 import logging
 import logging.handlers
 import os
@@ -534,21 +535,11 @@ def parse_files(args: argparse.Namespace, parser: argparse.ArgumentParser) -> No
                 parser.error("input files must be files or directories")
         if not stream_flist:
             parser.error("must supply a directory with at least one file")
-        if (
-            args.files[-1].is_file()
-            and (
-                idx := next(
-                    (
-                        i
-                        for i, val in enumerate(stream_flist[:-1])
-                        if val.samefile(stream_flist[-1])
-                    ),
-                    None,
-                )
+        if args.files[-1].is_file():
+            not_same = lambda f: not f.samefile(stream_flist[-1])
+            stream_flist = (
+                list(itertools.dropwhile(not_same, stream_flist))[:-1] or stream_flist
             )
-            is not None
-        ):
-            stream_flist = stream_flist[idx:-1]
         if args.playlist:
             with console.status("constructing playlist..."):
                 add_duration = bool(
