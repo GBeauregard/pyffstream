@@ -1090,7 +1090,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
                 return []
             try:
                 sublines = subass.read_text(
-                    encoding="utf-8", errors="surrogateescape"
+                    encoding="utf-8-sig", errors="surrogateescape"
                 ).splitlines()
             except UnicodeDecodeError as e:
                 fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
