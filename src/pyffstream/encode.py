@@ -621,14 +621,12 @@ class StaticEncodeVars:
             evars.ff_verbosity_flags = ["-hide_banner"]
         return evars
 
-
 def do_framerate_calcs(fv: EncodeSession) -> None:
     if fv.ev.obs:
         fv.sdv("v", "r_frame_rate", fv.ev.decimate_target)
-    kf_int = round(fv.ev.kf_target_sec) * round(
-        fractions.Fraction(fv.v("v", "r_frame_rate"))
-    )
-    kf_sec = kf_int / fractions.Fraction(fv.v("v", "r_frame_rate"))
+    framerate = fractions.Fraction(fv.v("v", "r_frame_rate"))
+    kf_int = round(fv.ev.kf_target_sec) * round(framerate))
+    kf_sec = kf_int / framerate
     frag_sec = kf_sec / (2 * round(kf_sec))
     fv.ev.kf_int = str(kf_int)
     fv.ev.kf_sec = f"{float(kf_sec):.7f}"[:-1].rstrip("0").rstrip(".")
