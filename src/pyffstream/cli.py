@@ -536,7 +536,7 @@ def parse_files(args: argparse.Namespace, parser: argparse.ArgumentParser) -> No
         if not stream_flist:
             parser.error("must supply a directory with at least one file")
         if args.files[-1].is_file():
-            not_same = lambda f: not f.samefile(stream_flist[-1])
+            not_same = lambda f: not f.samefile(stream_flist[-1])  # noqa: E731
             stream_flist = (
                 list(itertools.dropwhile(not_same, stream_flist))[:-1] or stream_flist
             )
