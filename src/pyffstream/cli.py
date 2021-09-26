@@ -551,11 +551,7 @@ def parse_files(args: argparse.Namespace, parser: argparse.ArgumentParser) -> No
                 playlist = ffmpeg.make_playlist(
                     stream_flist, args.tempdir, add_duration, args.deep_probe
                 )
-            process_file(
-                playlist,
-                args,
-                stream_flist,
-            )
+            process_file(playlist, args, stream_flist)
         else:
             for i, path in enumerate(stream_flist):
                 process_file(path, args, stream_flist)
