@@ -652,7 +652,7 @@ def download_win_ffmpeg(dltype: str = "git") -> bool:
                 dir_name = match.group("dir")
                 ff_url = ass["browser_download_url"]
                 break
-        if not ff_url:
+        else:
             logger.error("Could not fetch ffmpeg download URL from github")
             return False
         try:
