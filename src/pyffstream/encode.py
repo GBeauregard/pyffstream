@@ -489,7 +489,6 @@ class StaticEncodeVars:
     )
     kf_int: str = "0"
     kf_sec: str = "0"
-    frag_sec: str = "0"
     afilters: str = ""
     filter_complex: str = ""
     input_flags: MutableSequence[str] = dataclasses.field(default_factory=list)
@@ -503,6 +502,7 @@ class StaticEncodeVars:
     ff_deepprobe_flags: Sequence[str] = dataclasses.field(default_factory=list)
     copy_audio: bool = False
     copy_video: bool = False
+    use_timeline: bool = False
     subs: bool = False
     deep_probe: bool = False
     vindex: int = 0
@@ -586,6 +586,7 @@ class StaticEncodeVars:
         evars.deep_probe = args.deep_probe
         evars.copy_audio = args.copy_audio
         evars.copy_video = args.copy_video
+        evars.use_timeline = args.copy_video
         evars.endpoint = args.endpoint
         evars.api_url = args.api_url
         evars.api_key = args.api_key
@@ -621,16 +622,34 @@ class StaticEncodeVars:
             evars.ff_verbosity_flags = ["-hide_banner"]
         return evars
 
+
+def divide_off(num: int, divisor: int) -> int:
+    while not math.remainder(num, divisor):
+        num //= divisor
+    return num
+
+
 def do_framerate_calcs(fv: EncodeSession) -> None:
     if fv.ev.obs:
         fv.sdv("v", "r_frame_rate", fv.ev.decimate_target)
+    # see https://trac.ffmpeg.org/ticket/9440
     framerate = fractions.Fraction(fv.v("v", "r_frame_rate"))
-    kf_int = round(fv.ev.kf_target_sec) * round(framerate)
-    kf_sec = kf_int / framerate
-    frag_sec = kf_sec / (2 * round(kf_sec))
-    fv.ev.kf_int = str(kf_int)
-    fv.ev.kf_sec = f"{float(kf_sec):.7f}"[:-1].rstrip("0").rstrip(".")
-    fv.ev.frag_sec = f"{float(frag_sec):.7f}"[:-1].rstrip("0").rstrip(".")
+    ideal_gop = fv.ev.kf_target_sec * framerate
+    num = framerate.numerator
+    num = divide_off(num, 2)
+    num = divide_off(num, 5)
+    gop_size = math.ceil(ideal_gop / num) * num
+    seg_length = gop_size / framerate
+    if (
+        not gop_size
+        or seg_length.denominator > 1_000_000
+        or abs(seg_length - fv.ev.kf_target_sec) > 0.4
+    ):
+        fv.ev.use_timeline = True
+        gop_size = math.ceil(ideal_gop)
+        seg_length = gop_size / framerate
+    fv.ev.kf_int = str(gop_size)
+    fv.ev.kf_sec = f"{float(seg_length):.7f}"[:-1].rstrip("0").rstrip(".")
 
 
 def determine_autocrop(fv: EncodeSession) -> None:

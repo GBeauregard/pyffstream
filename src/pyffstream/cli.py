@@ -317,10 +317,9 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
         "framerate": fv.v("v", "r_frame_rate"),
         "keyframe_int": fv.ev.kf_int,
         "keyframe_sec": fv.ev.kf_sec,
-        "fragment_sec": fv.ev.frag_sec,
         "inputbitrate": fv.ev.vbitrate,
         "inputabitrate": fv.ev.abitrate,
-        "copyvideo": str(fv.ev.copy_video).lower(),
+        "use_timeline": str(fv.ev.use_timeline).lower(),
         "bound_w": fv.ev.bound_w,
         "bound_h": fv.ev.bound_h,
     }
