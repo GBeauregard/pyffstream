@@ -838,29 +838,27 @@ class Progress:
             self.output_que = queue.Queue()
         self.output = collections.deque(maxlen=maxlen)
         executor = concurrent.futures.ThreadPoolExecutor()
-        out_future = executor.submit(self._read_outstream, result, outstream)
-        out_future.add_done_callback(self._exit_callback)
-        self._futures.append(out_future)
+        self._futures.append(executor.submit(self._read_outstream, result, outstream))
         self._futures.append(executor.submit(self._read_progress, result))
         self._futures.append(executor.submit(self._parse_progress))
         executor.shutdown(wait=False)
 
-    def _exit_callback(self, future: concurrent.futures.Future[None]) -> None:
-        # pylint: disable=unused-argument
-        if self._make_queue:
-            self.output_que.put(None)
-        self.finished.set()
-        self._packet_avail.set()
-        self.progress_avail.set()
-
     def _read_outstream(
         self, result: subprocess.Popen[str], outstream: typing.IO[str]
     ) -> None:
-        with contextlib.suppress(ValueError):
+        try:
             while result.poll() is None:
                 self._parse_outputline(outstream.readline().rstrip())
             for line in outstream:
                 self._parse_outputline(line.rstrip())
+        except ValueError:
+            pass
+        finally:
+            if self._make_queue:
+                self.output_que.put(None)
+            self.finished.set()
+            self._packet_avail.set()
+            self.progress_avail.set()
 
     def _parse_outputline(self, line: str) -> None:
         if not line:
