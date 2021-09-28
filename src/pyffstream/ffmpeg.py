@@ -672,17 +672,13 @@ class Filter:
             dst = [None]
         self.basefilter: str
         self.opts: MutableSequence[str]
+        self.src: list[str | int | None]
+        self.dst: list[str | int | None]
         if isinstance(filt, Filter):
             self.basefilter = filt.basefilter
             self.opts = filt.opts
-            if src != [None]:
-                self.src = src
-            else:
-                self.src = filt.src
-            if dst != [None]:
-                self.dst = dst
-            else:
-                self.dst = filt.dst
+            self.src = list(src) if src != [None] else filt.src
+            self.dst = list(dst) if dst != [None] else filt.dst
         else:
             self.src = list(src)
             self.dst = list(dst)
