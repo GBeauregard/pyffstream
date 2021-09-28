@@ -520,8 +520,9 @@ def make_playlist(
             ("duration", str(fpath), None, ProbeType.FORMAT, deep_probe)
             for fpath in pathlist
         ]
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            durfutures = executor.map(lambda p: probe(*p), iargs)
+        executor = concurrent.futures.ThreadPoolExecutor()
+        durfutures = executor.map(lambda p: probe(*p), iargs)
+        executor.shutdown(wait=False)
     playlistpath = directory / name
     with playlistpath.open(mode="x", newline="\n", encoding="utf-8") as f:
         print("ffconcat version 1.0", file=f)
