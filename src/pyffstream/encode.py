@@ -13,7 +13,14 @@ import pathlib
 import re
 import subprocess
 import threading
-from collections.abc import Iterable, Mapping, MutableMapping, MutableSequence, Sequence
+from collections.abc import (
+    Iterable,
+    Iterator,
+    Mapping,
+    MutableMapping,
+    MutableSequence,
+    Sequence,
+)
 from typing import Any, ClassVar, Final, NamedTuple, cast
 
 from . import ffmpeg
@@ -1008,11 +1015,19 @@ def extract_style(
 
 def extract_styles(
     files: Sequence[pathlib.Path], sindex: int, deep_probe: bool = False
-) -> list[StyleFile]:
-    iargs = [(file, sindex, deep_probe) for file in files]
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = executor.map(lambda p: extract_style(*p), iargs)
-    return [stylefile for stylefile in futures if stylefile is not None]
+) -> Iterator[StyleFile]:
+    executor = concurrent.futures.ThreadPoolExecutor()
+    futures = [
+        executor.submit(extract_style, file, sindex, deep_probe) for file in files
+    ]
+    executor.shutdown(wait=False)
+
+    def style_iterator() -> Iterator[StyleFile]:
+        for future in concurrent.futures.as_completed(futures):
+            if (result := future.result()) is not None:
+                yield result
+
+    return style_iterator()
 
 
 def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
@@ -1073,11 +1088,8 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
             return []
         if fv.ev.is_playlist and fv.fv("s", "codec_name") == "ass":
             fv.subs.setstatus(StatusThread.Code.OTHER, "merging")
-            stylefuture = fv.executor.submit(
-                extract_styles,
-                fv.fopts.allpaths,
-                cast(int, fv.ev.sindex),
-                fv.ev.deep_probe,
+            stylegen = extract_styles(
+                fv.fopts.allpaths, cast(int, fv.ev.sindex), fv.ev.deep_probe
             )
             subass = fv.ev.tempdir / "subs.ass"
             # fmt: off
@@ -1110,8 +1122,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
             ).splitlines()
             mainstyle = parse_stylelines(sublines)
             if mainstyle is not None:
-                styles = stylefuture.result()
-                for style in styles:
+                for style in stylegen:
                     for i, name in enumerate(style.names):
                         if name not in mainstyle.names:
                             sublines.insert(mainstyle.insert_index, style.lines[i])
