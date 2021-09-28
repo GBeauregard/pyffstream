@@ -619,10 +619,7 @@ def num(val: str | int | float) -> float:
         raise ValueError(f"Invalid ffmpeg number string: {val!r}")
     if not (basenum := match.group("number")):
         raise ValueError(f"Match number not found: {val!r}")
-    if si_prefix := match.group("siprefix"):
-        prefix = _SI_PREFIXES[si_prefix]
-    else:
-        prefix = 0
+    prefix = _SI_PREFIXES[si_prefix] if (si_prefix := match.group("siprefix")) else 0
     power = 1024 if match.group("binary") == "i" else 1000
     byte = 8 if match.group("byte") == "B" else 1
     return float(basenum) * power ** prefix * byte
