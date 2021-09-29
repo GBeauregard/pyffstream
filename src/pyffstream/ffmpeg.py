@@ -135,6 +135,7 @@ class FFBin:
             "-hide_banner",
             "-v",
             "0",
+            "-noprivate",
             "-of",
             "json=c=1",
             "-show_entries",
