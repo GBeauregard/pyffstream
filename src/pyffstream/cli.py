@@ -632,7 +632,9 @@ def download_win_ffmpeg(dltype: str = "git") -> bool:
         try:
             r = s.get("https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest")
             if r.status_code != 200:
-                logger.error(f"Fetch failed, server returned response {r.status_code}")
+                logger.error(
+                    f"Fetch failed, server returned error {r.status_code}: {r.reason}"
+                )
                 return False
         except requests.exceptions.RequestException:
             logger.error("Fetch failed, requests could not communicate with server.")
@@ -685,7 +687,8 @@ def download_win_ffmpeg(dltype: str = "git") -> bool:
                     progress.update(task_id, advance=len(chunk))
                 if response.status_code != 200:
                     logger.error(
-                        f"Fetch failed, server returned response {response.status_code}"
+                        f"Fetch failed, server returned error {response.status_code}:"
+                        f" {response.reason}"
                     )
                     return False
         except requests.exceptions.RequestException:
