@@ -536,9 +536,7 @@ def make_playlist(
 
 
 def format_probe(*queries: tuple[str, Iterable[str]]) -> str:
-    return ":".join(
-        f"{section[0]}={','.join(section[1])}" for section in queries if section[1]
-    )
+    return ":".join(f"{sect[0]}={','.join(sect[1])}" for sect in queries if sect[1])
 
 
 def format_q_tuple(init_tuple: InitTuple | None, is_stream: bool) -> str:
