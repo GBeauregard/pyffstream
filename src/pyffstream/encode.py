@@ -651,9 +651,10 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
         )
         if frame_json:
             pts_list = [
-                packet["pts"]
+                int(pts)
                 for packet in frame_json.get("packets", {})
-                if "pts" in packet and packet.get("flags", "__")[0] == "K"
+                if str((pts := packet.get("pts", ""))).isdigit()
+                and packet.get("flags", "__")[0] == "K"
             ]
             if len(pts_list) >= 2:
                 min_diff = min(y - x for x, y in zip(pts_list[0:], pts_list[1:]))
