@@ -535,7 +535,13 @@ def make_playlist(
     return playlistpath
 
 
-def format_probestring(init_tuple: InitTuple | None, is_stream: bool) -> str:
+def format_probe(queries: Iterable[tuple[str, Iterable[str]]]) -> str:
+    return ":".join(
+        f"{section[0]}={','.join(section[1])}" for section in queries if section[1]
+    )
+
+
+def format_q_tuple(init_tuple: InitTuple | None, is_stream: bool) -> str:
     """Format the streamquery arg for raw JSON queries to the probefile.
 
     This corresponds to the ``-show_entries`` flag in ffprobe and can be
@@ -557,13 +563,12 @@ def format_probestring(init_tuple: InitTuple | None, is_stream: bool) -> str:
         return ""
     if is_stream:
         assert isinstance(init_tuple, tuple)
-        return_arr = ["stream=" + i for i in init_tuple[0]]
-        return_arr += ["stream_tags=" + i for i in init_tuple[1]]
-        return_arr += ["stream_disposition=" + i for i in init_tuple[2]]
+        return format_probe(
+            zip(("stream", "stream_tags", "stream_disposition"), init_tuple)
+        )
     else:
         assert not isinstance(init_tuple, tuple)
-        return_arr = ["format=" + i for i in init_tuple]
-    return ":".join(return_arr)
+        return format_probe([("format", init_tuple)])
 
 
 _SI_PREFIXES: Final[dict[str, float]] = {

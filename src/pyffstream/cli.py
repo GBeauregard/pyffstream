@@ -57,7 +57,7 @@ def get_stream_list(
 ) -> list[list[tuple[str, str]]]:
     """Make and return tuples of (key,val) pairs for each stream."""
     outjson = ffmpeg.probe(
-        ffmpeg.format_probestring(q_tuple, True),
+        ffmpeg.format_q_tuple(q_tuple, True),
         myfileargs,
         streamtype,
         probetype=ffmpeg.ProbeType.RAW_STREAM,

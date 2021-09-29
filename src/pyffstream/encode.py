@@ -234,7 +234,7 @@ class FileStreamVals:
         self.filevals = emptydict.copy()
         self.defaultvals = emptydict.copy()
         self.defaultvals |= defaults
-        if probestr := ffmpeg.format_probestring(init_tuple, self.is_stream):
+        if probestr := ffmpeg.format_q_tuple(init_tuple, self.is_stream):
             assert init_tuple is not None  # implied by check passed above
             if not self.fv.ev.live and not (
                 not self.fv.ev.subs and self.selector[0] == "s"
