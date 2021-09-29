@@ -331,7 +331,9 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
                     console.print("API key rejected by server")
                     raise SystemExit(1)
                 elif req.status_code != 200:
-                    console.print(f"API server returned status {req.status_code}")
+                    console.print(
+                        f"API server returned error {req.status_code}: {req.reason}"
+                    )
                     console.print("waiting and trying again")
                     time.sleep(1)
                     continue
@@ -359,9 +361,7 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
                 "Server returned unexpected error while initiating stream."
             ) from e
         if r.status_code != 200:
-            raise ValueError(
-                f"Server returned error {r.status_code} while initiating stream."
-            )
+            raise ValueError(f"Server returned error {r.status_code}: {r.reason}.")
         json = r.json()
         fv.ev.srt_passphrase = json.get("srt_passphrase")
         fv.ev.endpoint = json.get("endpoint")
