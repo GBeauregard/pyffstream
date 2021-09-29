@@ -11,6 +11,7 @@ import logging
 import math
 import pathlib
 import re
+import statistics
 import subprocess
 import threading
 from collections.abc import (
@@ -657,9 +658,12 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
                 and packet.get("flags", "__")[0] == "K"
             ]
             if len(pts_list) >= 2:
-                min_diff = min(y - x for x, y in zip(pts_list[0:], pts_list[1:]))
+                min_diff = statistics.median_low(
+                    y - x for x, y in zip(pts_list[0:], pts_list[1:])
+                )
                 fv.ev.kf_int = str(int(min_diff / 1000 * framerate))
                 fv.ev.kf_sec = f"{min_diff/1000:.7f}"[:-1].rstrip("0").rstrip(".")
+                logger.debug(f"keyframe interval: {fv.ev.kf_int}")
                 return
     # see https://trac.ffmpeg.org/ticket/9440
     ideal_gop = fv.ev.kf_target_sec * framerate
@@ -678,6 +682,7 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
         seg_length = gop_size / framerate
     fv.ev.kf_int = str(gop_size)
     fv.ev.kf_sec = f"{float(seg_length):.7f}"[:-1].rstrip("0").rstrip(".")
+    logger.debug(f"keyframe interval: {fv.ev.kf_int}")
 
 
 def determine_autocrop(fv: EncodeSession) -> None:
