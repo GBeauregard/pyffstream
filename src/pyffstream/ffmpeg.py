@@ -457,6 +457,7 @@ def probe(
         *(["-analyzeduration", "100M", "-probesize", "100M"] if deep_probe else []),
         "-v", "0",
         "-of", "json=c=1",
+        "-noprivate",
         *((extraargs,) if isinstance(extraargs, str) else extraargs),
         "-show_entries", _QUERY_PREFIX[probetype] + streamquery,
         *((fileargs,) if isinstance(fileargs, str) else fileargs),
