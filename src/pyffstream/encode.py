@@ -1535,6 +1535,7 @@ def set_input_flags(fv: EncodeSession) -> None:
         return
     input_flags += [
         *(("-thread_queue_size", "4096") if not fv.ev.live else ()),
+        *(("-noaccurate_seek",) if fv.ev.copy_video or fv.ev.copy_audio else ()),
         *(("-ss", fv.ev.timestamp) if fv.ev.timestamp and not fv.ev.slowseek else ()),
         *(("-re",) if not fv.ev.live and fv.ev.outfile is None else ()),
         *fv.fopts.main,
