@@ -535,7 +535,7 @@ def make_playlist(
     return playlistpath
 
 
-def format_probe(queries: Iterable[tuple[str, Iterable[str]]]) -> str:
+def format_probe(*queries: tuple[str, Iterable[str]]) -> str:
     return ":".join(
         f"{section[0]}={','.join(section[1])}" for section in queries if section[1]
     )
@@ -564,11 +564,11 @@ def format_q_tuple(init_tuple: InitTuple | None, is_stream: bool) -> str:
     if is_stream:
         assert isinstance(init_tuple, tuple)
         return format_probe(
-            zip(("stream", "stream_tags", "stream_disposition"), init_tuple)
+            *zip(("stream", "stream_tags", "stream_disposition"), init_tuple)
         )
     else:
         assert not isinstance(init_tuple, tuple)
-        return format_probe([("format", init_tuple)])
+        return format_probe(("format", init_tuple))
 
 
 _SI_PREFIXES: Final[dict[str, float]] = {
