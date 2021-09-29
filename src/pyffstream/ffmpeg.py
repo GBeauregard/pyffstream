@@ -253,7 +253,7 @@ class FFBin:
             \s+
             (?P<filter>[\w-]+)
             \s*
-            (?P<src>[AVN|]+)->(?P<dest>[AVN|]+)
+            (?P<src>[AVSN|]+)->(?P<dest>[AVSN|]+)
             """,
             flags=re.VERBOSE | re.MULTILINE,
         )
