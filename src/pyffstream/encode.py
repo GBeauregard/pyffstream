@@ -594,7 +594,6 @@ class StaticEncodeVars:
         evars.deep_probe = args.deep_probe
         evars.copy_audio = args.copy_audio
         evars.copy_video = args.copy_video
-        evars.use_timeline = args.copy_video
         evars.endpoint = args.endpoint
         evars.api_url = args.api_url
         evars.api_key = args.api_key
