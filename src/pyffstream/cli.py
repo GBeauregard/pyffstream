@@ -1364,9 +1364,6 @@ def main() -> None:
         if next((i for i in args.copy if re.search("[aA]", i)), None):
             args.copy_audio = True
 
-    if args.copy_video:
-        args.slowseek = True
-
     if args.startdelay and (args.copy_video or args.copy_audio):
         parser.error("audio/video copying cannot be used with a start delay")
     if args.startdelay and args.timestamp is not None:
