@@ -126,9 +126,24 @@ class FFBin:
             FFBanner: a named tuple of those properties.
         """
         ffversion = "0.0.0"
-        ffconfig = []
-        version_dict = collections.defaultdict(lambda: FFVersion(0, 0, 0))
-        versionargs = [self.ffmpeg, "-hide_banner", "-v", "0", "-version"]
+        ffconfig: list[str] = []
+        version_dict: dict[str, FFVersion] = collections.defaultdict(
+            lambda: FFVersion(0, 0, 0)
+        )
+        versionargs = [
+            self.ffprobe,
+            "-hide_banner",
+            "-v",
+            "0",
+            "-of",
+            "json=c=1",
+            "-show_entries",
+            format_probe(
+                ("program_version", {"version", "configuration"}),
+                ("library_versions", ()),
+                allow_empty=True,
+            ),
+        ]
         result = subprocess.run(
             versionargs,
             capture_output=True,
@@ -137,29 +152,18 @@ class FFBin:
             encoding="utf-8",
             check=False,
         )
-        header_regex = re.compile(
-            r"""
-            ^\s*
-            (?:
-                ffmpeg\sversion\s*(?P<version>[^\s]*)
-                |
-                (?P<component>\w+)
-                [\s\d\.]*/
-                \s*(?P<major>\d+)\.\s*(?P<minor>\d+)\.\s*(?P<micro>\d+)
-                |
-                configuration:\s*(?P<config>.*)$
-            )
-            """,
-            flags=re.VERBOSE | re.MULTILINE,
-        )
-        for match in header_regex.finditer(result.stdout):
-            if conf := match.group("config"):
-                ffconfig = conf.split(" ")
-            if ver := match.group("version"):
-                ffversion = ver
-            if component := match.group("component"):
-                version_dict[component] = FFVersion(
-                    match.group("major"), match.group("minor"), match.group("micro")
+        if result.returncode != 0:
+            return FFBanner(ffversion, ffconfig, version_dict)
+        jsonout: FFProbeJSON = json.loads(result.stdout)
+        with contextlib.suppress(KeyError):
+            ffversion = jsonout["program_version"]["version"]
+        with contextlib.suppress(KeyError):
+            ffconfig = jsonout["program_version"]["configuration"].split(" ")
+        libraries = jsonout.get("library_versions", [])
+        for library in libraries:
+            with contextlib.suppress(KeyError):
+                version_dict[library["name"]] = FFVersion(
+                    library["major"], library["minor"], library["micro"]
                 )
         return FFBanner(ffversion, ffconfig, version_dict)
 
@@ -339,8 +343,10 @@ InitTuple = Union[StreamQueryTuple, Iterable[str]]
 class FFProbeJSON(TypedDict, total=False):
     streams: Sequence[Mapping[str, Any]]
     packets: Sequence[Mapping[str, Any]]
+    library_versions: Sequence[Mapping[str, Any]]
     side_data_list: Sequence[Any]
     format: Mapping[str, str]
+    program_version: Mapping[str, str]
 
 
 _QUERY_PREFIX = {
@@ -535,8 +541,12 @@ def make_playlist(
     return playlistpath
 
 
-def format_probe(*queries: tuple[str, Iterable[str]]) -> str:
-    return ":".join(f"{sect[0]}={','.join(sect[1])}" for sect in queries if sect[1])
+def format_probe(*queries: tuple[str, Iterable[str]], allow_empty: bool = False) -> str:
+    return ":".join(
+        f"{sect[0]}{'=' + ','.join(sect[1]) if sect[1] else ''}"
+        for sect in queries
+        if sect[1] or allow_empty
+    )
 
 
 def format_q_tuple(init_tuple: InitTuple | None, is_stream: bool) -> str:
