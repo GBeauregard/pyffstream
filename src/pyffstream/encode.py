@@ -43,6 +43,7 @@ class EncodeSession:
         "height",
         "start_time",
         "r_frame_rate",
+        "time_base",
         "pix_fmt",
         "codec_name",
         "bit_rate",
@@ -77,6 +78,7 @@ class EncodeSession:
         "pix_fmt": "yuv420p",
         "codec_name": "h264",
         "r_frame_rate": "24/1",
+        "time_base": "1/1000",
     }
     AUDIO_DEF: Final = {
         "start_time": "0",
@@ -660,8 +662,11 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
                 min_diff = statistics.median_low(
                     y - x for x, y in zip(pts_list[0:], pts_list[1:])
                 )
-                fv.ev.kf_int = str(int(min_diff / 1000 * framerate))
-                fv.ev.kf_sec = f"{min_diff/1000:.7f}"[:-1].rstrip("0").rstrip(".")
+                timebase = fractions.Fraction(fv.v("v", "time_base"))
+                fv.ev.kf_int = str(int(min_diff * timebase * framerate))
+                fv.ev.kf_sec = (
+                    f"{float(min_diff*timebase):.7f}"[:-1].rstrip("0").rstrip(".")
+                )
                 logger.debug(f"keyframe interval: {fv.ev.kf_int}")
                 return
     # see https://trac.ffmpeg.org/ticket/9440
