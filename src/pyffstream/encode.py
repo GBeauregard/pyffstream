@@ -641,6 +641,26 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
         fv.sdv("v", "r_frame_rate", fv.ev.decimate_target)
     # see https://trac.ffmpeg.org/ticket/9440
     framerate = fractions.Fraction(fv.v("v", "r_frame_rate"))
+    if fv.ev.copy_video:
+        fv.ev.use_timeline = True
+        frame_json = ffmpeg.probe(
+            "packet=pts,flags",
+            fv.streamvals["v"].fileargs,
+            f"v:{fv.ev.vindex}",
+            probetype=ffmpeg.ProbeType.RAW_STREAM,
+            deep_probe=fv.ev.deep_probe,
+        )
+        if frame_json:
+            pts_list = [
+                packet["pts"]
+                for packet in frame_json.get("packets", {})
+                if "pts" in packet and packet.get("flags", "__")[0] == "K"
+            ]
+            if len(pts_list) >= 2:
+                min_diff = min(y - x for x, y in zip(pts_list[0:], pts_list[1:]))
+                fv.ev.kf_int = str(int(min_diff / 1000 * framerate))
+                fv.ev.kf_sec = f"{min_diff/1000:.7f}"[:-1].rstrip("0").rstrip(".")
+                return
     ideal_gop = fv.ev.kf_target_sec * framerate
     num = framerate.numerator
     num = divide_off(num, 2)

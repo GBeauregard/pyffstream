@@ -338,6 +338,7 @@ InitTuple = Union[StreamQueryTuple, Iterable[str]]
 
 class FFProbeJSON(TypedDict, total=False):
     streams: Sequence[Mapping[str, Any]]
+    packets: Sequence[Mapping[str, Any]]
     format: Mapping[str, str]
 
 
