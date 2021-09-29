@@ -341,6 +341,7 @@ InitTuple = Union[StreamQueryTuple, Iterable[str]]
 
 
 class FFProbeJSON(TypedDict, total=False):
+    # https://github.com/FFmpeg/FFmpeg/blob/master/doc/ffprobe.xsd
     streams: Sequence[Mapping[str, Any]]
     packets: Sequence[Mapping[str, Any]]
     library_versions: Sequence[Mapping[str, Any]]
