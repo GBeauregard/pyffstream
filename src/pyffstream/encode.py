@@ -639,7 +639,6 @@ def divide_off(num: int, divisor: int) -> int:
 def do_framerate_calcs(fv: EncodeSession) -> None:
     if fv.ev.obs:
         fv.sdv("v", "r_frame_rate", fv.ev.decimate_target)
-    # see https://trac.ffmpeg.org/ticket/9440
     framerate = fractions.Fraction(fv.v("v", "r_frame_rate"))
     if fv.ev.copy_video:
         fv.ev.use_timeline = True
@@ -661,6 +660,7 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
                 fv.ev.kf_int = str(int(min_diff / 1000 * framerate))
                 fv.ev.kf_sec = f"{min_diff/1000:.7f}"[:-1].rstrip("0").rstrip(".")
                 return
+    # see https://trac.ffmpeg.org/ticket/9440
     ideal_gop = fv.ev.kf_target_sec * framerate
     num = framerate.numerator
     num = divide_off(num, 2)
