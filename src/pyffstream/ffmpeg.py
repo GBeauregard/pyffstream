@@ -33,6 +33,42 @@ from typing import Any, Final, Literal, NamedTuple, TypedDict, Union, overload
 logger = logging.getLogger(__name__)
 
 
+class ProbeType(enum.Enum):
+    RAW = enum.auto()
+    STREAM = enum.auto()
+    TAGS = enum.auto()
+    DISPOSITION = enum.auto()
+    FORMAT = enum.auto()
+
+
+# TODO: use typing.TypeAlias in 3.10
+StrProbetype = Literal[
+    ProbeType.STREAM, ProbeType.TAGS, ProbeType.DISPOSITION, ProbeType.FORMAT
+]
+StreamQueryTuple = tuple[Iterable[str], Iterable[str], Iterable[str]]
+# TODO: 3.10 | union syntax
+InitTuple = Union[StreamQueryTuple, Iterable[str]]
+
+
+class FFProbeJSON(TypedDict, total=False):
+    # https://github.com/FFmpeg/FFmpeg/blob/master/doc/ffprobe.xsd
+    streams: Sequence[Mapping[str, Any]]
+    packets: Sequence[Mapping[str, Any]]
+    library_versions: Sequence[Mapping[str, Any]]
+    side_data_list: Sequence[Any]
+    format: Mapping[str, str]
+    program_version: Mapping[str, str]
+
+
+_QUERY_PREFIX = {
+    ProbeType.STREAM: "stream=",
+    ProbeType.TAGS: "stream_tags=",
+    ProbeType.DISPOSITION: "stream_disposition=",
+    ProbeType.FORMAT: "format=",
+    ProbeType.RAW: "",
+}
+
+
 @functools.total_ordering
 class FFVersion:
     """Holds a ffmpeg component version."""
@@ -118,6 +154,185 @@ class FFBin:
         self.ffprobe: str = ffprobe
         self.env: dict[str, str] = env
 
+    @overload
+    def probe(
+        self,
+        streamquery: str,
+        fileargs: str | Sequence[str] | None,
+        streamtype: str | None,
+        probetype: StrProbetype,
+        deep_probe: bool = ...,
+        fallback: str | None = ...,
+        extraargs: str | Sequence[str] | None = ...,
+    ) -> str | None:
+        ...
+
+    @overload
+    def probe(
+        self,
+        streamquery: str,
+        fileargs: str | Sequence[str] | None,
+        streamtype: str | None,
+        probetype: Literal[ProbeType.RAW],
+        deep_probe: bool = ...,
+        fallback: str | None = ...,
+        extraargs: str | Sequence[str] | None = ...,
+    ) -> FFProbeJSON | None:
+        ...
+
+    def probe(
+        self,
+        streamquery: str,
+        fileargs: str | Sequence[str] | None,
+        streamtype: str | None = None,
+        probetype: ProbeType = ProbeType.STREAM,
+        deep_probe: bool = False,
+        fallback: str | None = None,
+        extraargs: str | Sequence[str] | None = None,
+    ) -> str | FFProbeJSON | None:
+        """Probes a media file with ffprobe and returns results.
+
+        Generic function for probing a media file for information using
+        ffmpeg's `ffprobe` utility. Capable of returning both individual
+        values and the raw deserialized JSON. Users may be interested in
+        querying many values at once with JSON ouput in order to avoid
+        the delays from repeatedly calling ffprobe.
+
+        Args:
+            streamquery:
+                Argument passed to the ``-show_entries`` flag in
+                ffprobe. If a non-raw streamtype is specified, then the
+                argument may be the type field you want to query, for
+                example the duration.
+            fileargs:
+                String of the file you want to analyze. If additional
+                args are needed to specify the input, accepts a list of
+                args to pass on.
+            streamtype:
+                Optional; Argument to pass on to the ``-select_streams``
+                flag in ffprobe. Argument not passed if None.
+            probetype:
+                Optional; If one of STREAM, TAGS, DISPOSITION, FORMAT,
+                query file for metadata of selected probetype and
+                streamtype and return the requested streamquery of the
+                first matching stream. If RAW, query file as before, but
+                return the raw JSON corresponding to the full
+                streamquery.
+            deep_probe:
+                Optional; Pass extra arguments to ffprobe in order to
+                probe the file more deeply. This is useful for
+                containers that can't be lightly inspected.
+            fallback:
+                Optional; Value to return if the query fails for any
+                reason or ffmpeg doesn't know the requested parameter
+                value.
+            extraargs:
+                Optional; A list of additional arguments to past to
+                ffprobe during runtime. Can be used for example to
+                request ``-sexagesimal`` formatting of duration fields.
+
+        Returns:
+            fallback (default None): The query failed or returned
+            "unknown" or "N/A".
+
+            str: For non-raw probetype returns the value of the
+            requested query.
+
+            deserialized JSON: For raw probetype, the JSON returned
+            after deserialization.
+
+        Raises:
+            ValueError: Invalid probetype was passed.
+        """
+        if extraargs is None:
+            extraargs = []
+        fargs = (fileargs,) if isinstance(fileargs, str) else fileargs
+
+        # fmt: off
+        probeargs = [
+            self.ffprobe,
+            *(["-analyzeduration", "100M", "-probesize", "100M"] if deep_probe else []),
+            "-v", "0",
+            "-of", "json=c=1",
+            "-noprivate",
+            *((extraargs,) if isinstance(extraargs, str) else extraargs),
+            *(("-select_streams", streamtype) if streamtype is not None else ()),
+            "-show_entries", _QUERY_PREFIX[probetype] + streamquery,
+            *(fargs if fargs is not None else ()),
+        ]
+        # fmt: on
+        result = subprocess.run(
+            probeargs,
+            capture_output=True,
+            env=ff_bin.env,
+            text=True,
+            encoding="utf-8",
+            check=False,
+        )
+        if result.returncode != 0:
+            return fallback
+        jsonout: FFProbeJSON = json.loads(result.stdout)
+        if probetype is ProbeType.RAW:
+            return jsonout
+        try:
+            # TODO: change to match case in 3.10
+            returnval: str
+            if probetype is ProbeType.STREAM:
+                returnval = jsonout["streams"][0][streamquery]
+            elif probetype is ProbeType.TAGS:
+                returnval = jsonout["streams"][0]["tags"][streamquery]
+            elif probetype is ProbeType.DISPOSITION:
+                returnval = jsonout["streams"][0]["disposition"][streamquery]
+            elif probetype is ProbeType.FORMAT:
+                returnval = jsonout["format"][streamquery]
+            else:
+                raise ValueError("invalid probe type query")
+        except (KeyError, IndexError):
+            # TODO: remove parentheses in 3.10
+            return fallback
+        return fallback if returnval in {"N/A", "unknown"} else returnval
+
+    def make_playlist(
+        self,
+        pathlist: Iterable[pathlib.Path],
+        directory: pathlib.Path,
+        add_duration: bool,
+        deep_probe: bool = False,
+        name: str = "streamplaylist.txt",
+    ) -> pathlib.Path:
+        """Construct ffconcat playlist from path list.
+
+        Paths created are absolute, and the files are probed in parallel
+        if needed to determine the duration.
+
+        Args:
+            pathlist: Ordered pathlist to construct ffconcat with.
+            directory: Directory to put the constructed playlist in.
+            add_duration: Whether or not to include duration metadata.
+            deep_probe: Whether to probe file deeply.
+            name: Optional; name of playlist file.
+
+        Returns:
+            Path to created ffconcat playlist.
+        """
+        durfutures = None
+        if add_duration:
+            iargs = [
+                ("duration", str(fpath), None, ProbeType.FORMAT, deep_probe)
+                for fpath in pathlist
+            ]
+            executor = concurrent.futures.ThreadPoolExecutor()
+            durfutures = executor.map(lambda p: self.probe(*p), iargs)
+            executor.shutdown(wait=False)
+        playlistpath = directory / name
+        with playlistpath.open(mode="x", newline="\n", encoding="utf-8") as f:
+            print("ffconcat version 1.0", file=f)
+            for fpath in pathlist:
+                print("file " + shlex.quote(str(fpath.resolve())), file=f)
+                if durfutures is not None and (fdur := next(durfutures)) is not None:
+                    print("duration " + fdur, file=f)
+        return playlistpath
+
     @functools.cached_property
     def _header(self) -> FFBanner:
         """Gets properties readable from the CLI ffmpeg header.
@@ -130,32 +345,18 @@ class FFBin:
         version_dict: dict[str, FFVersion] = collections.defaultdict(
             lambda: FFVersion(0, 0, 0)
         )
-        versionargs = [
-            self.ffprobe,
-            "-hide_banner",
-            "-v",
-            "0",
-            "-noprivate",
-            "-of",
-            "json=c=1",
-            "-show_entries",
+        jsonout = self.probe(
             format_probe(
                 ("program_version", {"version", "configuration"}),
                 ("library_versions", ()),
                 allow_empty=True,
             ),
-        ]
-        result = subprocess.run(
-            versionargs,
-            capture_output=True,
-            env=self.env,
-            text=True,
-            encoding="utf-8",
-            check=False,
+            None,
+            None,
+            probetype=ProbeType.RAW,
         )
-        if result.returncode != 0:
+        if jsonout is None:
             return FFBanner(ffversion, ffconfig, version_dict)
-        jsonout: FFProbeJSON = json.loads(result.stdout)
         with contextlib.suppress(KeyError):
             ffversion = jsonout["program_version"]["version"]
         with contextlib.suppress(KeyError):
@@ -320,217 +521,6 @@ class FFBin:
 
 
 ff_bin = FFBin("ffmpeg", "ffprobe", os.environ.copy())
-
-
-class ProbeType(enum.Enum):
-    RAW = enum.auto()
-    STREAM = enum.auto()
-    TAGS = enum.auto()
-    DISPOSITION = enum.auto()
-    FORMAT = enum.auto()
-
-
-# TODO: use typing.TypeAlias in 3.10
-StrProbetype = Literal[
-    ProbeType.STREAM, ProbeType.TAGS, ProbeType.DISPOSITION, ProbeType.FORMAT
-]
-StreamQueryTuple = tuple[Iterable[str], Iterable[str], Iterable[str]]
-# TODO: 3.10 | union syntax
-InitTuple = Union[StreamQueryTuple, Iterable[str]]
-
-
-class FFProbeJSON(TypedDict, total=False):
-    # https://github.com/FFmpeg/FFmpeg/blob/master/doc/ffprobe.xsd
-    streams: Sequence[Mapping[str, Any]]
-    packets: Sequence[Mapping[str, Any]]
-    library_versions: Sequence[Mapping[str, Any]]
-    side_data_list: Sequence[Any]
-    format: Mapping[str, str]
-    program_version: Mapping[str, str]
-
-
-_QUERY_PREFIX = {
-    ProbeType.STREAM: "stream=",
-    ProbeType.TAGS: "stream_tags=",
-    ProbeType.DISPOSITION: "stream_disposition=",
-    ProbeType.FORMAT: "format=",
-    ProbeType.RAW: "",
-}
-
-
-@overload
-def probe(
-    streamquery: str,
-    fileargs: str | Sequence[str],
-    streamtype: str | None,
-    probetype: StrProbetype,
-    deep_probe: bool = ...,
-    fallback: str | None = ...,
-    extraargs: str | Sequence[str] | None = ...,
-) -> str | None:
-    ...
-
-
-@overload
-def probe(
-    streamquery: str,
-    fileargs: str | Sequence[str],
-    streamtype: str | None,
-    probetype: Literal[ProbeType.RAW],
-    deep_probe: bool = ...,
-    fallback: str | None = ...,
-    extraargs: str | Sequence[str] | None = ...,
-) -> FFProbeJSON | None:
-    ...
-
-
-def probe(
-    streamquery: str,
-    fileargs: str | Sequence[str],
-    streamtype: str | None = None,
-    probetype: ProbeType = ProbeType.STREAM,
-    deep_probe: bool = False,
-    fallback: str | None = None,
-    extraargs: str | Sequence[str] | None = None,
-) -> str | FFProbeJSON | None:
-    """Probes a media file with ffprobe and returns results.
-
-    Generic function for probing a media file for information using
-    ffmpeg's `ffprobe` utility. Capable of returning both individual
-    values and the raw deserialized JSON. Users may be interested in
-    querying many values at once with JSON ouput in order to avoid the
-    delays from repeatedly calling ffprobe.
-
-    Args:
-        streamquery:
-            Argument passed to the ``-show_entries`` flag in ffprobe. If
-            a non-raw streamtype is specified, then the argument may be
-            the type field you want to query, for example the duration.
-        fileargs:
-            String of the file you want to analyze. If additional args
-            are needed to specify the input, accepts a list of args to
-            pass on.
-        streamtype:
-            Optional; Argument to pass on to the ``-select_streams``
-            flag in ffprobe. Argument not passed if None.
-        probetype:
-            Optional; If one of STREAM, TAGS, DISPOSITION, FORMAT, query
-            file for metadata of selected probetype and streamtype and
-            return the requested streamquery of the first matching
-            stream. If RAW, query file as before, but return the raw
-            JSON corresponding to the full streamquery.
-        deep_probe:
-            Optional; Pass extra arguments to ffprobe in order to probe
-            the file more deeply. This is useful for containers that
-            can't be lightly inspected.
-        fallback:
-            Optional; Value to return if the query fails for any reason
-            or ffmpeg doesn't know the requested parameter value.
-        extraargs:
-            Optional; A list of additional arguments to past to ffprobe
-            during runtime. Can be used for example to request
-            ``-sexagesimal`` formatting of duration fields.
-
-    Returns:
-        fallback (default None): The query failed or returned "unknown"
-        or "N/A".
-
-        str: For non-raw probetype returns the value of the requested
-        query.
-
-        deserialized JSON: For raw probetype, the JSON returned after
-        deserialization.
-
-    Raises:
-        ValueError: Invalid probetype was passed.
-    """
-    if extraargs is None:
-        extraargs = []
-
-    # fmt: off
-    probeargs = [
-        ff_bin.ffprobe,
-        *(["-analyzeduration", "100M", "-probesize", "100M"] if deep_probe else []),
-        "-v", "0",
-        "-of", "json=c=1",
-        "-noprivate",
-        *((extraargs,) if isinstance(extraargs, str) else extraargs),
-        *(("-select_streams", streamtype) if streamtype is not None else ()),
-        "-show_entries", _QUERY_PREFIX[probetype] + streamquery,
-        *((fileargs,) if isinstance(fileargs, str) else fileargs),
-    ]
-    # fmt: on
-    result = subprocess.run(
-        probeargs,
-        capture_output=True,
-        env=ff_bin.env,
-        text=True,
-        encoding="utf-8",
-        check=False,
-    )
-    if result.returncode != 0:
-        return fallback
-    jsonout: FFProbeJSON = json.loads(result.stdout)
-    if probetype is ProbeType.RAW:
-        return jsonout
-    try:
-        # TODO: change to match case in 3.10
-        returnval: str
-        if probetype is ProbeType.STREAM:
-            returnval = jsonout["streams"][0][streamquery]
-        elif probetype is ProbeType.TAGS:
-            returnval = jsonout["streams"][0]["tags"][streamquery]
-        elif probetype is ProbeType.DISPOSITION:
-            returnval = jsonout["streams"][0]["disposition"][streamquery]
-        elif probetype is ProbeType.FORMAT:
-            returnval = jsonout["format"][streamquery]
-        else:
-            raise ValueError("invalid probe type query")
-    except (KeyError, IndexError):
-        # TODO: remove parentheses in 3.10
-        return fallback
-    return fallback if returnval in {"N/A", "unknown"} else returnval
-
-
-def make_playlist(
-    pathlist: Iterable[pathlib.Path],
-    directory: pathlib.Path,
-    add_duration: bool,
-    deep_probe: bool = False,
-    name: str = "streamplaylist.txt",
-) -> pathlib.Path:
-    """Construct ffconcat playlist from path list.
-
-    Paths created are absolute, and the files are probed in parallel if
-    needed to determine the duration.
-
-    Args:
-        pathlist: Ordered pathlist to construct ffconcat with.
-        directory: Directory to put the constructed playlist in.
-        add_duration: Whether or not to include duration metadata.
-        deep_probe: Whether to probe file deeply.
-        name: Optional; name of playlist file.
-
-    Returns:
-        Path to created ffconcat playlist.
-    """
-    durfutures = None
-    if add_duration:
-        iargs = [
-            ("duration", str(fpath), None, ProbeType.FORMAT, deep_probe)
-            for fpath in pathlist
-        ]
-        executor = concurrent.futures.ThreadPoolExecutor()
-        durfutures = executor.map(lambda p: probe(*p), iargs)
-        executor.shutdown(wait=False)
-    playlistpath = directory / name
-    with playlistpath.open(mode="x", newline="\n", encoding="utf-8") as f:
-        print("ffconcat version 1.0", file=f)
-        for fpath in pathlist:
-            print("file " + shlex.quote(str(fpath.resolve())), file=f)
-            if durfutures is not None and (fdur := next(durfutures)) is not None:
-                print("duration " + fdur, file=f)
-    return playlistpath
 
 
 def format_probe(*queries: tuple[str, Iterable[str]], allow_empty: bool = False) -> str:

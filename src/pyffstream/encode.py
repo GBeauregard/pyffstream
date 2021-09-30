@@ -238,7 +238,7 @@ class FileStreamVals:
             if not self.fv.ev.live and not (
                 not self.fv.ev.subs and self.selector[0] == "s"
             ):
-                outjson = ffmpeg.probe(
+                outjson = ffmpeg.ff_bin.probe(
                     probestr,
                     self.fileargs,
                     None if self.selector[0] == "f" else self.selector,
@@ -246,12 +246,10 @@ class FileStreamVals:
                     deep_probe=self.fv.ev.deep_probe,
                 )
                 if outjson is not None:
-                    if is_stream and "streams" in outjson:
-                        streams = outjson["streams"]
-                        if len(streams) > 0:
+                    if is_stream:
+                        if streams := outjson.get("streams"):
                             self.filevals = dict(streams[0])
-                    elif "format" in outjson:
-                        formats = outjson["format"]
+                    elif formats := outjson.get("format"):
                         self.filevals = dict(formats)
 
             def initval(
@@ -318,7 +316,7 @@ class FileStreamVals:
                 if self.fv.ev.live or (not self.fv.ev.subs and self.selector[0] == "s"):
                     readval = None
                 else:
-                    readval = ffmpeg.probe(
+                    readval = ffmpeg.ff_bin.probe(
                         key,
                         self.fileargs,
                         self.selector,
@@ -641,7 +639,7 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
     framerate = fractions.Fraction(fv.v("v", "r_frame_rate"))
     if fv.ev.copy_video:
         fv.ev.use_timeline = True
-        frame_json = ffmpeg.probe(
+        frame_json = ffmpeg.ff_bin.probe(
             "packet=pts,flags",
             fv.streamvals["v"].fileargs,
             f"v:{fv.ev.vindex}",
@@ -1023,7 +1021,7 @@ def parse_stylelines(ass_text: Sequence[str]) -> StyleFile | None:
 def extract_style(
     file: pathlib.Path, sindex: int, deep_probe: bool = False
 ) -> StyleFile | None:
-    extradata = ffmpeg.probe(
+    extradata = ffmpeg.ff_bin.probe(
         "extradata",
         str(file),
         f"s:{sindex}",
