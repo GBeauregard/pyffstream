@@ -615,8 +615,8 @@ def num(val: str | int | float) -> float:
     SI prefix that may be appended with an `i` modifier that indicates
     the SI prefix is in powers of 1024 instead of 1000. Finally, the
     number may end in a `B` indicating it is to be multiplied by 8. The
-    optional ffmpeg utility ``ffeval`` may be used to validate the output
-    of this function.
+    optional ffmpeg utility ``ffeval`` may be used to validate the
+    output of this function.
 
     .. _numerical options:
        https://ffmpeg.org/ffmpeg.html#Options
