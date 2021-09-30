@@ -218,14 +218,14 @@ class FileStreamVals:
         emptydict: dict[str, Any] = {}
         self.default_probetype: ffmpeg.StrProbetype
         if self.selector[0] in {"v", "a", "s"}:
-            self.is_stream = True
+            is_stream = True
             self.default_probetype = ffmpeg.ProbeType.STREAM
             emptydict = {
                 "disposition": {},
                 "tags": {},
             }
         elif self.selector[0] == "f":
-            self.is_stream = False
+            is_stream = False
             self.default_probetype = ffmpeg.ProbeType.FORMAT
             emptydict = {}
         else:
@@ -233,7 +233,7 @@ class FileStreamVals:
         self.filevals = emptydict.copy()
         self.defaultvals = emptydict.copy()
         self.defaultvals |= defaults
-        if probestr := ffmpeg.format_q_tuple(init_tuple, self.is_stream):
+        if probestr := ffmpeg.format_q_tuple(init_tuple, is_stream):
             assert init_tuple is not None  # implied by check passed above
             if not self.fv.ev.live and not (
                 not self.fv.ev.subs and self.selector[0] == "s"
@@ -246,7 +246,7 @@ class FileStreamVals:
                     deep_probe=self.fv.ev.deep_probe,
                 )
                 if outjson is not None:
-                    if self.is_stream and "streams" in outjson:
+                    if is_stream and "streams" in outjson:
                         streams = outjson["streams"]
                         if len(streams) > 0:
                             self.filevals = dict(streams[0])
@@ -261,7 +261,7 @@ class FileStreamVals:
                     if val not in valdict or valdict[val] in {"N/A", "unknown"}:
                         valdict[val] = None
 
-            if self.is_stream:
+            if is_stream:
                 assert isinstance(init_tuple, tuple)
                 initval(self.filevals, init_tuple[0])
                 if "tags" not in self.filevals:
