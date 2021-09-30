@@ -235,9 +235,12 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
         )
         if (duration := fileduration.result()) is not None:
             console.print("format_duration=[green]" + duration, highlight=False)
-        console.out(vid_fut.result(), highlight=False)
-        console.out(aud_fut.result(), highlight=False)
-        console.out(sub_fut.result(), highlight=False)
+        if vid := vid_fut.result():
+            console.out(vid, highlight=False)
+        if aud := aud_fut.result():
+            console.out(aud, highlight=False)
+        if subs := sub_fut.result():
+            console.out(subs, highlight=False)
 
 
 def status_wait(
