@@ -264,7 +264,7 @@ class FFBin:
         result = subprocess.run(
             probeargs,
             capture_output=True,
-            env=ff_bin.env,
+            env=self.env,
             text=True,
             encoding="utf-8",
             check=False,
