@@ -414,7 +414,7 @@ def start_stream(fv: encode.EncodeSession) -> None:
             return f"{int(h):02d}:{int(m):02d}:{int(s):02d}"
 
         length_str = (
-            "/" + sec_to_str(length) if fv.fv("f", "duration") is not None else ""
+            f"/{sec_to_str(length)}" if fv.fv("f", "duration") is not None else ""
         )
 
         task_id = progress.add_task(
