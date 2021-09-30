@@ -881,8 +881,13 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 env=ffmpeg.ff_bin.env,
             ) as result:
                 assert result.stderr is not None
-                fv.norm.setstatus(StatusThread.Code.RUNNING, "calculating")
-                length = ffmpeg.duration(fv.v("f", "duration"))
+                length = ffmpeg.duration(fv.v("f", "duration")) or 1
+                code = (
+                    StatusThread.Code.RUNNING
+                    if fv.fv("f", "duration") is not None
+                    else StatusThread.Code.OTHER
+                )
+                fv.norm.setstatus(code, "calculating")
                 ffprogress.monitor_progress(
                     result, result.stderr, maxlen=50, loglevel=logging.DEBUG
                 )
