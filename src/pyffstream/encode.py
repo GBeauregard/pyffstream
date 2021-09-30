@@ -75,10 +75,10 @@ class EncodeSession:
     }
     VIDEO_DEF: Final = {
         "start_time": "0",
+        "time_base": "1/1000",
         "pix_fmt": "yuv420p",
         "codec_name": "h264",
         "r_frame_rate": "24/1",
-        "time_base": "1/1000",
     }
     AUDIO_DEF: Final = {
         "start_time": "0",
@@ -932,7 +932,7 @@ def determine_timeseek(fv: EncodeSession) -> None:
         vstart = ffmpeg.duration(fv.v("v", "start_time"))
         astart = ffmpeg.duration(fv.v("a", "start_time"))
         if vstart != astart:
-            fv.ev.timestamp = str(max(vstart, astart))
+            fv.ev.timestamp = f"{max(vstart, astart):f}"
 
 
 def determine_bounds(fv: EncodeSession) -> None:
