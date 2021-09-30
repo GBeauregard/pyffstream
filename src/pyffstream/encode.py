@@ -1593,7 +1593,7 @@ def set_srt_flags(fv: EncodeSession) -> None:
         "latency=5000000",  # 5s
     ]
     srt_opts = "&".join(srt_options)
-    srt_flags = []
+    srt_flags = ["-flush_packets", "0"]
     if fv.ev.fifo:
         srt_flags += get_fifo_flags("mpegts")
     else:
