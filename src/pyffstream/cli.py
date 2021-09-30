@@ -391,7 +391,7 @@ def start_stream(fv: encode.EncodeSession) -> None:
         "[red]{task.fields[bitrate]}",
         "•",
         "[cyan]{task.fields[speed]:<6}",
-        refresh_per_second=4,
+        refresh_per_second=10 if fv.fv("f", "duration") is None else 4,
         console=console,
     ) as progress:
         assert result.stdout is not None
@@ -399,7 +399,7 @@ def start_stream(fv: encode.EncodeSession) -> None:
         if fv.ev.clip_length:
             length = ffmpeg.duration(fv.ev.clip_length)
         else:
-            length = ffmpeg.duration(fv.v("f", "duration"))
+            length = ffmpeg.duration(fv.v("f", "duration")) or 1
         if fv.ev.timestamp and not fv.ev.clip_length:
             ts_offset = ffmpeg.duration(fv.ev.timestamp)
         else:
@@ -413,17 +413,20 @@ def start_stream(fv: encode.EncodeSession) -> None:
             h, m = divmod(m, 60)
             return f"{int(h):02d}:{int(m):02d}:{int(s):02d}"
 
-        length_str = sec_to_str(length)
+        length_str = (
+            "/" + sec_to_str(length) if fv.fv("f", "duration") is not None else ""
+        )
 
         task_id = progress.add_task(
             "Encode",
             bitrate=fv.ev.ffprogress.status["bitrate"],
             speed=fv.ev.ffprogress.status["speed"],
-            timestamp=f"{sec_to_str(ts)}/{length_str}",
+            timestamp=f"{sec_to_str(ts)}{length_str}",
             start=False,
         )
         progress.update(task_id, total=length)
-        progress.start_task(task_id)
+        if fv.fv("f", "duration") is not None:
+            progress.start_task(task_id)
 
         fv.ev.ffprogress.monitor_progress(
             result, result.stdout, maxlen=50, loglevel=logging.INFO
@@ -437,7 +440,7 @@ def start_stream(fv: encode.EncodeSession) -> None:
                 completed=ts,
                 bitrate=fv.ev.ffprogress.status["bitrate"],
                 speed=fv.ev.ffprogress.status["speed"],
-                timestamp=f"{sec_to_str(ts)}/{length_str}",
+                timestamp=f"{sec_to_str(ts)}{length_str}",
             )
             fv.ev.ffprogress.progress_avail.wait()
             fv.ev.ffprogress.progress_avail.clear()
@@ -449,7 +452,7 @@ def start_stream(fv: encode.EncodeSession) -> None:
             completed=ts,
             bitrate=fv.ev.ffprogress.status["bitrate"],
             speed=fv.ev.ffprogress.status["speed"],
-            timestamp=f"{sec_to_str(ts)}/{length_str}",
+            timestamp=f"{sec_to_str(ts)}{length_str}",
         )
 
     if result.returncode != 0:
