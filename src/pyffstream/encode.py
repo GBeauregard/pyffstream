@@ -1027,7 +1027,6 @@ def extract_style(
         f"s:{sindex}",
         ffmpeg.ProbeType.STREAM,
         deep_probe,
-        None,
         "-show_data",
     )
     if extradata is None:

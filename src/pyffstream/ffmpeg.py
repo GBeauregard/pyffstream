@@ -162,7 +162,6 @@ class FFBin:
         streamtype: str | None,
         probetype: StrProbetype,
         deep_probe: bool = ...,
-        fallback: str | None = ...,
         extraargs: str | Sequence[str] | None = ...,
     ) -> str | None:
         ...
@@ -175,7 +174,6 @@ class FFBin:
         streamtype: str | None,
         probetype: Literal[ProbeType.RAW],
         deep_probe: bool = ...,
-        fallback: str | None = ...,
         extraargs: str | Sequence[str] | None = ...,
     ) -> FFProbeJSON | None:
         ...
@@ -187,7 +185,6 @@ class FFBin:
         streamtype: str | None = None,
         probetype: ProbeType = ProbeType.STREAM,
         deep_probe: bool = False,
-        fallback: str | None = None,
         extraargs: str | Sequence[str] | None = None,
     ) -> str | FFProbeJSON | None:
         """Probes a media file with ffprobe and returns results.
@@ -222,18 +219,13 @@ class FFBin:
                 Optional; Pass extra arguments to ffprobe in order to
                 probe the file more deeply. This is useful for
                 containers that can't be lightly inspected.
-            fallback:
-                Optional; Value to return if the query fails for any
-                reason or ffmpeg doesn't know the requested parameter
-                value.
             extraargs:
                 Optional; A list of additional arguments to past to
                 ffprobe during runtime. Can be used for example to
                 request ``-sexagesimal`` formatting of duration fields.
 
         Returns:
-            fallback (default None): The query failed or returned
-            "unknown" or "N/A".
+            None: The query failed or returned "unknown" or "N/A".
 
             str: For non-raw probetype returns the value of the
             requested query.
@@ -270,7 +262,7 @@ class FFBin:
             check=False,
         )
         if result.returncode != 0:
-            return fallback
+            return None
         jsonout: FFProbeJSON = json.loads(result.stdout)
         if probetype is ProbeType.RAW:
             return jsonout
@@ -289,8 +281,8 @@ class FFBin:
                 raise ValueError("invalid probe type query")
         except (KeyError, IndexError):
             # TODO: remove parentheses in 3.10
-            return fallback
-        return fallback if returnval in {"N/A", "unknown"} else returnval
+            return None
+        return None if returnval in {"N/A", "unknown"} else returnval
 
     def make_playlist(
         self,
