@@ -142,7 +142,12 @@ class FFBin:
         env (dict[str,str]): Environmental variables to use with ffmpeg.
     """
 
-    def __init__(self, ffmpeg: str, ffprobe: str, env: dict[str, str]):
+    def __init__(
+        self,
+        ffmpeg: str = "ffmpeg",
+        ffprobe: str = "ffprobe",
+        env: dict[str, str] | None = None,
+    ):
         """Inits new FFBin instance.
 
         Args:
@@ -150,9 +155,9 @@ class FFBin:
             ffprobe: Path to ffprobe binary.
             env: Environmental variables to use with ffmpeg.
         """
-        self.ffmpeg: str = ffmpeg
-        self.ffprobe: str = ffprobe
-        self.env: dict[str, str] = env
+        self.ffmpeg = ffmpeg
+        self.ffprobe = ffprobe
+        self.env = env if env is not None else os.environ.copy()
 
     @overload
     def probe(
@@ -507,7 +512,7 @@ class FFBin:
         return FFProtocols(in_protocols, out_protocols)
 
 
-ff_bin = FFBin("ffmpeg", "ffprobe", os.environ.copy())
+ff_bin = FFBin()
 
 
 def format_probe(*queries: tuple[str, Iterable[str]], allow_empty: bool = False) -> str:
