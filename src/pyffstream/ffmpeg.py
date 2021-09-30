@@ -157,7 +157,7 @@ class FFBin:
     @overload
     def probe(
         self,
-        streamquery: str,
+        entries: str,
         fileargs: str | Sequence[str] | None,
         streamtype: str | None,
         probetype: StrProbetype,
@@ -169,7 +169,7 @@ class FFBin:
     @overload
     def probe(
         self,
-        streamquery: str,
+        entries: str,
         fileargs: str | Sequence[str] | None,
         streamtype: str | None,
         probetype: Literal[ProbeType.RAW],
@@ -180,7 +180,7 @@ class FFBin:
 
     def probe(
         self,
-        streamquery: str,
+        entries: str,
         fileargs: str | Sequence[str] | None,
         streamtype: str | None = None,
         probetype: ProbeType = ProbeType.STREAM,
@@ -196,7 +196,7 @@ class FFBin:
         the delays from repeatedly calling ffprobe.
 
         Args:
-            streamquery:
+            entries:
                 Argument passed to the ``-show_entries`` flag in
                 ffprobe. If a non-raw streamtype is specified, then the
                 argument may be the type field you want to query, for
@@ -211,10 +211,9 @@ class FFBin:
             probetype:
                 Optional; If one of STREAM, TAGS, DISPOSITION, FORMAT,
                 query file for metadata of selected probetype and
-                streamtype and return the requested streamquery of the
-                first matching stream. If RAW, query file as before, but
-                return the raw JSON corresponding to the full
-                streamquery.
+                streamtype and return the requested entries of the first
+                matching stream. If RAW, query file as before, but
+                return the raw JSON corresponding to the full entries.
             deep_probe:
                 Optional; Pass extra arguments to ffprobe in order to
                 probe the file more deeply. This is useful for
@@ -238,7 +237,8 @@ class FFBin:
         """
         if extraargs is None:
             extraargs = []
-        fargs = (fileargs,) if isinstance(fileargs, str) else fileargs
+        if fileargs is None:
+            fileargs = []
 
         # fmt: off
         probeargs = [
@@ -249,8 +249,8 @@ class FFBin:
             "-noprivate",
             *((extraargs,) if isinstance(extraargs, str) else extraargs),
             *(("-select_streams", streamtype) if streamtype is not None else ()),
-            "-show_entries", _QUERY_PREFIX[probetype] + streamquery,
-            *(fargs if fargs is not None else ()),
+            "-show_entries", _QUERY_PREFIX[probetype] + entries,
+            *((fileargs,) if isinstance(fileargs, str) else fileargs),
         ]
         # fmt: on
         result = subprocess.run(
@@ -270,13 +270,13 @@ class FFBin:
             # TODO: change to match case in 3.10
             returnval: str
             if probetype is ProbeType.STREAM:
-                returnval = jsonout["streams"][0][streamquery]
+                returnval = jsonout["streams"][0][entries]
             elif probetype is ProbeType.TAGS:
-                returnval = jsonout["streams"][0]["tags"][streamquery]
+                returnval = jsonout["streams"][0]["tags"][entries]
             elif probetype is ProbeType.DISPOSITION:
-                returnval = jsonout["streams"][0]["disposition"][streamquery]
+                returnval = jsonout["streams"][0]["disposition"][entries]
             elif probetype is ProbeType.FORMAT:
-                returnval = jsonout["format"][streamquery]
+                returnval = jsonout["format"][entries]
             else:
                 raise ValueError("invalid probe type query")
         except (KeyError, IndexError):
@@ -524,7 +524,7 @@ def format_probe(*queries: tuple[str, Iterable[str]], allow_empty: bool = False)
 
 
 def format_q_tuple(init_tuple: InitTuple | None, is_stream: bool) -> str:
-    """Format the streamquery arg for raw JSON queries to the probefile.
+    """Format the entries arg for raw JSON queries to the probefile.
 
     This corresponds to the ``-show_entries`` flag in ffprobe and can be
     used generically to format arguments to it.
