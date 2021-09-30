@@ -235,11 +235,6 @@ class FFBin:
         Raises:
             ValueError: Invalid probetype was passed.
         """
-        if extraargs is None:
-            extraargs = []
-        if fileargs is None:
-            fileargs = []
-
         # fmt: off
         probeargs = [
             self.ffprobe,
@@ -247,10 +242,10 @@ class FFBin:
             "-v", "0",
             "-of", "json=c=1",
             "-noprivate",
-            *((extraargs,) if isinstance(extraargs, str) else extraargs),
+            *((extraargs,) if isinstance(extraargs, str) else extraargs or ()),
             *(("-select_streams", streamtype) if streamtype is not None else ()),
             "-show_entries", _QUERY_PREFIX[probetype] + entries,
-            *((fileargs,) if isinstance(fileargs, str) else fileargs),
+            *((fileargs,) if isinstance(fileargs, str) else fileargs or ()),
         ]
         # fmt: on
         result = subprocess.run(
