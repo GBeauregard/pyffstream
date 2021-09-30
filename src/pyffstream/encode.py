@@ -216,12 +216,10 @@ class FileStreamVals:
         self.selector, self.fileargs = selector, list(fileargs).copy()
         self.fileargs.pop(-2)
         emptydict: dict[str, Any] = {}
-        init_probetype: ffmpeg.JsonProbetype
         self.default_probetype: ffmpeg.StrProbetype
         if self.selector[0] in {"v", "a", "s"}:
             self.is_stream = True
             self.default_probetype = ffmpeg.ProbeType.STREAM
-            init_probetype = ffmpeg.ProbeType.RAW_STREAM
             emptydict = {
                 "disposition": {},
                 "tags": {},
@@ -229,7 +227,6 @@ class FileStreamVals:
         elif self.selector[0] == "f":
             self.is_stream = False
             self.default_probetype = ffmpeg.ProbeType.FORMAT
-            init_probetype = ffmpeg.ProbeType.RAW_FORMAT
             emptydict = {}
         else:
             raise ValueError(f"invalid selector: {self.selector!r}")
@@ -244,8 +241,8 @@ class FileStreamVals:
                 outjson = ffmpeg.probe(
                     probestr,
                     self.fileargs,
-                    self.selector,
-                    probetype=init_probetype,
+                    None if self.selector[0] == "f" else self.selector,
+                    probetype=ffmpeg.ProbeType.RAW,
                     deep_probe=self.fv.ev.deep_probe,
                 )
                 if outjson is not None:
@@ -648,7 +645,7 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
             "packet=pts,flags",
             fv.streamvals["v"].fileargs,
             f"v:{fv.ev.vindex}",
-            probetype=ffmpeg.ProbeType.RAW_STREAM,
+            probetype=ffmpeg.ProbeType.RAW,
             deep_probe=fv.ev.deep_probe,
         )
         if frame_json:

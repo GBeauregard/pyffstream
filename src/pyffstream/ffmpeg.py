@@ -323,19 +323,17 @@ ff_bin = FFBin("ffmpeg", "ffprobe", os.environ.copy())
 
 
 class ProbeType(enum.Enum):
+    RAW = enum.auto()
     STREAM = enum.auto()
     TAGS = enum.auto()
     DISPOSITION = enum.auto()
     FORMAT = enum.auto()
-    RAW_STREAM = enum.auto()
-    RAW_FORMAT = enum.auto()
 
 
 # TODO: use typing.TypeAlias in 3.10
 StrProbetype = Literal[
     ProbeType.STREAM, ProbeType.TAGS, ProbeType.DISPOSITION, ProbeType.FORMAT
 ]
-JsonProbetype = Literal[ProbeType.RAW_STREAM, ProbeType.RAW_FORMAT]
 StreamQueryTuple = tuple[Iterable[str], Iterable[str], Iterable[str]]
 # TODO: 3.10 | union syntax
 InitTuple = Union[StreamQueryTuple, Iterable[str]]
@@ -356,8 +354,7 @@ _QUERY_PREFIX = {
     ProbeType.TAGS: "stream_tags=",
     ProbeType.DISPOSITION: "stream_disposition=",
     ProbeType.FORMAT: "format=",
-    ProbeType.RAW_STREAM: "",
-    ProbeType.RAW_FORMAT: "",
+    ProbeType.RAW: "",
 }
 
 
@@ -365,7 +362,7 @@ _QUERY_PREFIX = {
 def probe(
     streamquery: str,
     fileargs: str | Sequence[str],
-    streamtype: str,
+    streamtype: str | None,
     probetype: StrProbetype,
     deep_probe: bool = ...,
     fallback: str | None = ...,
@@ -378,8 +375,8 @@ def probe(
 def probe(
     streamquery: str,
     fileargs: str | Sequence[str],
-    streamtype: str,
-    probetype: JsonProbetype,
+    streamtype: str | None,
+    probetype: Literal[ProbeType.RAW],
     deep_probe: bool = ...,
     fallback: str | None = ...,
     extraargs: str | Sequence[str] | None = ...,
@@ -390,7 +387,7 @@ def probe(
 def probe(
     streamquery: str,
     fileargs: str | Sequence[str],
-    streamtype: str = "v",
+    streamtype: str | None = None,
     probetype: ProbeType = ProbeType.STREAM,
     deep_probe: bool = False,
     fallback: str | None = None,
@@ -415,15 +412,13 @@ def probe(
             pass on.
         streamtype:
             Optional; Argument to pass on to the ``-select_streams``
-            flag in ffprobe. Not needed if querying a format.
+            flag in ffprobe. Argument not passed if None.
         probetype:
             Optional; If one of STREAM, TAGS, DISPOSITION, FORMAT, query
             file for metadata of selected probetype and streamtype and
             return the requested streamquery of the first matching
-            stream.
-            If one of RAW_STREAM, RAW_FORMAT, query file as before, but
-            return the raw JSON corresponding to the full streamquery
-            for all selected streamtype.
+            stream. If RAW, query file as before, but return the raw
+            JSON corresponding to the full streamquery.
         deep_probe:
             Optional; Pass extra arguments to ffprobe in order to probe
             the file more deeply. This is useful for containers that
@@ -460,17 +455,11 @@ def probe(
         "-of", "json=c=1",
         "-noprivate",
         *((extraargs,) if isinstance(extraargs, str) else extraargs),
+        *(("-select_streams", streamtype) if streamtype is not None else ()),
         "-show_entries", _QUERY_PREFIX[probetype] + streamquery,
         *((fileargs,) if isinstance(fileargs, str) else fileargs),
     ]
     # fmt: on
-    if probetype in {
-        ProbeType.STREAM,
-        ProbeType.TAGS,
-        ProbeType.DISPOSITION,
-        ProbeType.RAW_STREAM,
-    }:
-        probeargs += ["-select_streams", streamtype]
     result = subprocess.run(
         probeargs,
         capture_output=True,
@@ -482,7 +471,7 @@ def probe(
     if result.returncode != 0:
         return fallback
     jsonout: FFProbeJSON = json.loads(result.stdout)
-    if probetype in {ProbeType.RAW_STREAM, ProbeType.RAW_FORMAT}:
+    if probetype is ProbeType.RAW:
         return jsonout
     try:
         # TODO: change to match case in 3.10

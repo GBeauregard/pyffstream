@@ -60,7 +60,7 @@ def get_stream_list(
         ffmpeg.format_q_tuple(q_tuple, True),
         myfileargs,
         streamtype,
-        probetype=ffmpeg.ProbeType.RAW_STREAM,
+        probetype=ffmpeg.ProbeType.RAW,
         extraargs="-pretty",
         deep_probe=deep_probe,
     )
