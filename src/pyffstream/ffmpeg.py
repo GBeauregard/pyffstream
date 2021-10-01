@@ -60,15 +60,6 @@ class FFProbeJSON(TypedDict, total=False):
     program_version: Mapping[str, str]
 
 
-_QUERY_PREFIX = {
-    ProbeType.STREAM: "stream=",
-    ProbeType.TAGS: "stream_tags=",
-    ProbeType.DISPOSITION: "stream_disposition=",
-    ProbeType.FORMAT: "format=",
-    ProbeType.RAW: "",
-}
-
-
 @functools.total_ordering
 class FFVersion:
     """Holds a ffmpeg component version."""
@@ -158,6 +149,14 @@ class FFBin:
         self.ffmpeg = ffmpeg
         self.ffprobe = ffprobe
         self.env = env if env is not None else os.environ.copy()
+
+    _QUERY_PREFIX: Final = {
+        ProbeType.STREAM: "stream=",
+        ProbeType.TAGS: "stream_tags=",
+        ProbeType.DISPOSITION: "stream_disposition=",
+        ProbeType.FORMAT: "format=",
+        ProbeType.RAW: "",
+    }
 
     @overload
     def probe(
@@ -249,7 +248,7 @@ class FFBin:
             "-noprivate",
             *((extraargs,) if isinstance(extraargs, str) else extraargs or ()),
             *(("-select_streams", streamtype) if streamtype is not None else ()),
-            "-show_entries", _QUERY_PREFIX[probetype] + entries,
+            "-show_entries", self._QUERY_PREFIX[probetype] + entries,
             *((fileargs,) if isinstance(fileargs, str) else fileargs or ()),
         ]
         # fmt: on
