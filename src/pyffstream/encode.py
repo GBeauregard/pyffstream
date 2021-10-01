@@ -94,7 +94,7 @@ class EncodeSession:
         self.executor = concurrent.futures.ThreadPoolExecutor()
         self.fopts = fopts
         self.ev = ev
-        iargs: MutableSequence[
+        fsv_args: MutableSequence[
             tuple[
                 EncodeSession,
                 str,
@@ -103,7 +103,7 @@ class EncodeSession:
                 Mapping[str, str],
             ]
         ] = []
-        iargs.append(
+        fsv_args.append(
             (
                 self,
                 f"v:{self.ev.vindex}",
@@ -112,7 +112,7 @@ class EncodeSession:
                 self.VIDEO_DEF,
             )
         )
-        iargs.append(
+        fsv_args.append(
             (
                 self,
                 f"a:{self.ev.aindex}",
@@ -121,7 +121,7 @@ class EncodeSession:
                 self.AUDIO_DEF,
             )
         )
-        iargs.append(
+        fsv_args.append(
             (
                 self,
                 f"s:{self.ev.sindex}",
@@ -130,7 +130,7 @@ class EncodeSession:
                 self.SUBTITLE_DEF,
             )
         )
-        iargs.append(
+        fsv_args.append(
             (
                 self,
                 "f",
@@ -140,7 +140,7 @@ class EncodeSession:
             )
         )
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            streamfutures = executor.map(lambda p: FileStreamVals(*p), iargs)
+            streamfutures = executor.map(lambda p: FileStreamVals(*p), fsv_args)
             self.filts = FilterList()
             self.statuses = []
             self.update_avail = threading.Event()

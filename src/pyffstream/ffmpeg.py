@@ -308,12 +308,12 @@ class FFBin:
         """
         durfutures = None
         if add_duration:
-            iargs = [
+            probe_args = [
                 ("duration", str(fpath), None, ProbeType.FORMAT, deep_probe)
                 for fpath in pathlist
             ]
             executor = concurrent.futures.ThreadPoolExecutor()
-            durfutures = executor.map(lambda p: self.probe(*p), iargs)
+            durfutures = executor.map(lambda p: self.probe(*p), probe_args)
             executor.shutdown(wait=False)
         playlistpath = directory / name
         with playlistpath.open(mode="x", newline="\n", encoding="utf-8") as f:
