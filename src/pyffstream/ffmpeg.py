@@ -685,14 +685,12 @@ class Filter:
 
     @staticmethod
     def escape_val(val: str) -> str:
-        chars = ":\\'"
-        trans = str.maketrans({char: "\\" + char for char in chars})
+        trans = str.maketrans({char: "\\" + char for char in ":\\'"})
         return val.translate(trans)
 
     @staticmethod
     def escape_graph(val: str) -> str:
-        chars = "\\'[],;"
-        trans = str.maketrans({char: "\\" + char for char in chars})
+        trans = str.maketrans({char: "\\" + char for char in "\\'[],;"})
         return val.translate(trans)
 
     @classmethod
