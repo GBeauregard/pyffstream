@@ -312,9 +312,11 @@ class FFBin:
                 ("duration", str(fpath), None, ProbeType.FORMAT, deep_probe)
                 for fpath in pathlist
             ]
-            executor = concurrent.futures.ThreadPoolExecutor()
-            durfutures = executor.map(lambda p: self.probe(*p), probe_args)
-            executor.shutdown(wait=False)
+            try:
+                executor = concurrent.futures.ThreadPoolExecutor()
+                durfutures = executor.map(lambda p: self.probe(*p), probe_args)
+            finally:
+                executor.shutdown(wait=False)
         playlistpath = directory / name
         with playlistpath.open(mode="x", newline="\n", encoding="utf-8") as f:
             print("ffconcat version 1.0", file=f)
