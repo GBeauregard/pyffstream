@@ -162,11 +162,11 @@ class FFBin:
     def probe(
         self,
         entries: str,
-        fileargs: str | Sequence[str] | None,
+        fileargs: str | Iterable[str] | None,
         streamtype: str | None,
         probetype: StrProbetype,
         deep_probe: bool = ...,
-        extraargs: str | Sequence[str] | None = ...,
+        extraargs: str | Iterable[str] | None = ...,
     ) -> str | None:
         ...
 
@@ -174,22 +174,22 @@ class FFBin:
     def probe(
         self,
         entries: str,
-        fileargs: str | Sequence[str] | None,
+        fileargs: str | Iterable[str] | None,
         streamtype: str | None,
         probetype: Literal[ProbeType.RAW],
         deep_probe: bool = ...,
-        extraargs: str | Sequence[str] | None = ...,
+        extraargs: str | Iterable[str] | None = ...,
     ) -> FFProbeJSON | None:
         ...
 
     def probe(
         self,
         entries: str,
-        fileargs: str | Sequence[str] | None,
+        fileargs: str | Iterable[str] | None,
         streamtype: str | None = None,
         probetype: ProbeType = ProbeType.STREAM,
         deep_probe: bool = False,
-        extraargs: str | Sequence[str] | None = None,
+        extraargs: str | Iterable[str] | None = None,
     ) -> str | FFProbeJSON | None:
         """Probes a media file with ffprobe and returns results.
 
