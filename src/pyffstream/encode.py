@@ -97,7 +97,7 @@ class EncodeSession:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             vstreamvals = executor.submit(
                 FileStreamVals,
-                self,
+                self.ev,
                 f"v:{self.ev.vindex}",
                 self.fopts.main,
                 (self.VSTREAMS, self.VSTREAM_TAGS, self.VDISPOSITIONS),
@@ -105,7 +105,7 @@ class EncodeSession:
             )
             astreamvals = executor.submit(
                 FileStreamVals,
-                self,
+                self.ev,
                 f"a:{self.ev.aindex}",
                 self.fopts.main,
                 (self.ASTREAMS, self.ASTREAM_TAGS, self.ADISPOSITIONS),
@@ -113,7 +113,7 @@ class EncodeSession:
             )
             sstreamvals = executor.submit(
                 FileStreamVals,
-                self,
+                self.ev,
                 f"s:{self.ev.sindex}",
                 self.fopts.subtitle,
                 (self.SSTREAMS, self.SSTREAM_TAGS, self.SDISPOSITIONS),
@@ -121,7 +121,7 @@ class EncodeSession:
             )
             fstreamvals = executor.submit(
                 FileStreamVals,
-                self,
+                self.ev,
                 "f",
                 self.fopts.main,
                 self.FORMAT_IDS,
@@ -183,7 +183,7 @@ class EncodeSession:
 class FileStreamVals:
     def __init__(
         self,
-        fv: EncodeSession,
+        ev: StaticEncodeVars,
         selector: str,
         fileargs: Sequence[str],
         init_tuple: ffmpeg.InitTuple | None = None,
@@ -192,9 +192,10 @@ class FileStreamVals:
         if defaults is None:
             defaults = {}
         self.__lock = threading.RLock()
-        self.fv = fv
         self.selector, self.fileargs = selector, list(fileargs).copy()
         self.fileargs.pop(-2)
+        self.dont_probe = ev.live or (not ev.subs and self.selector[0] == "s")
+        self.deep_probe = ev.deep_probe
         emptydict: dict[str, Any] = {}
         self.default_probetype: ffmpeg.StrProbetype
         if self.selector[0] in {"v", "a", "s"}:
@@ -215,15 +216,13 @@ class FileStreamVals:
         self.defaultvals |= defaults
         if probestr := ffmpeg.format_q_tuple(init_tuple, is_stream):
             assert init_tuple is not None  # implied by check passed above
-            if not self.fv.ev.live and not (
-                not self.fv.ev.subs and self.selector[0] == "s"
-            ):
+            if not self.dont_probe:
                 outjson = ffmpeg.ff_bin.probe(
                     probestr,
                     self.fileargs,
                     None if self.selector[0] == "f" else self.selector,
                     probetype=ffmpeg.ProbeType.RAW,
-                    deep_probe=self.fv.ev.deep_probe,
+                    deep_probe=self.deep_probe,
                 )
                 if outjson is not None:
                     if is_stream:
@@ -293,7 +292,7 @@ class FileStreamVals:
                     f"File probed for uncached val {key!r} of type {probetype!r} for"
                     f" {self.selector!r}"
                 )
-                if self.fv.ev.live or (not self.fv.ev.subs and self.selector[0] == "s"):
+                if self.dont_probe:
                     readval = None
                 else:
                     readval = ffmpeg.ff_bin.probe(
@@ -301,7 +300,7 @@ class FileStreamVals:
                         self.fileargs,
                         self.selector,
                         probetype=probetype,
-                        deep_probe=self.fv.ev.deep_probe,
+                        deep_probe=self.deep_probe,
                     )
                 valdict[key] = readval
                 return readval
