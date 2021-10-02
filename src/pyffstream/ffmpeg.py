@@ -711,6 +711,7 @@ class Filter:
         endkey: str = "b",
         basekey: str = "c",
     ) -> str:
+        """Combine filters in a way compatible with -filter_complex."""
         filts = copy.deepcopy(list(map(cls, filterlist)))
         filts[0].src = [key or startkey for key in filts[0].src]
         filts[-1].dst = [key or endkey for key in filts[-1].dst]
@@ -740,6 +741,7 @@ class Filter:
 
     @staticmethod
     def vf_join(filterlist: Sequence[str | Filter]) -> str:
+        """Combine filters in a way compatible with -af/-vf."""
         return ",".join(map(str, filterlist))
 
     # @classmethod
