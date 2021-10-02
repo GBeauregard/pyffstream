@@ -1046,10 +1046,12 @@ def extract_styles(
     files: Sequence[pathlib.Path], sindex: int, deep_probe: bool = False
 ) -> Iterator[StyleFile]:
     executor = concurrent.futures.ThreadPoolExecutor()
-    futures = [
-        executor.submit(extract_style, file, sindex, deep_probe) for file in files
-    ]
-    executor.shutdown(wait=False)
+    try:
+        futures = [
+            executor.submit(extract_style, file, sindex, deep_probe) for file in files
+        ]
+    finally:
+        executor.shutdown(wait=False)
 
     def style_iterator() -> Iterator[StyleFile]:
         for future in concurrent.futures.as_completed(futures):
