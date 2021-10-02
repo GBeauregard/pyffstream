@@ -579,7 +579,8 @@ _SI_PREFIXES: Final[dict[str, float]] = {
 }
 
 
-def num(val: str | int | float) -> float:
+@functools.singledispatch
+def num(val: str) -> float:
     """Process input into float in a way that mimics ffmpeg.
 
     Method follows ffmpeg's `numerical options`_. All whitespace is
@@ -593,8 +594,7 @@ def num(val: str | int | float) -> float:
     .. _numerical options:
        https://ffmpeg.org/ffmpeg.html#Options
     """
-    val = str(val)
-    val = re.sub(r"\s+", "", val)
+    val = re.sub(r"\s+", "", str(val))
     input_regex = re.compile(
         r"""
         (?P<number>-?(?:\d+\.?\d*|\.\d+))
@@ -614,6 +614,13 @@ def num(val: str | int | float) -> float:
     power = 1024 if match.group("binary") == "i" else 1000
     byte = 8 if match.group("byte") == "B" else 1
     return float(basenum) * power ** prefix * byte
+
+
+@num.register(int)
+@num.register
+def num_float(val: float) -> float:
+    logger.error("I used!")
+    return float(val)
 
 
 def duration(timestamp: str | float | int) -> float:
