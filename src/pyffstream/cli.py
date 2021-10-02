@@ -1336,26 +1336,6 @@ def main() -> None:
     elif args.x264:
         args.vencoder = "libx264"
 
-    if not args.print_info:
-        if args.vencoder not in (
-            encode.StaticEncodeVars.VIDEO_ENCODERS & ffmpeg.ff_bin.vencoders
-        ):
-            parser.error(
-                f"selected vencoder {args.vencoder!r} not supported by ffmpeg"
-                " installation"
-            )
-
-        if args.soxr and "--enable-libsoxr" not in ffmpeg.ff_bin.build_config:
-            parser.error("soxr specified, but using an ffmpeg build without support")
-
-        if args.zscale and "zscale" not in ffmpeg.ff_bin.filters:
-            parser.error("zscale specified, but using an ffmpeg build without support")
-
-        if args.fdk and "libfdk_aac" not in ffmpeg.ff_bin.aencoders:
-            parser.error(
-                "fdk encoder specified, but using an ffmpeg build without support"
-            )
-
     if args.obs:
         args.live = True
 
@@ -1371,6 +1351,32 @@ def main() -> None:
             args.copy_video = True
         if next((i for i in args.copy if re.search("[aA]", i)), None):
             args.copy_audio = True
+
+    if not args.print_info:
+        if not args.copy_video:
+            if args.vencoder not in (
+                encode.StaticEncodeVars.VIDEO_ENCODERS & ffmpeg.ff_bin.vencoders
+            ):
+                parser.error(
+                    f"selected vencoder {args.vencoder!r} not supported by ffmpeg"
+                    " installation"
+                )
+
+            if args.zscale and "zscale" not in ffmpeg.ff_bin.filters:
+                parser.error(
+                    "zscale specified, but using an ffmpeg build without support"
+                )
+
+        if not args.copy_audio:
+            if args.soxr and "--enable-libsoxr" not in ffmpeg.ff_bin.build_config:
+                parser.error(
+                    "soxr specified, but using an ffmpeg build without support"
+                )
+
+            if args.fdk and "libfdk_aac" not in ffmpeg.ff_bin.aencoders:
+                parser.error(
+                    "fdk encoder specified, but using an ffmpeg build without support"
+                )
 
     if args.startdelay and (args.copy_video or args.copy_audio):
         parser.error("audio/video copying cannot be used with a start delay")
