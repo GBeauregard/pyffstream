@@ -94,76 +94,75 @@ class EncodeSession:
         self.executor = concurrent.futures.ThreadPoolExecutor()
         self.fopts = fopts
         self.ev = ev
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            vstreamvals = executor.submit(
-                FileStreamVals,
-                self.ev,
-                f"v:{self.ev.vindex}",
-                self.fopts.main,
-                (self.VSTREAMS, self.VSTREAM_TAGS, self.VDISPOSITIONS),
-                self.VIDEO_DEF,
-            )
-            astreamvals = executor.submit(
-                FileStreamVals,
-                self.ev,
-                f"a:{self.ev.aindex}",
-                self.fopts.main,
-                (self.ASTREAMS, self.ASTREAM_TAGS, self.ADISPOSITIONS),
-                self.AUDIO_DEF,
-            )
-            sstreamvals = executor.submit(
-                FileStreamVals,
-                self.ev,
-                f"s:{self.ev.sindex}",
-                self.fopts.subtitle,
-                (self.SSTREAMS, self.SSTREAM_TAGS, self.SDISPOSITIONS),
-                self.SUBTITLE_DEF,
-            )
-            fstreamvals = executor.submit(
-                FileStreamVals,
-                self.ev,
-                "f",
-                self.fopts.main,
-                self.FORMAT_IDS,
-                self.FORMAT_DEF,
-            )
-            self.filts = FilterList()
-            self.statuses = []
-            self.update_avail = threading.Event()
-            if self.ev.crop:
-                self.crop = StatusThread(self, "crop")
-                self.statuses.append(self.crop)
-            if self.ev.anormalize:
-                self.norm = StatusThread(self, "normalize")
-                self.statuses.append(self.norm)
-            if self.ev.subs:
-                self.subs = StatusThread(self, "subtitles")
-                self.statuses.append(self.subs)
+        vstreamvals = self.executor.submit(
+            FileStreamVals,
+            self.ev,
+            f"v:{self.ev.vindex}",
+            self.fopts.main,
+            (self.VSTREAMS, self.VSTREAM_TAGS, self.VDISPOSITIONS),
+            self.VIDEO_DEF,
+        )
+        astreamvals = self.executor.submit(
+            FileStreamVals,
+            self.ev,
+            f"a:{self.ev.aindex}",
+            self.fopts.main,
+            (self.ASTREAMS, self.ASTREAM_TAGS, self.ADISPOSITIONS),
+            self.AUDIO_DEF,
+        )
+        sstreamvals = self.executor.submit(
+            FileStreamVals,
+            self.ev,
+            f"s:{self.ev.sindex}",
+            self.fopts.subtitle,
+            (self.SSTREAMS, self.SSTREAM_TAGS, self.SDISPOSITIONS),
+            self.SUBTITLE_DEF,
+        )
+        fstreamvals = self.executor.submit(
+            FileStreamVals,
+            self.ev,
+            "f",
+            self.fopts.main,
+            self.FORMAT_IDS,
+            self.FORMAT_DEF,
+        )
         self.streamvals = {
-            "v": vstreamvals.result(),
-            "a": astreamvals.result(),
-            "s": sstreamvals.result(),
-            "f": fstreamvals.result(),
+            "v": vstreamvals.result,
+            "a": astreamvals.result,
+            "s": sstreamvals.result,
+            "f": fstreamvals.result,
         }
+        self.filts = FilterList()
+        self.statuses = []
+        self.update_avail = threading.Event()
+        if self.ev.crop:
+            self.crop = StatusThread(self, "crop")
+            self.statuses.append(self.crop)
+        if self.ev.anormalize:
+            self.norm = StatusThread(self, "normalize")
+            self.statuses.append(self.norm)
+        if self.ev.subs:
+            self.subs = StatusThread(self, "subtitles")
+            self.statuses.append(self.subs)
 
     def __del__(self) -> None:
         self.executor.shutdown()
 
     def v(self, stype: str, key: str, ptype: ffmpeg.StrProbetype | None = None) -> str:
         """Get file val (with default fallback)."""
-        return self.streamvals[stype].getval(key, ptype)
+        return self.streamvals[stype]().getval(key, ptype)
 
     def fv(
         self, stype: str, key: str, ptype: ffmpeg.StrProbetype | None = None
     ) -> str | None:
         """Get file val (without default fallback)."""
-        return self.streamvals[stype].getfileval(key, ptype)
+        return self.streamvals[stype]().getfileval(key, ptype)
 
     def dv(
         self, stype: str, key: str, ptype: ffmpeg.StrProbetype | None = None
     ) -> str | None:
         """Get default val."""
-        return self.streamvals[stype].getdefault(key, ptype)
+        return self.streamvals[stype]().getdefault(key, ptype)
 
     def sdv(
         self,
@@ -173,11 +172,11 @@ class EncodeSession:
         ptype: ffmpeg.StrProbetype | None = None,
     ) -> str | None:
         """Set default val."""
-        return self.streamvals[stype].setdefault(key, val, ptype)
+        return self.streamvals[stype]().setdefault(key, val, ptype)
 
     def sdvs(self, stype: str, vals: Mapping[str, str | Mapping[str, str]]) -> None:
         """Set default vals by specifying dict to merge in."""
-        self.streamvals[stype].setdefaults(vals)
+        self.streamvals[stype]().setdefaults(vals)
 
 
 class FileStreamVals:
@@ -620,7 +619,7 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
         fv.ev.use_timeline = True
         frame_json = ffmpeg.ff_bin.probe(
             "packet=pts,flags",
-            fv.streamvals["v"].fileargs,
+            fv.streamvals["v"]().fileargs,
             f"v:{fv.ev.vindex}",
             probetype=ffmpeg.ProbeType.RAW,
             deep_probe=fv.ev.deep_probe,
