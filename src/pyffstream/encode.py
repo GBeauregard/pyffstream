@@ -94,53 +94,39 @@ class EncodeSession:
         self.executor = concurrent.futures.ThreadPoolExecutor()
         self.fopts = fopts
         self.ev = ev
-        fsv_args: MutableSequence[
-            tuple[
-                EncodeSession,
-                str,
-                MutableSequence[str],
-                ffmpeg.InitTuple,
-                Mapping[str, str],
-            ]
-        ] = []
-        fsv_args.append(
-            (
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            vstreamvals = executor.submit(
+                FileStreamVals,
                 self,
                 f"v:{self.ev.vindex}",
                 self.fopts.main,
                 (self.VSTREAMS, self.VSTREAM_TAGS, self.VDISPOSITIONS),
                 self.VIDEO_DEF,
             )
-        )
-        fsv_args.append(
-            (
+            astreamvals = executor.submit(
+                FileStreamVals,
                 self,
                 f"a:{self.ev.aindex}",
                 self.fopts.main,
                 (self.ASTREAMS, self.ASTREAM_TAGS, self.ADISPOSITIONS),
                 self.AUDIO_DEF,
             )
-        )
-        fsv_args.append(
-            (
+            sstreamvals = executor.submit(
+                FileStreamVals,
                 self,
                 f"s:{self.ev.sindex}",
                 self.fopts.subtitle,
                 (self.SSTREAMS, self.SSTREAM_TAGS, self.SDISPOSITIONS),
                 self.SUBTITLE_DEF,
             )
-        )
-        fsv_args.append(
-            (
+            fstreamvals = executor.submit(
+                FileStreamVals,
                 self,
                 "f",
                 self.fopts.main,
                 self.FORMAT_IDS,
                 self.FORMAT_DEF,
             )
-        )
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            streamfutures = executor.map(lambda p: FileStreamVals(*p), fsv_args)
             self.filts = FilterList()
             self.statuses = []
             self.update_avail = threading.Event()
@@ -153,17 +139,11 @@ class EncodeSession:
             if self.ev.subs:
                 self.subs = StatusThread(self, "subtitles")
                 self.statuses.append(self.subs)
-        (
-            vstreamvals,
-            astreamvals,
-            sstreamvals,
-            fstreamvals,
-        ) = streamfutures
         self.streamvals = {
-            "v": vstreamvals,
-            "a": astreamvals,
-            "s": sstreamvals,
-            "f": fstreamvals,
+            "v": vstreamvals.result(),
+            "a": astreamvals.result(),
+            "s": sstreamvals.result(),
+            "f": fstreamvals.result(),
         }
 
     def __del__(self) -> None:
