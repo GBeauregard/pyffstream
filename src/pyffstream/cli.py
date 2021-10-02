@@ -49,6 +49,19 @@ logging.getLogger("urllib3").propagate = False
 console = rich.console.Console()
 
 
+def hl_path(path: os.PathLike[Any]) -> str:
+    pl_path = pathlib.Path(path)
+    name = str(pl_path.name)
+    parent = str(pl_path).removesuffix(name)
+    parent = "[magenta]" + rich.markup.escape(parent) if parent else ""
+    name = "[bright_magenta]" + rich.markup.escape(name)
+    return parent + name
+
+
+def hl_url(url: str) -> str:
+    return f"[link={url}]{url}[/link]"
+
+
 def get_stream_list(
     streamtype: str,
     q_tuple: ffmpeg.StreamQueryTuple,
@@ -86,15 +99,6 @@ def get_stream_list(
             ]
         stream_list.append(val_list)
     return stream_list
-
-
-def highlight_path(path: os.PathLike[Any]) -> str:
-    pl_path = pathlib.Path(path)
-    name = str(pl_path.name)
-    parent = str(pl_path).removesuffix(name)
-    parent = "[magenta]" + rich.markup.escape(parent) if parent else ""
-    name = "[bright_magenta]" + rich.markup.escape(name)
-    return parent + name
 
 
 class InfoKeys:
@@ -199,7 +203,7 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
             )
         return capture.get()
 
-    console.print(f"file: {highlight_path(fopts.fpath)}", highlight=False)
+    console.print(f"file: {hl_path(fopts.fpath)}", highlight=False)
     with concurrent.futures.ThreadPoolExecutor() as executor:
         fileduration = executor.submit(
             ffmpeg.ff_bin.probe,
@@ -463,7 +467,7 @@ def start_stream(fv: encode.EncodeSession) -> None:
 def stream_file(fopts: encode.FileOpts, args: argparse.Namespace) -> None:
     """Manage calculating of all stream parameters."""
     with console.status("calculating stream parameters"):
-        console.print(f"starting: {highlight_path(fopts.fpath)}", highlight=False)
+        console.print(f"starting: {hl_path(fopts.fpath)}", highlight=False)
         fv = encode.EncodeSession(fopts, encode.StaticEncodeVars.from_args(args))
         futures = []
         encode.determine_timeseek(fv)
@@ -626,8 +630,8 @@ def download_win_ffmpeg(dltype: str = "git") -> bool:
     User data path is determined from platformdirs.
     """
     console.print(
-        f"Starting download of ffmpeg {dltype} from"
-        " https://github.com/BtbN/FFmpeg-Builds/releases"
+        f"Starting download of ffmpeg {dltype} from "
+        + hl_url("https://github.com/BtbN/FFmpeg-Builds/releases")
     )
     with tempfile.TemporaryDirectory(
         prefix=f"{APPNAME}-"
@@ -725,8 +729,8 @@ def win_set_local_ffmpeg(dltype: str, env: dict[str, str]) -> None:
             console.print(f"ffmpeg required to run {APPNAME}")
             raise SystemExit(1)
         console.print(
-            "No local ffmpeg found. We can download from"
-            " https://github.com/BtbN/FFmpeg-Builds/releases"
+            "No local ffmpeg found. We can download from "
+            + hl_url("https://github.com/BtbN/FFmpeg-Builds/releases")
         )
         if not rich.prompt.Confirm.ask("Would you like to download?", console=console):
             console.print(f"ffmpeg required to run {APPNAME}")
@@ -738,7 +742,7 @@ def win_set_local_ffmpeg(dltype: str, env: dict[str, str]) -> None:
         ):
             logger.error(
                 "ffmpeg download failed, download manually from"
-                " https://ffmpeg.org/download.html or try again later"
+                f" {hl_url('https://ffmpeg.org/download.html')} or try again later"
             )
             raise SystemExit(1)
     ffmpeg.ff_bin = ffmpeg.FFBin(
@@ -1312,8 +1316,8 @@ def main() -> None:
         else:
             console.print("Cannot find ffmpeg and ffprobe utilities in path")
             console.print(
-                "Consider downloading ffmpeg from your package manager or at"
-                " https://ffmpeg.org/download.html"
+                "Consider downloading ffmpeg from your package manager or at "
+                + hl_url("https://ffmpeg.org/download.html")
             )
             raise SystemExit(1)
 
