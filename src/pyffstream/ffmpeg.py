@@ -312,8 +312,8 @@ class FFBin:
                 ("duration", str(fpath), None, ProbeType.FORMAT, deep_probe)
                 for fpath in pathlist
             ]
+            executor = concurrent.futures.ThreadPoolExecutor()
             try:
-                executor = concurrent.futures.ThreadPoolExecutor()
                 durfutures = executor.map(lambda p: self.probe(*p), probe_args)
             finally:
                 executor.shutdown(wait=False)
@@ -820,10 +820,14 @@ class Progress:
             self.output_que = queue.Queue()
         self.output = collections.deque(maxlen=maxlen)
         executor = concurrent.futures.ThreadPoolExecutor()
-        self._futures.append(executor.submit(self._read_outstream, result, outstream))
-        self._futures.append(executor.submit(self._read_progress, result))
-        self._futures.append(executor.submit(self._parse_progress))
-        executor.shutdown(wait=False)
+        try:
+            self._futures.append(
+                executor.submit(self._read_outstream, result, outstream)
+            )
+            self._futures.append(executor.submit(self._read_progress, result))
+            self._futures.append(executor.submit(self._parse_progress))
+        finally:
+            executor.shutdown(wait=False)
 
     def _read_outstream(
         self, result: subprocess.Popen[str], outstream: typing.IO[str]
