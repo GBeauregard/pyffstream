@@ -615,7 +615,7 @@ def set_console_logger(verbosity: int) -> None:
     rhandler = rich.logging.RichHandler(
         console=console, show_time=False, show_path=False
     )
-    que: queue.Queue[Any] = queue.Queue()
+    que: queue.Queue[object] = queue.Queue()
     queue_handler = logging.handlers.QueueHandler(que)
     listener = logging.handlers.QueueListener(que, rhandler)
     root_logger.addHandler(queue_handler)
@@ -758,7 +758,7 @@ def get_parserconfig(
     """Return parser and config used."""
     config = DefaultConfig()
 
-    conf_list: list[str | os.PathLike[Any]] = []
+    conf_list: list[pathlib.Path] = []
 
     if not reproducible:
         conf_list.append(platformdirs.site_config_path(APPNAME) / f"{APPNAME}.conf")
