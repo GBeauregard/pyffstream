@@ -34,7 +34,7 @@ dev = [
   "tox",
   "black",
   "isort",
-  #"mypy",
+  "mypy",
   #"flake8",
 ]
 docs = [
