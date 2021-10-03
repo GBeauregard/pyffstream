@@ -770,7 +770,6 @@ class Progress:
         self._sock.bind(("localhost", 0))
         self._sock.listen(1)
         self._packet_avail = threading.Event()
-        self._packet_lock = threading.Lock()
         self._progress_packet: list[str] = []
         self._loglevel: int
         self._futures: list[concurrent.futures.Future[Any]] = []
@@ -876,15 +875,13 @@ class Progress:
                     if line := line.rstrip():
                         packet.append(line)
                 if packet:
-                    with self._packet_lock:
-                        self._progress_packet = packet
+                    self._progress_packet = packet
                     self._packet_avail.set()
 
     def _parse_progress(self) -> None:
         self._packet_avail.wait()
         while not self.finished.is_set():
-            with self._packet_lock:
-                packet = self._progress_packet.copy()
+            packet = self._progress_packet
             for line in packet:
                 split = line.split("=", 1)
                 try:
