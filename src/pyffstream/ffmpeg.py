@@ -81,7 +81,7 @@ class FFVersion:
             elif isinstance(arg, str):
                 self._version += map(int, arg.split("."))
             elif isinstance(arg, int):
-                self._version.append(int(arg))
+                self._version.append(arg)
             else:
                 raise ValueError(f"Invalid arg {arg!r} passed to FFVersion")
 
@@ -96,7 +96,7 @@ class FFVersion:
     def __lt__(self, other: object) -> bool:
         if not isinstance(other, (FFVersion, str)):
             return NotImplemented
-        return self._version < FFVersion(other).version
+        return self._version < FFVersion(other)._version
 
 
 class FFBanner(NamedTuple):
