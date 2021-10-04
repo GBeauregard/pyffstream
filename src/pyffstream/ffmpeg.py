@@ -96,10 +96,7 @@ class FFVersion:
     def __lt__(self, other: object) -> bool:
         if not isinstance(other, (FFVersion, str)):
             return NotImplemented
-        for me, them in zip(self._version, FFVersion(other)._version):
-            if me != them:
-                return me < them
-        return False
+        return self._version < FFVersion(other).version
 
 
 class FFBanner(NamedTuple):
