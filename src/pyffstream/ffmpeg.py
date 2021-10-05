@@ -28,7 +28,17 @@ import subprocess
 import threading
 import typing
 from collections.abc import Iterable, Mapping, MutableSequence, Sequence
-from typing import Any, Final, Literal, NamedTuple, TypedDict, Union, overload
+from typing import (
+    Any,
+    AnyStr,
+    Final,
+    Generic,
+    Literal,
+    NamedTuple,
+    TypedDict,
+    Union,
+    overload,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -759,7 +769,7 @@ class Filter:
             return self.basefilter
 
 
-class Progress:
+class Progress(Generic[AnyStr]):
     """Assists in monitoring the progress output of an ffmpeg encode."""
 
     def __init__(self) -> None:
@@ -772,8 +782,8 @@ class Progress:
         self._futures: list[concurrent.futures.Future[Any]] = []
         self.progress_avail = threading.Event()
         self.finished = threading.Event()
-        self.output: collections.deque[str]
-        self.output_que: queue.Queue[str | None]
+        self.output: collections.deque[AnyStr]
+        self.output_que: queue.Queue[AnyStr | None]
         self._make_queue: bool
         self.status: dict[str, str] = {
             "frame": "0",
@@ -813,8 +823,8 @@ class Progress:
 
     def monitor_progress(
         self,
-        result: subprocess.Popen[str],
-        outstream: typing.IO[str],
+        result: subprocess.Popen[AnyStr],
+        outstream: typing.IO[AnyStr],
         make_queue: bool = False,
         maxlen: int | None = None,
         loglevel: int = logging.DEBUG,
@@ -835,7 +845,7 @@ class Progress:
             executor.shutdown(wait=False)
 
     def _read_outstream(
-        self, result: subprocess.Popen[str], outstream: typing.IO[str]
+        self, result: subprocess.Popen[AnyStr], outstream: typing.IO[AnyStr]
     ) -> None:
         try:
             while result.poll() is None:
@@ -851,7 +861,7 @@ class Progress:
             self._packet_avail.set()
             self.progress_avail.set()
 
-    def _parse_outputline(self, line: str) -> None:
+    def _parse_outputline(self, line: AnyStr) -> None:
         if not line:
             return
         logger.log(self._loglevel, line)
@@ -859,8 +869,10 @@ class Progress:
         if self._make_queue:
             self.output_que.put(line)
 
-    def _read_progress(self, result: subprocess.Popen[str]) -> None:
+    def _read_progress(self, result: subprocess.Popen[AnyStr]) -> None:
         conn, _ = self._sock.accept()
+        # https://github.com/python/mypy/issues/9743
+        f: typing.IO[str]
         with contextlib.closing(conn), contextlib.closing(self._sock), conn.makefile(
             encoding="utf-8"
         ) as f:
@@ -893,5 +905,6 @@ class Progress:
         self._sock.close()
         concurrent.futures.wait(self._futures)
         for future in self._futures:
-            if exception := future.exception(5):
+            exception = future.exception(5)
+            if exception:
                 raise exception
