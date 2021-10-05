@@ -247,7 +247,7 @@ class FileStreamVals:
                 initval(self.filevals["tags"], init_tuple[1])
                 initval(self.filevals["disposition"], init_tuple[2])
             else:
-                assert isinstance(init_tuple, Iterable)
+                assert not isinstance(init_tuple, tuple)
                 initval(self.filevals, init_tuple)
 
     def get_t_valdict(
