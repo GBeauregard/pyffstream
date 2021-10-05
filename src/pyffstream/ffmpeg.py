@@ -66,8 +66,8 @@ class FFProbeJSON(TypedDict, total=False):
     packets: Sequence[Mapping[str, Any]]
     library_versions: Sequence[Mapping[str, Any]]
     side_data_list: Sequence[Any]
-    format: Mapping[str, str]
-    program_version: Mapping[str, str]
+    format: Mapping[str, Any]
+    program_version: Mapping[str, Any]
 
 
 @functools.total_ordering
