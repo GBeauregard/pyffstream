@@ -447,7 +447,6 @@ def start_stream(fv: encode.EncodeSession) -> None:
             fv.ev.ffprogress.progress_avail.wait()
             fv.ev.ffprogress.progress_avail.clear()
 
-        ts = length
         progress.update(
             task_id,
             refresh=True,
