@@ -79,6 +79,7 @@ target-version = ['py39']
 
 [tool.pyright]
 include = ["src"]
+strict = ["src"]
 pythonVersion = "3.9"
 
 [tool.mypy]
