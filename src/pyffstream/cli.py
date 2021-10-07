@@ -85,7 +85,7 @@ def get_stream_list(
     stream_list: list[list[tuple[str, str]]] = []
     BAD_VALS: Final[set[str | int]] = {"N/A", "unknown"}
     for s in allstreams:
-        val_list = []
+        val_list: list[tuple[str, str]] = []
         ituple = (
             ("", s, q_tuple[0], BAD_VALS),
             ("tags: ", s.get("tags", {}), q_tuple[1], BAD_VALS),
