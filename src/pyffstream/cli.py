@@ -22,7 +22,7 @@ import tempfile
 import textwrap
 import time
 from collections.abc import Iterable, Sequence
-from typing import Any, Final, NamedTuple
+from typing import Any, Callable, Final, NamedTuple
 
 import platformdirs
 import requests
@@ -82,7 +82,7 @@ def get_stream_list(
         return []
     if not (allstreams := outjson.get("streams")):
         return []
-    stream_list = []
+    stream_list: list[list[tuple[str, str]]] = []
     BAD_VALS: Final[set[str | int]] = {"N/A", "unknown"}
     for s in allstreams:
         val_list = []
@@ -175,7 +175,7 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
 
     def make_columns(title: str, *args: Any) -> str:
         slist = get_stream_list(*args)
-        table_list = []
+        table_list: list[rich.table.Table] = []
         for subindex, vallist in enumerate(slist):
             table = rich.table.Table(
                 title=f"{subindex}",
@@ -468,7 +468,7 @@ def stream_file(fopts: encode.FileOpts, args: argparse.Namespace) -> None:
     with console.status("calculating stream parameters"):
         console.print(f"starting: {hl_path(fopts.fpath)}", highlight=False)
         fv = encode.EncodeSession(fopts, encode.StaticEncodeVars.from_args(args))
-        futures = []
+        futures: list[concurrent.futures.Future[Any]] = []
         encode.determine_timeseek(fv)
         if not fv.ev.copy_audio:
             futures.append(fv.executor.submit(encode.determine_afilters, fv))
@@ -503,7 +503,7 @@ def process_file(
     fpath: pathlib.Path, args: argparse.Namespace, stream_flist: Sequence[pathlib.Path]
 ) -> None:
     """Format input arguments needed for a file and send to output."""
-    infile_args = []
+    infile_args: list[str] = []
     if args.playlist:
         infile_args += ["-f", "concat", "-safe", "0"]
     file_string = str(fpath)
@@ -531,7 +531,7 @@ def parse_files(args: argparse.Namespace, parser: argparse.ArgumentParser) -> No
         else:
             parser.error("--bluray must be used with a directory")
     elif args.files:
-        stream_flist = []
+        stream_flist: list[pathlib.Path] = []
         for path in args.files:
             if path.is_dir():
                 stream_flist += [f for f in sorted(path.iterdir()) if f.is_file()]
@@ -542,7 +542,10 @@ def parse_files(args: argparse.Namespace, parser: argparse.ArgumentParser) -> No
         if not stream_flist:
             parser.error("must supply a directory with at least one file")
         if args.files[-1].is_file():
-            not_same = lambda f: not f.samefile(stream_flist[-1])  # noqa: E731
+            # noqa: E731
+            not_same: Callable[[pathlib.Path], bool] = lambda f: not f.samefile(
+                stream_flist[-1]
+            )
             stream_flist = (
                 list(itertools.dropwhile(not_same, stream_flist))[:-1] or stream_flist
             )
@@ -619,7 +622,7 @@ def set_console_logger(verbosity: int) -> None:
     listener = logging.handlers.QueueListener(que, rhandler)
     root_logger.addHandler(queue_handler)
     listener.start()
-    atexit.register(lambda x: x.stop(), listener)
+    atexit.register(listener.stop)
 
 
 def download_win_ffmpeg(dltype: str = "git") -> bool:
@@ -784,11 +787,11 @@ def get_parserconfig(
     if conf_file is not None and conf_file.is_file():
         conf_list.append(conf_file)
 
-    converters = {
+    converters: dict[str, Callable[[str], object]] = {
         "list": lambda val: [
             line.lstrip() for line in val.splitlines() if line.strip()
         ],
-        "path": lambda val: pathlib.Path(val),  # pylint: disable=W0108
+        "path": pathlib.Path,
     }
     parsed_config = configparser.ConfigParser(converters=converters)
     read_configs = parsed_config.read(conf_list, encoding="utf-8")

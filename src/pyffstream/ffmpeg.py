@@ -436,7 +436,7 @@ class FFBin:
     @functools.cached_property
     def filters(self) -> set[str]:
         """Set of filters compiled into ffmpeg instance."""
-        filters = set()
+        filters: set[str] = set()
         versionargs = [self.ffmpeg, "-hide_banner", "-v", "0", "-filters"]
         result = subprocess.run(
             versionargs,
@@ -467,7 +467,7 @@ class FFBin:
     @functools.cached_property
     def hwaccels(self) -> set[str]:
         """Set of hwaccels compiled into ffmpeg version."""
-        hwaccels = set()
+        hwaccels: set[str] = set()
         hwaccelargs = [self.ffmpeg, "-hide_banner", "-v", "0", "-hwaccels"]
         result = subprocess.run(
             hwaccelargs,
@@ -690,14 +690,7 @@ class Filter:
             self.basefilter = filt
             self.opts = []
             if filtopts:
-                if all(
-                    isinstance(list_, Sequence) and not isinstance(list_, str)
-                    for list_ in filtopts
-                ):
-                    for list_ in filtopts:
-                        self.opts += list_
-                else:
-                    self.opts = list(filtopts)
+                self.opts = list(filtopts)
 
     @staticmethod
     def escape_val(val: str) -> str:

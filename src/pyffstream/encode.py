@@ -133,7 +133,7 @@ class EncodeSession:
             "f": fstreamvals.result,
         }
         self.filts = FilterList()
-        self.statuses = []
+        self.statuses: list[StatusThread] = []
         self.update_avail = threading.Event()
         if self.ev.crop:
             self.crop = StatusThread(self, "crop")
@@ -515,7 +515,7 @@ class StaticEncodeVars:
     fdk: bool = False
     pyffserver: bool = False
     shader_dir: pathlib.Path = pathlib.Path.home()
-    ffprogress = ffmpeg.Progress()
+    ffprogress: ffmpeg.Progress[str] = ffmpeg.Progress()
 
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> StaticEncodeVars:
@@ -1288,8 +1288,8 @@ def determine_decimation(fv: EncodeSession) -> None:
 def get_hwtransfer(
     fv: EncodeSession,
 ) -> tuple[list[ffmpeg.Filter], list[ffmpeg.Filter]]:
-    prefilter_list = []
-    postfilter_list = []
+    prefilter_list: list[ffmpeg.Filter] = []
+    postfilter_list: list[ffmpeg.Filter] = []
     if fv.ev.vulkan:
         prefilter_list += [ffmpeg.Filter("hwupload", "derive_device=vulkan")]
         if fv.ev.vencoder in fv.ev.SW_ENCODERS:
@@ -1556,7 +1556,7 @@ def set_output_flags(fv: EncodeSession) -> None:
     if fv.ev.protocol == "srt":
         set_srt_flags(fv)
     elif fv.ev.protocol == "rtmp":
-        rtmp_flags = []
+        rtmp_flags: list[str] = []
         if fv.ev.fifo:
             rtmp_flags += get_fifo_flags("flv")
         rtmp_flags += [f"rtmp://{fv.ev.endpoint}"]
@@ -1592,7 +1592,7 @@ def set_srt_flags(fv: EncodeSession) -> None:
 
 
 def set_filter_flags(fv: EncodeSession) -> None:
-    filter_flags = []
+    filter_flags: list[str] = []
     if fv.ev.copy_video:
         filter_flags += ["-map", f"0:v:{fv.ev.vindex}"]
     else:
