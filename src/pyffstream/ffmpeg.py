@@ -80,9 +80,6 @@ class FFVersion:
         Args:
             *args: String of type ``(N.)*N`` or an int N or FFVersion to
                 be appended to the version when constructing.
-
-        Raises:
-            ValueError: Invalid type passed to the constructor.
         """
         self._version: list[int] = []
         for arg in args:
