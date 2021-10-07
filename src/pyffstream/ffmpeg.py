@@ -90,10 +90,8 @@ class FFVersion:
                 self._version += arg._version
             elif isinstance(arg, str):
                 self._version += map(int, arg.split("."))
-            elif isinstance(arg, int):
-                self._version.append(arg)
             else:
-                raise ValueError(f"Invalid arg {arg!r} passed to FFVersion")
+                self._version.append(arg)
 
     def __repr__(self) -> str:
         return ".".join(map(str, self._version))
