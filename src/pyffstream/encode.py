@@ -165,11 +165,7 @@ class EncodeSession:
         return self.streamvals[stype]().getdefault(key, ptype)
 
     def sdv(
-        self,
-        stype: str,
-        key: str,
-        val: str,
-        ptype: ffmpeg.StrProbetype | None = None,
+        self, stype: str, key: str, val: str, ptype: ffmpeg.StrProbetype | None = None
     ) -> str | None:
         """Set default val."""
         return self.streamvals[stype]().setdefault(key, val, ptype)
@@ -315,10 +311,7 @@ class FileStreamVals:
             self.get_t_valdict(t)[2][key] = val
             return val
 
-    def setdefaults(
-        self,
-        vals: Mapping[str, str | Mapping[str, str]],
-    ) -> None:
+    def setdefaults(self, vals: Mapping[str, str | Mapping[str, str]]) -> None:
         with self.__lock:
             self.defaultvals |= vals
 
