@@ -624,7 +624,6 @@ def num(val: str) -> float:
 @num.register(int)
 @num.register
 def num_float(val: float) -> float:
-    logger.error("I used!")
     return float(val)
 
 
