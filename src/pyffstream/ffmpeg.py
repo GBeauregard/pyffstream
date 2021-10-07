@@ -622,7 +622,7 @@ def num(val: str) -> float:
 
 
 @num.register(int)
-@num.register
+@num.register(float)
 def num_float(val: float) -> float:
     return float(val)
 
