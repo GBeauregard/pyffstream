@@ -676,7 +676,7 @@ def determine_autocrop(fv: EncodeSession) -> None:
             crop_len_num = flength - crop_ts_num
             crop_len_string = f"{crop_len_num:.3f}".rstrip("0").rstrip(".")
     # fmt: off
-    ffprogress = cast(ffmpeg.Progress[str],ffmpeg.Progress())
+    ffprogress = cast(ffmpeg.Progress[str], ffmpeg.Progress())
     cropargs = [
         ffmpeg.ff_bin.ffmpeg,
         *ffprogress.flags(0.1),
@@ -834,7 +834,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 ),
             ]
             # fmt: off
-            ffprogress = cast(ffmpeg.Progress[str],ffmpeg.Progress())
+            ffprogress = cast(ffmpeg.Progress[str], ffmpeg.Progress())
             normargs = [
                 ffmpeg.ff_bin.ffmpeg,
                 *ffprogress.flags(0.25),
@@ -1046,7 +1046,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
         subpath = fv.ev.tempdir / "subs.mkv"
         subindex = 0
         # fmt: off
-        ffprogress = cast(ffmpeg.Progress[str],ffmpeg.Progress())
+        ffprogress = cast(ffmpeg.Progress[str], ffmpeg.Progress())
         subargs = [
             ffmpeg.ff_bin.ffmpeg,
             *ffprogress.flags(0.1),
