@@ -57,7 +57,7 @@ StrProbetype = Literal[
 ]
 StreamQueryTuple = tuple[Iterable[str], Iterable[str], Iterable[str]]
 # TODO: 3.10 | union syntax
-InitTuple = Union[StreamQueryTuple, Iterable[str]]
+InitTuple = Union[StreamQueryTuple, set[str]]
 
 
 class FFProbeJSON(TypedDict, total=False):
@@ -870,7 +870,7 @@ class Progress(Generic[AnyStr]):
             encoding="utf-8"
         ) as f:
             while result.poll() is None:
-                packet = []
+                packet: list[str] = []
                 while line := f.readline():
                     if line.startswith("progress="):
                         break

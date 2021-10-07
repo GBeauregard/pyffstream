@@ -515,7 +515,7 @@ class StaticEncodeVars:
     fdk: bool = False
     pyffserver: bool = False
     shader_dir: pathlib.Path = pathlib.Path.home()
-    ffprogress: ffmpeg.Progress[str] = ffmpeg.Progress()
+    ffprogress = cast(ffmpeg.Progress[str], ffmpeg.Progress())
 
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> StaticEncodeVars:
@@ -676,7 +676,7 @@ def determine_autocrop(fv: EncodeSession) -> None:
             crop_len_num = flength - crop_ts_num
             crop_len_string = f"{crop_len_num:.3f}".rstrip("0").rstrip(".")
     # fmt: off
-    ffprogress = ffmpeg.Progress()
+    ffprogress = cast(ffmpeg.Progress[str],ffmpeg.Progress())
     cropargs = [
         ffmpeg.ff_bin.ffmpeg,
         *ffprogress.flags(0.1),
@@ -744,7 +744,7 @@ def determine_afilters(fv: EncodeSession) -> None:
         *(("resampler=soxr",) if fv.ev.soxr else ()),
         f"ocl={fv.ev.chlayout}",
     ]
-    futures = []
+    futures: list[concurrent.futures.Future[Any]] = []
     if fv.ev.anormalize:
         futures.append(fv.executor.submit(determine_anormalize, fv))
 
@@ -834,7 +834,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 ),
             ]
             # fmt: off
-            ffprogress = ffmpeg.Progress()
+            ffprogress = cast(ffmpeg.Progress[str],ffmpeg.Progress())
             normargs = [
                 ffmpeg.ff_bin.ffmpeg,
                 *ffprogress.flags(0.25),
@@ -1046,7 +1046,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
         subpath = fv.ev.tempdir / "subs.mkv"
         subindex = 0
         # fmt: off
-        ffprogress = ffmpeg.Progress()
+        ffprogress = cast(ffmpeg.Progress[str],ffmpeg.Progress())
         subargs = [
             ffmpeg.ff_bin.ffmpeg,
             *ffprogress.flags(0.1),
@@ -1140,8 +1140,8 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
                     mode="w", encoding="utf-8", errors="surrogateescape"
                 ) as f:
                     f.writelines(line + "\n" for line in sublines)
-            in_flags = []
-            attach_flags = []
+            in_flags: list[str] = []
+            attach_flags: list[str] = []
             for i, file in enumerate(fv.fopts.allpaths):
                 in_flags += ["-i", str(file)]
                 attach_flags += ["-map", f"{i+1}:t?"]
@@ -1315,7 +1315,7 @@ def get_hwtransfer(
 
 
 def determine_vfilters(fv: EncodeSession) -> None:
-    futures = []
+    futures: list[concurrent.futures.Future[Any]] = []
     if fv.ev.crop:
         futures.append(fv.executor.submit(determine_autocrop, fv))
     if fv.ev.subs:
@@ -1438,7 +1438,7 @@ def get_nvenc_h264_flags(fv: EncodeSession) -> list[str]:
 
 
 def get_aflags(fv: EncodeSession) -> list[str]:
-    aflags = []
+    aflags: list[str] = []
     if fv.ev.copy_audio:
         fv.ev.astandard = fv.v("a", "codec_name")
         fv.ev.samplerate = fv.v("a", "sample_rate")
@@ -1464,7 +1464,7 @@ def get_aflags(fv: EncodeSession) -> list[str]:
 
 
 def get_vflags(fv: EncodeSession) -> list[str]:
-    vflags = []
+    vflags: list[str] = []
     if fv.ev.copy_video:
         fv.ev.vstandard = fv.v("v", "codec_name")
         if (
