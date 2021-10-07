@@ -441,7 +441,7 @@ class StaticEncodeVars:
     vstandard: str = "h264"
     astandard: str = "aac"
     protocol: str = "srt"
-    vbitrate: str = "7.4M"
+    vbitrate: str = "6M"
     abitrate: str = "256k"
     chlayout: str = "stereo"
     start_delay: str = "30"
