@@ -241,9 +241,9 @@ class FileStreamVals:
                 assert isinstance(init_tuple, tuple)
                 initval(self.filevals, init_tuple[0])
                 if "tags" not in self.filevals:
-                    self.filevals["tags"] = {}
+                    self.filevals["tags"] = cast(dict[str, Any], {})
                 if "disposition" not in self.filevals:
-                    self.filevals["disposition"] = {}
+                    self.filevals["disposition"] = cast(dict[str, Any], {})
                 initval(self.filevals["tags"], init_tuple[1])
                 initval(self.filevals["disposition"], init_tuple[2])
             else:
