@@ -1293,6 +1293,9 @@ def get_parserconfig(
     return parser, config
 
 
+ConfName = NamedTuple("ConfName", [("file_name", str), ("arg_name", str)])
+
+
 def main() -> None:
     """Process config and CLI arguments then send off for processing."""
     parser, config = get_parserconfig(False)
@@ -1471,8 +1474,6 @@ def main() -> None:
         if "pyffstream" not in new_config.sections():
             new_config.add_section("pyffstream")
         main_section = new_config["pyffstream"]
-
-        ConfName = NamedTuple("ConfName", [("file_name", str), ("arg_name", str)])
 
         conf_names: set[ConfName] = {
             ConfName("pyffserver", "pyffserver"),
