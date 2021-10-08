@@ -330,7 +330,7 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
         "bound_w": fv.ev.bound_w,
         "bound_h": fv.ev.bound_h,
     }
-    logger.debug("json payload: \n%s", json_payload)
+    logger.debug("json payload: \n%r", json_payload)
     with requests.Session() as s:
         while True:
             try:

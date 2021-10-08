@@ -1336,7 +1336,7 @@ def determine_vfilters(fv: EncodeSession) -> None:
     fv.ev.filter_complex = ffmpeg.Filter.complex_join(
         vfilter_list, startkey=f"0:v:{fv.ev.vindex}", endkey="b"
     )
-    logger.info(f"Determined vfilters:\n{fv.ev.filter_complex}")
+    logger.info("Determined vfilters:\n%r", fv.ev.filter_complex)
 
 
 def get_x264_flags(fv: EncodeSession) -> list[str]:
@@ -1618,6 +1618,6 @@ def set_ffmpeg_flags(fv: EncodeSession) -> None:
         *fv.ev.encode_flags,
         *fv.ev.output_flags,
     ]
-    logger.debug(f"Encode command:\n{ff_flags!r}")
+    logger.debug("Encode command:\n%r", ff_flags)
     logger.info(f"Encode command:\n{' '.join(ff_flags)}")
     fv.ev.ff_flags = ff_flags
