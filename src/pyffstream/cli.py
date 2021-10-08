@@ -69,11 +69,10 @@ def get_stream_list(
     deep_probe: bool = False,
 ) -> list[list[tuple[str, str]]]:
     """Make and return tuples of (key,val) pairs for each stream."""
-    outjson = ffmpeg.ff_bin.probe(
+    outjson = ffmpeg.ff_bin.probe_json(
         ffmpeg.format_q_tuple(q_tuple, True),
         myfileargs,
         streamtype,
-        probetype=ffmpeg.ProbeType.RAW,
         extraargs="-pretty",
         deep_probe=deep_probe,
     )
@@ -206,7 +205,7 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
     console.print(f"file: {hl_path(fopts.fpath)}", highlight=False)
     with concurrent.futures.ThreadPoolExecutor() as executor:
         fileduration = executor.submit(
-            ffmpeg.ff_bin.probe,
+            ffmpeg.ff_bin.probe_val,
             "duration",
             probefargs,
             probetype=ffmpeg.ProbeType.FORMAT,

@@ -148,24 +148,24 @@ class EncodeSession:
     def __del__(self) -> None:
         self.executor.shutdown()
 
-    def v(self, stype: str, key: str, ptype: ffmpeg.StrProbetype | None = None) -> str:
+    def v(self, stype: str, key: str, ptype: ffmpeg.ProbeType | None = None) -> str:
         """Get file val (with default fallback)."""
         return self.streamvals[stype]().getval(key, ptype)
 
     def fv(
-        self, stype: str, key: str, ptype: ffmpeg.StrProbetype | None = None
+        self, stype: str, key: str, ptype: ffmpeg.ProbeType | None = None
     ) -> str | None:
         """Get file val (without default fallback)."""
         return self.streamvals[stype]().getfileval(key, ptype)
 
     def dv(
-        self, stype: str, key: str, ptype: ffmpeg.StrProbetype | None = None
+        self, stype: str, key: str, ptype: ffmpeg.ProbeType | None = None
     ) -> str | None:
         """Get default val."""
         return self.streamvals[stype]().getdefault(key, ptype)
 
     def sdv(
-        self, stype: str, key: str, val: str, ptype: ffmpeg.StrProbetype | None = None
+        self, stype: str, key: str, val: str, ptype: ffmpeg.ProbeType | None = None
     ) -> str | None:
         """Set default val."""
         return self.streamvals[stype]().setdefault(key, val, ptype)
@@ -192,7 +192,7 @@ class FileStreamVals:
         self.dont_probe = ev.live or (not ev.subs and self.selector[0] == "s")
         self.deep_probe = ev.deep_probe
         emptydict: dict[str, Any] = {}
-        self.default_probetype: ffmpeg.StrProbetype
+        self.default_probetype: ffmpeg.ProbeType
         if self.selector[0] in {"v", "a", "s"}:
             is_stream = True
             self.default_probetype = ffmpeg.ProbeType.STREAM
@@ -212,11 +212,10 @@ class FileStreamVals:
         if probestr := ffmpeg.format_q_tuple(init_tuple, is_stream):
             assert init_tuple is not None  # implied by check passed above
             if not self.dont_probe:
-                outjson = ffmpeg.ff_bin.probe(
+                outjson = ffmpeg.ff_bin.probe_json(
                     probestr,
                     self.fileargs,
                     None if self.selector[0] == "f" else self.selector,
-                    probetype=ffmpeg.ProbeType.RAW,
                     deep_probe=self.deep_probe,
                 )
                 if outjson is not None:
@@ -247,8 +246,8 @@ class FileStreamVals:
                 initval(self.filevals, init_tuple)
 
     def get_t_valdict(
-        self, t: ffmpeg.StrProbetype | None = None
-    ) -> tuple[ffmpeg.StrProbetype, dict[str, str | None], dict[str, str | None]]:
+        self, t: ffmpeg.ProbeType | None = None
+    ) -> tuple[ffmpeg.ProbeType, dict[str, str | None], dict[str, str | None]]:
         with self.__lock:
             probetype = self.default_probetype if t is None else t
             # TODO: 3.10 match case
@@ -265,7 +264,7 @@ class FileStreamVals:
                 raise ValueError(f"Invalid streamtype {t!r} passed to get_t_valdict")
             return probetype, file_dict, default_dict
 
-    def getval(self, key: str, t: ffmpeg.StrProbetype | None = None) -> str:
+    def getval(self, key: str, t: ffmpeg.ProbeType | None = None) -> str:
         with self.__lock:
             if (fileval := self.getfileval(key, t)) is not None or (
                 fileval := self.getdefault(key, t)
@@ -277,7 +276,7 @@ class FileStreamVals:
                     " function."
                 )
 
-    def getfileval(self, key: str, t: ffmpeg.StrProbetype | None = None) -> str | None:
+    def getfileval(self, key: str, t: ffmpeg.ProbeType | None = None) -> str | None:
         with self.__lock:
             probetype, valdict, _ = self.get_t_valdict(t)
             try:
@@ -290,7 +289,7 @@ class FileStreamVals:
                 if self.dont_probe:
                     readval = None
                 else:
-                    readval = ffmpeg.ff_bin.probe(
+                    readval = ffmpeg.ff_bin.probe_val(
                         key,
                         self.fileargs,
                         self.selector,
@@ -300,13 +299,11 @@ class FileStreamVals:
                 valdict[key] = readval
                 return readval
 
-    def getdefault(self, key: str, t: ffmpeg.StrProbetype | None = None) -> str | None:
+    def getdefault(self, key: str, t: ffmpeg.ProbeType | None = None) -> str | None:
         with self.__lock:
             return self.get_t_valdict(t)[2].get(key)
 
-    def setdefault(
-        self, key: str, val: str, t: ffmpeg.StrProbetype | None = None
-    ) -> str:
+    def setdefault(self, key: str, val: str, t: ffmpeg.ProbeType | None = None) -> str:
         with self.__lock:
             self.get_t_valdict(t)[2][key] = val
             return val
@@ -610,11 +607,10 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
     framerate = fractions.Fraction(fv.v("v", "r_frame_rate"))
     if fv.ev.copy_video:
         fv.ev.use_timeline = True
-        frame_json = ffmpeg.ff_bin.probe(
+        frame_json = ffmpeg.ff_bin.probe_json(
             "packet=pts,flags",
             fv.streamvals["v"]().fileargs,
             f"v:{fv.ev.vindex}",
-            probetype=ffmpeg.ProbeType.RAW,
             deep_probe=fv.ev.deep_probe,
         )
         if frame_json:
@@ -997,7 +993,7 @@ def parse_stylelines(ass_text: Sequence[str]) -> StyleFile | None:
 def extract_style(
     file: pathlib.Path, sindex: int, deep_probe: bool = False
 ) -> StyleFile | None:
-    extradata = ffmpeg.ff_bin.probe(
+    extradata = ffmpeg.ff_bin.probe_val(
         "extradata",
         str(file),
         f"s:{sindex}",
