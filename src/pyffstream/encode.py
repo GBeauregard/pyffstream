@@ -505,7 +505,9 @@ class StaticEncodeVars:
     fdk: bool = False
     pyffserver: bool = False
     shader_dir: pathlib.Path = pathlib.Path.home()
-    ffprogress: ffmpeg.Progress[str] = dataclasses.field(default_factory=ffmpeg.Progress)
+    ffprogress: ffmpeg.Progress[str] = dataclasses.field(
+        default_factory=ffmpeg.Progress
+    )
 
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> StaticEncodeVars:
