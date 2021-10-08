@@ -313,23 +313,24 @@ class FileStreamVals:
             self.defaultvals |= vals
 
 
-class StatusThread:
-    class Code(enum.Enum):
-        FAILED = enum.auto()
-        FINISHED = enum.auto()
-        NOT_STARTED = enum.auto()
-        RUNNING = enum.auto()
-        OTHER = enum.auto()
+class StatusCode(enum.Enum):
+    FAILED = enum.auto()
+    FINISHED = enum.auto()
+    NOT_STARTED = enum.auto()
+    RUNNING = enum.auto()
+    OTHER = enum.auto()
 
+
+class StatusThread:
     def __init__(self, fv: EncodeSession, name: str):
         self.__lock = threading.RLock()
         self.fv = fv
         self.name = name
-        self.status: StatusThread.Code = self.Code.NOT_STARTED
+        self.status: StatusCode = StatusCode.NOT_STARTED
         self.long_status = "starting"
         self.progress = 0.0
 
-    def setstatus(self, status: StatusThread.Code, long_status: str) -> None:
+    def setstatus(self, status: StatusCode, long_status: str) -> None:
         with self.__lock:
             self.status = status
             self.long_status = long_status
@@ -694,7 +695,7 @@ def determine_autocrop(fv: EncodeSession) -> None:
         env=ffmpeg.ff_bin.env,
     ) as result:
         assert result.stderr is not None
-        fv.crop.setstatus(StatusThread.Code.RUNNING, "calculating")
+        fv.crop.setstatus(StatusCode.RUNNING, "calculating")
 
         def consume_output() -> str | None:
             cropfilt = None
@@ -723,10 +724,10 @@ def determine_autocrop(fv: EncodeSession) -> None:
     if result.returncode == 0 and cropfilt:
         fv.filts["vcrop"] = cropfilt
         logger.info(f"determined crop filter: {cropfilt}")
-        fv.crop.setstatus(StatusThread.Code.FINISHED, "success")
+        fv.crop.setstatus(StatusCode.FINISHED, "success")
     else:
         logger.warning("crop failed")
-        fv.crop.setstatus(StatusThread.Code.FAILED, "[red]failed")
+        fv.crop.setstatus(StatusCode.FAILED, "[red]failed")
 
 
 def determine_afilters(fv: EncodeSession) -> None:
@@ -786,7 +787,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
             "dual_mono=true",
             "linear=false",
         ]
-        fv.norm.setstatus(StatusThread.Code.FINISHED, "success")
+        fv.norm.setstatus(StatusCode.FINISHED, "success")
     else:
 
         def json_to_normfilt(json_map: Mapping[str, str]) -> None:
@@ -806,11 +807,11 @@ def determine_anormalize(fv: EncodeSession) -> None:
                     f'offset={json_map["target_offset"]}',
                 ]
             except KeyError as e:
-                fv.norm.setstatus(StatusThread.Code.FAILED, "[red]failed")
+                fv.norm.setstatus(StatusCode.FAILED, "[red]failed")
                 logger.error("normalization json didn't contain expected keys")
                 raise e
             else:
-                fv.norm.setstatus(StatusThread.Code.FINISHED, "success")
+                fv.norm.setstatus(StatusCode.FINISHED, "success")
 
         if fv.ev.normfile is None or not fv.ev.normfile.exists():
             normanalyze = [
@@ -852,9 +853,9 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 assert result.stderr is not None
                 length = ffmpeg.duration(fv.v("f", "duration")) or 1
                 code = (
-                    StatusThread.Code.RUNNING
+                    StatusCode.RUNNING
                     if fv.fv("f", "duration") is not None
-                    else StatusThread.Code.OTHER
+                    else StatusCode.OTHER
                 )
                 fv.norm.setstatus(code, "calculating")
                 ffprogress.monitor_progress(
@@ -878,21 +879,21 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 if fv.ev.normfile is not None:
                     fv.ev.normfile.write_text(jsonmatch.group("json"), encoding="utf-8")
                 jsonout = json.loads(jsonmatch.group("json"))
-                fv.norm.setstatus(StatusThread.Code.OTHER, "read json")
+                fv.norm.setstatus(StatusCode.OTHER, "read json")
                 json_to_normfilt(jsonout)
             else:
                 logger.info("\n".join(ffprogress.output))
                 logger.warning("normalization failed")
-                fv.norm.setstatus(StatusThread.Code.FAILED, "[red]failed")
+                fv.norm.setstatus(StatusCode.FAILED, "[red]failed")
         elif fv.ev.normfile.is_file():
-            fv.norm.setstatus(StatusThread.Code.OTHER, "opening")
+            fv.norm.setstatus(StatusCode.OTHER, "opening")
             jsonout = json.loads(fv.ev.normfile.read_text(encoding="utf-8"))
-            fv.norm.setstatus(StatusThread.Code.OTHER, "read file")
+            fv.norm.setstatus(StatusCode.OTHER, "read file")
             json_to_normfilt(jsonout)
         else:
-            fv.norm.setstatus(StatusThread.Code.FAILED, "[red]failed")
+            fv.norm.setstatus(StatusCode.FAILED, "[red]failed")
             raise ValueError("provided normalization file isn't a file")
-    if fv.norm.status is StatusThread.Code.FINISHED:
+    if fv.norm.status is StatusCode.FINISHED:
         logger.info(f'anormalize filter:\n{fv.filts["anormalize"]}')
 
 
@@ -923,7 +924,7 @@ _PICSUB_NAMES: Final = {"dvb_subtitle", "dvd_subtitle", "hdmv_pgs_subtitle", "xs
 
 def determine_subtitles(fv: EncodeSession) -> None:
     if fv.fv("s", "codec_type") != "subtitle":
-        fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
+        fv.subs.setstatus(StatusCode.FAILED, "[red]failed")
         logger.warning(
             "No subtitles detected in file, but subtitles were marked as enabled."
         )
@@ -1069,7 +1070,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
             env=ffmpeg.ff_bin.env,
         ) as result:
             assert result.stderr is not None
-            fv.subs.setstatus(StatusThread.Code.RUNNING, "extracting")
+            fv.subs.setstatus(StatusCode.RUNNING, "extracting")
             length = ffmpeg.duration(fv.v("f", "duration"))
             ffprogress.monitor_progress(
                 result, result.stderr, maxlen=50, loglevel=logging.DEBUG
@@ -1081,13 +1082,13 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
                 ffprogress.progress_avail.clear()
 
         if result.returncode != 0:
-            fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
+            fv.subs.setstatus(StatusCode.FAILED, "[red]failed")
             logger.warning(
                 f"extracting subtitles failed with exit code {result.returncode}"
             )
             return []
         if fv.ev.is_playlist and fv.fv("s", "codec_name") == "ass":
-            fv.subs.setstatus(StatusThread.Code.OTHER, "merging")
+            fv.subs.setstatus(StatusCode.OTHER, "merging")
             stylegen = extract_styles(
                 fv.fopts.allpaths, cast(int, fv.ev.sindex), fv.ev.deep_probe
             )
@@ -1111,7 +1112,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
                 stderr=subprocess.DEVNULL,
             )
             if extract_result.returncode != 0:
-                fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
+                fv.subs.setstatus(StatusCode.FAILED, "[red]failed")
                 logger.warning(
                     "extracting merged subtitles failed with exit code"
                     f" {result.returncode}"
@@ -1159,7 +1160,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
             )
             subass.unlink()
             if merge_result.returncode != 0:
-                fv.subs.setstatus(StatusThread.Code.FAILED, "[red]failed")
+                fv.subs.setstatus(StatusCode.FAILED, "[red]failed")
                 logger.warning(
                     "merging subtitles with attachments failed with exit code"
                     f" {result.returncode}"
@@ -1168,7 +1169,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
     subfilter = ffmpeg.Filter(
         "subtitles", ffmpeg.Filter.full_escape(str(subpath)), f"si={subindex}"
     )
-    fv.subs.setstatus(StatusThread.Code.FINISHED, "success")
+    fv.subs.setstatus(StatusCode.FINISHED, "success")
     return [subfilter]
 
 
@@ -1193,7 +1194,7 @@ def get_picsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
     )
     if not fv.ev.vulkan:
         subfilter_list.append(ffmpeg.Filter(f"format={fv.ev.pix_fmt}"))
-    fv.subs.setstatus(StatusThread.Code.FINISHED, "success")
+    fv.subs.setstatus(StatusCode.FINISHED, "success")
     return subfilter_list
 
 
