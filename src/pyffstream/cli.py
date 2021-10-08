@@ -571,6 +571,9 @@ def parse_files(args: argparse.Namespace, parser: argparse.ArgumentParser) -> No
         pass
 
 
+ENCODE_DEFAULTS = encode.StaticEncodeVars(pathlib.Path(""))
+
+
 @dataclasses.dataclass
 class DefaultConfig:
     """Holds config file values.
@@ -579,24 +582,24 @@ class DefaultConfig:
     from files.
     """
 
-    pyffserver: bool = encode.StaticEncodeVars.pyffserver
-    protocol: str = encode.StaticEncodeVars.protocol
-    vbitrate: str = encode.StaticEncodeVars.vbitrate
-    abitrate: str = encode.StaticEncodeVars.abitrate
-    astandard: str = encode.StaticEncodeVars.astandard
-    vencoder: str = encode.StaticEncodeVars.vencoder
-    endpoint: str = encode.StaticEncodeVars.endpoint
-    api_url: str = encode.StaticEncodeVars.api_url
-    api_key: str = encode.StaticEncodeVars.api_key
-    soxr: bool = encode.StaticEncodeVars.soxr
-    preset: str = encode.StaticEncodeVars.x264_preset
-    zscale: bool = encode.StaticEncodeVars.zscale
-    vulkan: bool = encode.StaticEncodeVars.vulkan
-    fdk: bool = encode.StaticEncodeVars.fdk
-    height: int = int(encode.StaticEncodeVars.target_h)
-    shader_dir: pathlib.Path = encode.StaticEncodeVars.shader_dir
+    pyffserver: bool = ENCODE_DEFAULTS.pyffserver
+    protocol: str = ENCODE_DEFAULTS.protocol
+    vbitrate: str = ENCODE_DEFAULTS.vbitrate
+    abitrate: str = ENCODE_DEFAULTS.abitrate
+    astandard: str = ENCODE_DEFAULTS.astandard
+    vencoder: str = ENCODE_DEFAULTS.vencoder
+    endpoint: str = ENCODE_DEFAULTS.endpoint
+    api_url: str = ENCODE_DEFAULTS.api_url
+    api_key: str = ENCODE_DEFAULTS.api_key
+    soxr: bool = ENCODE_DEFAULTS.soxr
+    preset: str = ENCODE_DEFAULTS.x264_preset
+    zscale: bool = ENCODE_DEFAULTS.zscale
+    vulkan: bool = ENCODE_DEFAULTS.vulkan
+    fdk: bool = ENCODE_DEFAULTS.fdk
+    height: int = int(ENCODE_DEFAULTS.target_h)
+    shader_dir: pathlib.Path = ENCODE_DEFAULTS.shader_dir
     shader_list: list[str] = dataclasses.field(default_factory=list)
-    kf_target_sec: float = encode.StaticEncodeVars.kf_target_sec
+    kf_target_sec: float = ENCODE_DEFAULTS.kf_target_sec
     ffmpeg_bin: str = ffmpeg.ff_bin.ffmpeg
     ffprobe_bin: str = ffmpeg.ff_bin.ffprobe
     env: dict[str, str] = dataclasses.field(
@@ -1038,14 +1041,14 @@ def get_parserconfig(
         "--aindex",
         help="subindex of audio stream to use (default: %(default)s)",
         type=int_ge_zero,
-        default=encode.StaticEncodeVars.aindex,
+        default=ENCODE_DEFAULTS.aindex,
         metavar="N",
     )
     video_parser.add_argument(
         "--vindex",
         help="subindex of video stream to use (default: %(default)s)",
         type=int_ge_zero,
-        default=encode.StaticEncodeVars.vindex,
+        default=ENCODE_DEFAULTS.vindex,
         metavar="N",
     )
     input_parser.add_argument(
@@ -1469,9 +1472,7 @@ def main() -> None:
             new_config.add_section("pyffstream")
         main_section = new_config["pyffstream"]
 
-        class ConfName(NamedTuple):
-            file_name: str
-            arg_name: str
+        ConfName = NamedTuple("ConfName", [("file_name", str), ("arg_name", str)])
 
         conf_names: set[ConfName] = {
             ConfName("pyffserver", "pyffserver"),

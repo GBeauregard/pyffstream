@@ -28,7 +28,9 @@ import subprocess
 import threading
 import typing
 from collections.abc import Iterable, Mapping, MutableSequence, Sequence
-from typing import Any, AnyStr, Final, Generic, NamedTuple, TypedDict, Union, cast
+from typing import Any, Final, Generic, NamedTuple, TypedDict, TypeVar, Union, cast
+
+AnyStr = TypeVar("AnyStr", str, bytes)
 
 logger = logging.getLogger(__name__)
 
@@ -580,7 +582,12 @@ _SI_PREFIXES: Final[dict[str, float]] = {
 
 
 @functools.singledispatch
-def num(val: str) -> float:
+def num(val: object) -> float:
+    raise TypeError("Unsupported type passed to num")
+
+
+@num.register
+def num_str(val: str) -> float:
     """Process input into float in a way that mimics ffmpeg.
 
     Method follows ffmpeg's `numerical options`_. All whitespace is
