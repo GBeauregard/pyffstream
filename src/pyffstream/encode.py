@@ -613,7 +613,7 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
         frame_json = ffmpeg.ff_bin.probe_json(
             "packet=pts,flags",
             fv.streamvals["v"]().fileargs,
-            f"v:{fv.ev.vindex}",
+            fv.streamvals["v"]().selector,
             deep_probe=fv.ev.deep_probe,
         )
         if frame_json:
