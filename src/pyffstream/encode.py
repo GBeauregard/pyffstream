@@ -723,7 +723,7 @@ def determine_autocrop(fv: EncodeSession) -> None:
 
     if result.returncode == 0 and cropfilt:
         fv.filts["vcrop"] = cropfilt
-        logger.info(f"determined crop filter: {cropfilt}")
+        logger.info("determined crop filter: %s", cropfilt)
         fv.crop.setstatus(StatusCode.FINISHED, "success")
     else:
         logger.warning("crop failed")
@@ -774,7 +774,7 @@ def determine_afilters(fv: EncodeSession) -> None:
         *fv.filts.if_exists("aresample"),
     ]
     fv.ev.afilters = ffmpeg.Filter.vf_join(audiofilters)
-    logger.info(f"Determined afilters:\n{fv.ev.afilters}")
+    logger.info("Determined afilters:\n%r", fv.ev.afilters)
 
 
 def determine_anormalize(fv: EncodeSession) -> None:
