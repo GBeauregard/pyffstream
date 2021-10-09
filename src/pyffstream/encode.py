@@ -704,7 +704,7 @@ def determine_autocrop(fv: EncodeSession) -> None:
                 flags=re.ASCII | re.MULTILINE,
             )
             for line in iter(ffprogress.output_que.get, None):
-                if (match := crop_regex.search(line)) is not None:
+                if match := crop_regex.search(line):
                     cropfilt = match.group("filter")
             return cropfilt
 
@@ -867,14 +867,10 @@ def determine_anormalize(fv: EncodeSession) -> None:
                     ffprogress.progress_avail.wait()
                     ffprogress.progress_avail.clear()
 
-            if (
-                result.returncode == 0
-                and (
-                    jsonmatch := re.search(
-                        r"(?P<json>{[^{]+})[^}]*$", "\n".join(ffprogress.output)
-                    )
+            if result.returncode == 0 and (
+                jsonmatch := re.search(
+                    r"(?P<json>{[^{]+})[^}]*$", "\n".join(ffprogress.output)
                 )
-                is not None
             ):
                 if fv.ev.normfile is not None:
                     fv.ev.normfile.write_text(jsonmatch.group("json"), encoding="utf-8")
@@ -949,7 +945,6 @@ def parse_stylelines(ass_text: Sequence[str]) -> StyleFile | None:
             i
             for i, line in enumerate(ass_text)
             if re.match(r"\[.*?styles\+?", line.strip(), flags=re.IGNORECASE)
-            is not None
         ),
         None,
     )
@@ -970,7 +965,7 @@ def parse_stylelines(ass_text: Sequence[str]) -> StyleFile | None:
         (
             i
             for i, line in enumerate(ass_text[insert_index:])
-            if re.match(r"\[.*\]", line.strip()) is not None
+            if re.match(r"\[.*\]", line.strip())
         ),
         None,
     )
@@ -1175,7 +1170,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
 
 def get_picsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
     subfilter_list: list[ffmpeg.Filter | str] = []
-    if re.fullmatch(r"yuv[ja]?4[0-4]{2}p", fv.v("v", "pix_fmt")) is not None:
+    if re.fullmatch(r"yuv[ja]?4[0-4]{2}p", fv.v("v", "pix_fmt")):
         overlay_fmt = "yuv420"
     else:
         overlay_fmt = "yuv420p10"

@@ -608,7 +608,7 @@ def num(val: str) -> float:
         """,
         flags=re.VERBOSE | re.ASCII,
     )
-    if (match := input_regex.fullmatch(val)) is None:
+    if not (match := input_regex.fullmatch(val)):
         raise ValueError(f"Invalid ffmpeg number string: {val!r}")
     if not (basenum := match.group("number")):
         raise ValueError(f"Match number not found: {val!r}")
@@ -630,18 +630,13 @@ def duration(timestamp: str | float | int) -> float:
     https://ffmpeg.org/ffmpeg-utils.html#Time-duration
     """
     timestamp = str(timestamp)
-    if (
-        re.fullmatch(r"(\d+:)?\d?\d:\d\d(\.\d*)?", timestamp, flags=re.ASCII)
-        is not None
-    ):
+    if re.fullmatch(r"(\d+:)?\d?\d:\d\d(\.\d*)?", timestamp, flags=re.ASCII):
         return sum(
             s * float(t) for s, t in zip([1, 60, 3600], reversed(timestamp.split(":")))
         )
-    if (
-        match := re.fullmatch(
-            r"(-?(?:\d+\.?\d*|\.\d+))([mu]?s)?", timestamp, flags=re.ASCII
-        )
-    ) is not None:
+    if match := re.fullmatch(
+        r"(-?(?:\d+\.?\d*|\.\d+))([mu]?s)?", timestamp, flags=re.ASCII
+    ):
         val = float(match.group(1))
         if match.group(2) == "ms":
             val /= 1000
