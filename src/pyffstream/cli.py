@@ -1364,45 +1364,41 @@ def main() -> None:
 
     if not args.print_info:
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            vencoder_check = (
-                executor.submit(
-                    lambda: args.vencoder
-                    in encode.StaticEncodeVars.VIDEO_ENCODERS & ffmpeg.ff_bin.vencoders
-                ).result
+            vencoder_future = executor.submit(
+                lambda: args.vencoder
+                in encode.StaticEncodeVars.VIDEO_ENCODERS & ffmpeg.ff_bin.vencoders
                 if not args.copy_video
-                else lambda: True
+                else True
             )
-            zscale_check = (
-                executor.submit(lambda: "zscale" in ffmpeg.ff_bin.filters).result
+            zscale_future = executor.submit(
+                lambda: "zscale" in ffmpeg.ff_bin.filters
                 if not args.copy_video and args.zscale
-                else lambda: True
+                else True
             )
-            soxr_check = (
-                executor.submit(
-                    lambda: "--enable-libsoxr" in ffmpeg.ff_bin.build_config
-                ).result
+            soxr_future = executor.submit(
+                lambda: "--enable-libsoxr" in ffmpeg.ff_bin.build_config
                 if not args.copy_audio and args.soxr
-                else lambda: True
+                else True
             )
-            fdk_check = (
-                executor.submit(lambda: "libfdk_aac" in ffmpeg.ff_bin.aencoders).result
+            fdk_future = executor.submit(
+                lambda: "libfdk_aac" in ffmpeg.ff_bin.aencoders
                 if not args.copy_audio and args.fdk
-                else lambda: True
+                else True
             )
-            if not vencoder_check():
+            if not vencoder_future.result():
                 parser.error(
                     f"selected vencoder {args.vencoder!r} not supported by ffmpeg"
                     " installation"
                 )
-            if not zscale_check():
+            if not zscale_future.result():
                 parser.error(
                     "zscale specified, but using an ffmpeg build without support"
                 )
-            if not soxr_check():
+            if not soxr_future.result():
                 parser.error(
                     "soxr specified, but using an ffmpeg build without support"
                 )
-            if not fdk_check():
+            if not fdk_future.result():
                 parser.error(
                     "fdk encoder specified, but using an ffmpeg build without support"
                 )
