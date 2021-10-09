@@ -28,9 +28,17 @@ import subprocess
 import threading
 import typing
 from collections.abc import Iterable, Mapping, MutableSequence, Sequence
-from typing import Any, Final, Generic, NamedTuple, TypedDict, TypeVar, Union, cast
-
-AnyStr = TypeVar("AnyStr", str, bytes)
+from typing import (
+    Any,
+    AnyStr,
+    Final,
+    Generic,
+    NamedTuple,
+    TypedDict,
+    TypeVar,
+    Union,
+    cast,
+)
 
 logger = logging.getLogger(__name__)
 

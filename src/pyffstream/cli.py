@@ -1293,7 +1293,9 @@ def get_parserconfig(
     return parser, config
 
 
-ConfName = NamedTuple("ConfName", [("file_name", str), ("arg_name", str)])
+class ConfName(NamedTuple):
+    file_name: str
+    arg_name: str
 
 
 def main() -> None:
