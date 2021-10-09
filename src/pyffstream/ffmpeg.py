@@ -582,12 +582,7 @@ _SI_PREFIXES: Final[dict[str, float]] = {
 
 
 @functools.singledispatch
-def num(val: object) -> float:
-    raise TypeError("Unsupported type passed to num")
-
-
-@num.register
-def num_str(val: str) -> float:
+def num(val: str) -> float:
     """Process input into float in a way that mimics ffmpeg.
 
     Method follows ffmpeg's `numerical options`_. All whitespace is
