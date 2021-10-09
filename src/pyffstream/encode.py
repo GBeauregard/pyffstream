@@ -422,6 +422,8 @@ class StaticEncodeVars:
 
     tempdir: pathlib.Path
 
+    # TODO: 3.10 _: KW_ONLY
+
     verbosity: int = 0
     api_url: str = ""
     api_key: str = ""
