@@ -1392,7 +1392,8 @@ def main() -> None:
                     )
                 if args.fdk and "libfdk_aac" not in aencoder_future.result():
                     parser.error(
-                        "fdk encoder specified, but using an ffmpeg build without support"
+                        "fdk encoder specified, but using an ffmpeg build without"
+                        " support"
                     )
 
     if args.startdelay and (args.copy_video or args.copy_audio):
