@@ -1288,7 +1288,7 @@ def get_parserconfig(
     if conf_file is not None and not conf_file.is_file():
         parser.error("Passed config file must be a file.")
 
-    logger.info(f"parsed configs: {read_configs!r}")
+    logger.info("parsed configs: %r", read_configs)
 
     return parser, config
 
