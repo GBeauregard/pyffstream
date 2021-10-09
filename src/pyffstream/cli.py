@@ -571,7 +571,7 @@ def parse_files(args: argparse.Namespace, parser: argparse.ArgumentParser) -> No
         pass
 
 
-ENCODE_DEFAULTS = encode.StaticEncodeVars(pathlib.Path(""))
+ENCODE_DEFAULTS: Final = encode.StaticEncodeVars(pathlib.Path(""))
 
 
 @dataclasses.dataclass
