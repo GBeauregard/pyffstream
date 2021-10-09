@@ -1363,30 +1363,37 @@ def main() -> None:
             args.copy_audio = True
 
     if not args.print_info:
-        if not args.copy_video:
-            if args.vencoder not in (
-                encode.StaticEncodeVars.VIDEO_ENCODERS & ffmpeg.ff_bin.vencoders
-            ):
-                parser.error(
-                    f"selected vencoder {args.vencoder!r} not supported by ffmpeg"
-                    " installation"
-                )
-
-            if args.zscale and "zscale" not in ffmpeg.ff_bin.filters:
-                parser.error(
-                    "zscale specified, but using an ffmpeg build without support"
-                )
-
-        if not args.copy_audio:
-            if args.soxr and "--enable-libsoxr" not in ffmpeg.ff_bin.build_config:
-                parser.error(
-                    "soxr specified, but using an ffmpeg build without support"
-                )
-
-            if args.fdk and "libfdk_aac" not in ffmpeg.ff_bin.aencoders:
-                parser.error(
-                    "fdk encoder specified, but using an ffmpeg build without support"
-                )
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            if not args.copy_video:
+                vencoder_future = executor.submit(lambda: ffmpeg.ff_bin.vencoders)
+                if args.zscale:
+                    filter_future = executor.submit(lambda: ffmpeg.ff_bin.filters)
+            if not args.copy_audio:
+                if args.soxr:
+                    build_future = executor.submit(lambda: ffmpeg.ff_bin.build_config)
+                if args.fdk:
+                    aencoder_future = executor.submit(lambda: ffmpeg.ff_bin.aencoders)
+            if not args.copy_video:
+                if args.vencoder not in (
+                    encode.StaticEncodeVars.VIDEO_ENCODERS & vencoder_future.result()
+                ):
+                    parser.error(
+                        f"selected vencoder {args.vencoder!r} not supported by ffmpeg"
+                        " installation"
+                    )
+                if args.zscale and "zscale" not in filter_future.result():
+                    parser.error(
+                        "zscale specified, but using an ffmpeg build without support"
+                    )
+            if not args.copy_audio:
+                if args.soxr and "--enable-libsoxr" not in build_future.result():
+                    parser.error(
+                        "soxr specified, but using an ffmpeg build without support"
+                    )
+                if args.fdk and "libfdk_aac" not in aencoder_future.result():
+                    parser.error(
+                        "fdk encoder specified, but using an ffmpeg build without support"
+                    )
 
     if args.startdelay and (args.copy_video or args.copy_audio):
         parser.error("audio/video copying cannot be used with a start delay")
