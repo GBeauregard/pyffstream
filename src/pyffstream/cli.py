@@ -1518,8 +1518,7 @@ def main() -> None:
                 main_section[conf.file_name] = str(getattr(args, conf.arg_name))
         new_full_config["pyffstream"] = new_config["pyffstream"]
 
-        console.print("Writing defaults to config path:")
-        console.print(config_path)
+        console.print(f"Writing defaults to config path:\n{config_path}")
         with config_path.open(mode="w", encoding="utf-8") as f:
             new_full_config.write(f)
         raise SystemExit(0)
