@@ -874,9 +874,11 @@ def determine_anormalize(fv: EncodeSession) -> None:
                     r"(?P<json>{[^{]+})[^}]*$", "\n".join(ffprogress.output)
                 )
             ):
-                if fv.ev.normfile is not None:
-                    fv.ev.normfile.write_text(jsonmatch.group("json"), encoding="utf-8")
                 jsonout = json.loads(jsonmatch.group("json"))
+                if fv.ev.normfile is not None:
+                    fv.ev.normfile.write_text(
+                        json.dumps(jsonout, separators=(",", ":")), encoding="utf-8"
+                    )
                 fv.norm.setstatus(StatusCode.OTHER, "read json")
                 json_to_normfilt(jsonout)
             else:
