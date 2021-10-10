@@ -319,12 +319,12 @@ class FFBin:
             finally:
                 executor.shutdown(wait=False)
         playlistpath = directory / name
-        with playlistpath.open(mode="x", newline="\n", encoding="utf-8") as f:
-            print("ffconcat version 1.0", file=f)
+        with playlistpath.open(mode="x", encoding="utf-8") as f:
+            f.write("ffconcat version 1.0\n")
             for fpath in pathlist:
-                print("file " + shlex.quote(str(fpath.resolve())), file=f)
+                f.write("file " + shlex.quote(str(fpath.resolve())) + "\n")
                 if durfutures is not None and (fdur := next(durfutures)) is not None:
-                    print("duration " + fdur, file=f)
+                    f.write(f"duration {fdur}\n")
         return playlistpath
 
     @functools.cached_property
