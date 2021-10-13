@@ -17,7 +17,9 @@ pyffstream
 .. image:: https://github.com/gbeauregard/pyffstream/workflows/Tox/badge.svg
    :target: https://github.com/GBeauregard/pyffstream/actions/workflows/tox.yml
 .. image:: https://github.com/gbeauregard/pyffstream/workflows/CodeQL/badge.svg
-   :target: https://github.com/GBeauregard/pyffstream/actions/workflows/codeql-analysis.yml)
+   :target: https://github.com/GBeauregard/pyffstream/actions/workflows/codeql-analysis.yml
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+   :target: https://github.com/psf/black
 
 A CLI wrapper for ffmpeg to stream files over SRT/RTMP. Also supports
 the api for a not (yet) open sourced pyffserver endpoint.
