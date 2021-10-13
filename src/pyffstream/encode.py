@@ -1368,7 +1368,7 @@ def get_nvenc_hevc_flags(fv: EncodeSession) -> list[str]:
     flags = [
         "-c:v", "hevc_nvenc",
         "-profile:v", profile,
-        "-threads:v", "4",
+        "-threads:v", "3",
         "-g:v", f"{fv.ev.kf_int}",
         "-keyint_min:v", f"{fv.ev.kf_int}",
         "-forced-idr:v", "1",
@@ -1401,7 +1401,7 @@ def get_nvenc_h264_flags(fv: EncodeSession) -> list[str]:
     flags = [
         "-c:v", "h264_nvenc",
         "-profile:v", "high",
-        "-threads:v", "4",
+        "-threads:v", "3",
         "-g:v", f"{fv.ev.kf_int}",
         "-keyint_min:v", f"{fv.ev.kf_int}",
         "-forced-idr:v", "1",
