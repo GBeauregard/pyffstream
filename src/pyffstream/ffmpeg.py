@@ -30,6 +30,11 @@ import typing
 from collections.abc import Iterable, Mapping, MutableSequence, Sequence
 from typing import Any, AnyStr, Final, Generic, NamedTuple, TypedDict, Union, cast
 
+# if sys.version_info >= (3, 10):
+#     from typing import TypeAlias
+# else:
+#     from typing_extensions import TypeAlias
+
 logger = logging.getLogger(__name__)
 
 
