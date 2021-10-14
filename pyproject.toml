@@ -21,9 +21,9 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-  # "typing_extensions >= 3.10.0.2; python_version <='3.9'",
-  "platformdirs >=2.1.0",
-  "rich",
+  # "typing_extensions >= 3.10.0.2; python_version <= '3.9'",
+  "platformdirs >= 2.1.0",
+  "rich >= 10.12.0",
   "requests",
 ]
 
