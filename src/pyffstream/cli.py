@@ -943,7 +943,7 @@ def get_parserconfig(
         type=pathlib.Path,
         nargs="*",
         default=[],
-        metavar="INPUT_FILES",
+        metavar="FILES",
         help=(
             "list of input files and directories; if last argument is file already"
             " contained in input list, start list from that file"
