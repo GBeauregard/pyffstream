@@ -426,9 +426,11 @@ def start_stream(fv: encode.EncodeSession) -> None:
             timestamp=f"{sec_to_str(ts)}{length_str}",
             start=False,
         )
-        progress.update(task_id, total=length)
         if fv.fv("f", "duration") is not None:
+            progress.update(task_id, total=length)
             progress.start_task(task_id)
+        else:
+            progress.update(task_id, total=0)
 
         fv.ev.ffprogress.monitor_progress(
             result, result.stdout, maxlen=50, loglevel=logging.INFO
