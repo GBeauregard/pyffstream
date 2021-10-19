@@ -828,7 +828,7 @@ def get_parserconfig(
         # use case-sensitive keys for env values
         env_config = configparser.ConfigParser()
         # https://github.com/python/mypy/issues/2427
-        env_config.optionxform = str  # type: ignore
+        env_config.optionxform = str  # type: ignore[assignment]
         env_config.read(conf_list, encoding="utf-8")
         for key in env_config["env"]:
             config.env[key] = env_config["env"][key]
@@ -1487,7 +1487,7 @@ def main() -> None:
         new_config.read(config_path, encoding="utf-8")
         # keep case for env section
         new_full_config = configparser.ConfigParser()
-        new_full_config.optionxform = str  # type: ignore
+        new_full_config.optionxform = str  # type: ignore[assignment]
         new_full_config.read(config_path, encoding="utf-8")
 
         if "pyffstream" not in new_config.sections():
