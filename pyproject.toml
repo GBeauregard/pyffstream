@@ -7,7 +7,7 @@ name = "pyffstream"
 readme = "README.md"
 license = {file = "LICENSE"}
 version = "0.0.10"
-authors = [{email = "pyffstream@gably.net"}]
+authors = [{name = "Gregory Beauregard", email = "pyffstream@gably.net"}]
 dynamic = ["description"]
 keywords = ["ffmpeg", "streaming", "srt", "rtmp"]
 classifiers = [
