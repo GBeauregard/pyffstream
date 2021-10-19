@@ -80,9 +80,10 @@ profile="black"
 target-version = ['py39']
 
 [tool.pyright]
+pythonVersion = "3.9"
 include = ["src"]
 strict = ["src"]
-pythonVersion = "3.9"
 
 [tool.mypy]
 python_version = "3.9"
+show_error_codes = true
