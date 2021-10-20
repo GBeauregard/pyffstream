@@ -1458,6 +1458,7 @@ def get_vflags(fv: EncodeSession) -> list[str]:
     vflags: list[str] = []
     if fv.ev.copy_video:
         fv.ev.vstandard = fv.v("v", "codec_name")
+        # better expressed with PEP 505: or -> ??
         fv.ev.vbitrate = (
             fv.fv("v", "bit_rate")
             or fv.fv("v", "BPS", ffmpeg.ProbeType.TAGS)
