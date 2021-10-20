@@ -1458,13 +1458,13 @@ def get_vflags(fv: EncodeSession) -> list[str]:
     vflags: list[str] = []
     if fv.ev.copy_video:
         fv.ev.vstandard = fv.v("v", "codec_name")
-        if (
-            (bitrate := fv.fv("v", "bit_rate")) is not None
-            or (bitrate := fv.fv("v", "BPS", ffmpeg.ProbeType.TAGS)) is not None
-            or (bitrate := fv.fv("v", "BPS-eng", ffmpeg.ProbeType.TAGS)) is not None
-            or (bitrate := fv.fv("f", "bit_rate")) is not None
-        ):
-            fv.ev.vbitrate = bitrate
+        fv.ev.vbitrate = (
+            fv.fv("v", "bit_rate")
+            or fv.fv("v", "BPS", ffmpeg.ProbeType.TAGS)
+            or fv.fv("v", "BPS-eng", ffmpeg.ProbeType.TAGS)
+            or fv.fv("f", "bit_rate")
+            or fv.ev.bitrate
+        )
         vflags += ["-c:v", "copy"]
         logger.debug(f"Using vbitrate for copy: {fv.ev.vbitrate}")
         return vflags
