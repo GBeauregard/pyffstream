@@ -49,7 +49,7 @@ logging.getLogger("urllib3").propagate = False
 console = rich.console.Console()
 
 
-def hl_path(path: os.PathLike[Any]) -> str:
+def hl_path(path: os.PathLike[str]) -> str:
     pl_path = pathlib.Path(path)
     name = str(pl_path.name)
     parent = str(pl_path).removesuffix(name)
