@@ -326,9 +326,7 @@ class FFBin:
         with playlistpath.open(mode="x", encoding="utf-8") as f:
             f.write("ffconcat version 1.0\n")
             for fpath in pathlist:
-                f.write(
-                    "file " + "".join("\\" + c for c in str(fpath.resolve())) + "\n"
-                )
+                f.write("file '" + str(fpath.resolve()).replace("'", "'\\''") + "'\n")
                 if durfutures is not None and (fdur := next(durfutures)) is not None:
                     f.write(f"duration {fdur}\n")
         return playlistpath
