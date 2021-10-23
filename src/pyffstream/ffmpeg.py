@@ -22,7 +22,6 @@ import os
 import pathlib
 import queue
 import re
-import shlex
 import socket
 import subprocess
 import threading
@@ -327,7 +326,9 @@ class FFBin:
         with playlistpath.open(mode="x", encoding="utf-8") as f:
             f.write("ffconcat version 1.0\n")
             for fpath in pathlist:
-                f.write("file " + shlex.quote(str(fpath.resolve())) + "\n")
+                f.write(
+                    "file " + "".join("\\" + c for c in str(fpath.resolve())) + "\n"
+                )
                 if durfutures is not None and (fdur := next(durfutures)) is not None:
                     f.write(f"duration {fdur}\n")
         return playlistpath
