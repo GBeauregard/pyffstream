@@ -761,8 +761,7 @@ def determine_afilters(fv: EncodeSession) -> None:
     ):
         fv.filts["aresample"] = [
             "aresample",
-            *(("resampler=soxr",) if fv.ev.soxr else ()),
-            *(("precision=28",) if fv.ev.soxr else ()),
+            *(("resampler=soxr", "precision=28") if fv.ev.soxr else ()),
             f"osr={samplerate}",
         ]
     fv.ev.samplerate = str(samplerate)
