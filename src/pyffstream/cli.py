@@ -598,6 +598,7 @@ class DefaultConfig:
     zscale: bool = ENCODE_DEFAULTS.zscale
     vulkan: bool = ENCODE_DEFAULTS.vulkan
     fdk: bool = ENCODE_DEFAULTS.fdk
+    hwaccel: bool = ENCODE_DEFAULTS.hwaccel
     height: int = int(ENCODE_DEFAULTS.target_h)
     shader_dir: pathlib.Path = ENCODE_DEFAULTS.shader_dir
     shader_list: list[str] = dataclasses.field(default_factory=list)
@@ -816,6 +817,7 @@ def get_parserconfig(
         config.soxr = main_conf.getboolean("soxr", config.soxr)
         config.zscale = main_conf.getboolean("zscale", config.zscale)
         config.vulkan = main_conf.getboolean("vulkan", config.vulkan)
+        config.hwaccel = main_conf.getboolean("hwaccel", config.hwaccel)
         config.fdk = main_conf.getboolean("fdk", config.fdk)
         config.height = main_conf.getint("height", config.height)
         config.shader_dir = main_conf.getpath("shader_dir", config.shader_dir)
@@ -1021,6 +1023,12 @@ def get_parserconfig(
     )
     input_parser.add_argument(
         "-B", "--bluray", help="input directory is bluray", action="store_true"
+    )
+    input_parser.add_argument(
+        "--hwaccel",
+        help="Attempt to automatically use hw accelerated decoding if available",
+        action=argparse.BooleanOptionalAction,
+        default=config.hwaccel,
     )
     subtitle_parser.add_argument(
         "-e", "--subs", help="enable subtitles", action="store_true"
@@ -1512,6 +1520,7 @@ def main() -> None:
             ConfName("height", "height"),
             ConfName("shader_dir", "shaderdir"),
             ConfName("kf_target_sec", "keyframe_target_sec"),
+            ConfName("hwaccel", "hwaccel"),
         }
         for conf in conf_names:
             if getattr(config, conf.file_name) != getattr(

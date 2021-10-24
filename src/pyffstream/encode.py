@@ -479,6 +479,7 @@ class StaticEncodeVars:
     copy_audio: bool = False
     copy_video: bool = False
     use_timeline: bool = False
+    hwaccel: bool = True
     subs: bool = False
     deep_probe: bool = False
     vindex: int = 0
@@ -542,6 +543,7 @@ class StaticEncodeVars:
         evars.cropsecond = args.cropsecond
         evars.delay_start = args.startdelay
         evars.is_playlist = args.playlist
+        evars.hwaccel = args.hwaccel
         if args.obs:
             if args.sixtyfps:
                 evars.decimate_target = "60/1"
@@ -677,7 +679,7 @@ def determine_autocrop(fv: EncodeSession) -> None:
         *fv.ev.ff_deepprobe_flags,
         "-hide_banner",
         "-nostats",
-        "-hwaccel", "auto",
+        *(("-hwaccel", "auto") if fv.ev.hwaccel else ()),
         *(("-ss", crop_ts_string) if not fv.ev.slowseek else ()),
         *fv.fopts.main,
         *(("-ss", crop_ts_string) if fv.ev.slowseek else ()),
@@ -834,7 +836,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 *ffprogress.flags(0.25),
                 *fv.ev.ff_deepprobe_flags,
                 "-hide_banner",
-                "-hwaccel", "auto",
+                *(("-hwaccel", "auto") if fv.ev.hwaccel else ()),
                 *fv.fopts.main,
                 "-vn",
                 "-sn",
@@ -1043,7 +1045,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
             *ffprogress.flags(0.1),
             *fv.ev.ff_deepprobe_flags,
             "-hide_banner",
-            "-hwaccel", "auto",
+            *(("-hwaccel", "auto") if fv.ev.hwaccel else ()),
             "-fix_sub_duration",
             *fv.fopts.subtitle,
             *(
@@ -1483,6 +1485,7 @@ def get_vflags(fv: EncodeSession) -> list[str]:
 
 
 def set_input_flags(fv: EncodeSession) -> None:
+    hwaccel_flags = []
     if fv.ev.vencoder in fv.ev.NVIDIA_ENCODERS:
         # fmt: off
         hwaccel_flags = [
@@ -1492,10 +1495,10 @@ def set_input_flags(fv: EncodeSession) -> None:
             "-filter_hw_device", "cud",
         ]
         # fmt: on
-    else:
+    elif fv.ev.hwaccel:
         hwaccel_flags = ["-hwaccel", "auto"]
     if fv.ev.vulkan and "vulkan" in ffmpeg.ff_bin.hwaccels:
-        hwaccel_flags += ["init_hw_device", "vulkan=vulk"]
+        hwaccel_flags += ["-init_hw_device", "vulkan=vulk"]
     input_flags = [
         *fv.ev.ffprogress.flags(0.25),
         *fv.ev.ff_verbosity_flags,
@@ -1520,8 +1523,7 @@ def set_input_flags(fv: EncodeSession) -> None:
     if fv.ev.subfile_provided and not fv.ev.text_subs:
         input_flags += [
             *fv.ev.ff_deepprobe_flags,
-            "-hwaccel",
-            "auto",
+            *(("-hwaccel", "auto") if fv.ev.hwaccel else ()),
             "-thread_queue_size",
             "4096",
             *fv.fopts.subtitle,
