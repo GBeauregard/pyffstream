@@ -58,6 +58,7 @@ class EncodeSession:
         "codec_name",
         "sample_rate",
         "bit_rate",
+        "channel_layout",
     }
     ASTREAM_TAGS: Final[set[str]] = set()
     SSTREAMS: Final = {
@@ -735,11 +736,12 @@ def determine_autocrop(fv: EncodeSession) -> None:
 
 
 def determine_afilters(fv: EncodeSession) -> None:
-    fv.filts["adownmix"] = [
-        "aresample",
-        *(("resampler=soxr",) if fv.ev.soxr else ()),
-        f"ocl={fv.ev.chlayout}",
-    ]
+    if fv.fv("a", "channel_layout") != fv.ev.chlayout:
+        fv.filts["adownmix"] = [
+            "aresample",
+            *(("resampler=soxr",) if fv.ev.soxr else ()),
+            f"ocl={fv.ev.chlayout}",
+        ]
     futures: list[concurrent.futures.Future[Any]] = []
     if fv.ev.anormalize:
         futures.append(fv.executor.submit(determine_anormalize, fv))
@@ -773,7 +775,7 @@ def determine_afilters(fv: EncodeSession) -> None:
     close_futures(futures)
     audiofilters = [
         *fv.filts.if_exists("adelay"),
-        fv.filts["adownmix"],
+        *fv.filts.if_exists("adownmix"),
         *fv.filts.if_exists("anormalize"),
         *fv.filts.if_exists("aresample"),
     ]
@@ -1604,8 +1606,7 @@ def set_filter_flags(fv: EncodeSession) -> None:
             "-map",
             f"0:a:{fv.ev.aindex}",
             *(("-resampler", "soxr") if fv.ev.soxr else ()),
-            "-af",
-            fv.ev.afilters,
+            *(("-af", fv.ev.afilters) if fv.ev.afilters else ()),
         ]
     filter_flags += ["-map_metadata", "-1"]
     fv.ev.filter_flags = filter_flags
