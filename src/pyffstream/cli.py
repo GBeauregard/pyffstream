@@ -817,8 +817,8 @@ def get_parserconfig(
         config.soxr = main_conf.getboolean("soxr", config.soxr)
         config.zscale = main_conf.getboolean("zscale", config.zscale)
         config.vulkan = main_conf.getboolean("vulkan", config.vulkan)
-        config.hwaccel = main_conf.getboolean("hwaccel", config.hwaccel)
         config.fdk = main_conf.getboolean("fdk", config.fdk)
+        config.hwaccel = main_conf.getboolean("hwaccel", config.hwaccel)
         config.height = main_conf.getint("height", config.height)
         config.shader_dir = main_conf.getpath("shader_dir", config.shader_dir)
         config.shader_list = main_conf.getlist("shader_list", config.shader_list)
@@ -1517,10 +1517,10 @@ def main() -> None:
             ConfName("zscale", "zscale"),
             ConfName("vulkan", "vulkan"),
             ConfName("fdk", "fdk"),
+            ConfName("hwaccel", "hwaccel"),
             ConfName("height", "height"),
             ConfName("shader_dir", "shaderdir"),
             ConfName("kf_target_sec", "keyframe_target_sec"),
-            ConfName("hwaccel", "hwaccel"),
         }
         for conf in conf_names:
             if getattr(config, conf.file_name) != getattr(
