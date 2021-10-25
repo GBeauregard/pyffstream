@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger("requests").propagate = False
 logging.getLogger("urllib3").propagate = False
 
-console = rich.console.Console()
+console = rich.console.Console(highlight=False)
 
 
 def hl_path(path: os.PathLike[str]) -> str:
@@ -202,7 +202,7 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
             )
         return capture.get()
 
-    console.print(f"file: {hl_path(fopts.fpath)}", highlight=False)
+    console.print(f"file: {hl_path(fopts.fpath)}")
     with concurrent.futures.ThreadPoolExecutor() as executor:
         fileduration = executor.submit(
             ffmpeg.ff_bin.probe_val,
@@ -237,13 +237,13 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
             deep_probe,
         )
         if (duration := fileduration.result()) is not None:
-            console.print("format_duration=[green]" + duration, highlight=False)
+            console.print("format_duration=[green]" + duration)
         if vid := vid_fut.result():
-            console.out(vid, highlight=False)
+            console.out(vid)
         if aud := aud_fut.result():
-            console.out(aud, highlight=False)
+            console.out(aud)
         if subs := sub_fut.result():
-            console.out(subs, highlight=False)
+            console.out(subs)
 
 
 def status_wait(
@@ -339,7 +339,8 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
                     raise SystemExit(1)
                 elif req.status_code != 200:
                     console.print(
-                        f"API server returned error {req.status_code}: {req.reason}"
+                        f"API server returned error {req.status_code}: {req.reason}",
+                        markup=False,
                     )
                     console.print("waiting and trying again")
                     time.sleep(1)
@@ -468,7 +469,7 @@ def start_stream(fv: encode.EncodeSession) -> None:
 def stream_file(fopts: encode.FileOpts, args: argparse.Namespace) -> None:
     """Manage calculating of all stream parameters."""
     with console.status("calculating stream parameters"):
-        console.print(f"starting: {hl_path(fopts.fpath)}", highlight=False)
+        console.print(f"starting: {hl_path(fopts.fpath)}")
         fv = encode.EncodeSession(fopts, encode.StaticEncodeVars.from_args(args))
         futures: list[concurrent.futures.Future[Any]] = []
         encode.determine_timeseek(fv)
@@ -689,7 +690,9 @@ def download_win_ffmpeg(dltype: str = "git") -> bool:
                 console=console,
             ) as progress:
                 task_id = progress.add_task(
-                    "download", filename=ff_url.split("/")[-1], start=False
+                    "download",
+                    filename=rich.markup.escape(ff_url.split("/")[-1]),
+                    start=False,
                 )
                 response = s.get(
                     ff_url, stream=True, headers={"Cache-Control": "no-cache"}
@@ -785,9 +788,9 @@ def get_parserconfig(
     conf_file = conf_args.config
 
     if conf_args.show_config_dirs:
-        console.print("Searched config files in this order:", highlight=False)
+        console.print("Searched config files in this order:")
         for confile in conf_list:
-            console.print(confile)
+            console.print(hl_path(confile))
         raise SystemExit(0)
 
     if conf_file is not None and conf_file.is_file():
@@ -1529,7 +1532,7 @@ def main() -> None:
                 main_section[conf.file_name] = str(getattr(args, conf.arg_name))
         new_full_config["pyffstream"] = new_config["pyffstream"]
 
-        console.print(f"Writing defaults to config path:\n{config_path}")
+        console.print(f"Writing defaults to config path:\n{hl_path(config_path)}")
         with config_path.open(mode="w", encoding="utf-8") as f:
             new_full_config.write(f)
         raise SystemExit(0)
