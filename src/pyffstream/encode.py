@@ -435,7 +435,7 @@ class StaticEncodeVars:
     target_h: str = "1080"
     bound_w: str = "1920"
     bound_h: str = "1080"
-    kf_target_sec: float = 6.0
+    kf_target_sec: float = 5.0
     clip_length: str | None = None
     vencoder: str = "libx264"
     x264_preset: str = "medium"
