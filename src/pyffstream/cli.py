@@ -251,7 +251,7 @@ def status_wait(
 ) -> None:
     """Wait on remaining background processes while showing status."""
     for future in concurrent.futures.wait(futures, 0).not_done:
-        future.add_done_callback(lambda fut: fv.update_avail.set())
+        future.add_done_callback(lambda _: fv.update_avail.set())
     if not concurrent.futures.wait(futures, 0).not_done and fv.ev.verbosity == 0:
         return
     if fv.ev.verbosity > 0:
