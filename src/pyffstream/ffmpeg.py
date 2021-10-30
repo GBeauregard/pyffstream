@@ -769,7 +769,7 @@ class Progress(Generic[AnyStr]):
         self.output: collections.deque[AnyStr]
         self.output_que: queue.Queue[AnyStr | None]
         self._make_queue: bool
-        self.status: dict[str, str] = {
+        self.status = {
             "frame": "0",
             "fps": "0",
             "stream_0_0_q": "0.0",
