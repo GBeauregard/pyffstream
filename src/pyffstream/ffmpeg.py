@@ -389,7 +389,7 @@ class FFBin:
     @functools.cached_property
     def _encoders(self) -> FFEncoders:
         """All encoders compiled in."""
-        encoders: dict[str, set[str]] = {"V": set(), "A": set(), "S": set()}
+        encoders = {"V": set[str](), "A": set[str](), "S": set[str]()}
         encoderargs = [self.ffmpeg, "-hide_banner", "-v", "0", "-encoders"]
         result = subprocess.run(
             encoderargs,
@@ -433,7 +433,7 @@ class FFBin:
     @functools.cached_property
     def filters(self) -> set[str]:
         """Set of filters compiled into ffmpeg instance."""
-        filters: set[str] = set()
+        filters = set[str]()
         versionargs = [self.ffmpeg, "-hide_banner", "-v", "0", "-filters"]
         result = subprocess.run(
             versionargs,
@@ -464,7 +464,7 @@ class FFBin:
     @functools.cached_property
     def hwaccels(self) -> set[str]:
         """Set of hwaccels compiled into ffmpeg version."""
-        hwaccels: set[str] = set()
+        hwaccels = set[str]()
         hwaccelargs = [self.ffmpeg, "-hide_banner", "-v", "0", "-hwaccels"]
         result = subprocess.run(
             hwaccelargs,
@@ -485,8 +485,8 @@ class FFBin:
     @functools.cached_property
     def protocols(self) -> FFProtocols:
         """A FFProtocols of compiled in input/output protocols."""
-        in_protocols: set[str] = set()
-        out_protocols: set[str] = set()
+        in_protocols = set[str]()
+        out_protocols = set[str]()
         protocol_args = [self.ffmpeg, "-hide_banner", "-v", "0", "-protocols"]
         result = subprocess.run(
             protocol_args,
