@@ -60,16 +60,16 @@ class EncodeSession:
         "bit_rate",
         "channel_layout",
     }
-    ASTREAM_TAGS: Final[set[str]] = set()
+    ASTREAM_TAGS: Final = set[str]()
     SSTREAMS: Final = {
         "codec_type",
         "codec_name",
         "index",
     }
-    SSTREAM_TAGS: Final[set[str]] = set()
-    VDISPOSITIONS: Final[set[str]] = set()
-    ADISPOSITIONS: Final[set[str]] = set()
-    SDISPOSITIONS: Final[set[str]] = set()
+    SSTREAM_TAGS: Final = set[str]()
+    VDISPOSITIONS: Final = set[str]()
+    ADISPOSITIONS: Final = set[str]()
+    SDISPOSITIONS: Final = set[str]()
     FORMAT_IDS: Final = {
         "bit_rate",
         "duration",
