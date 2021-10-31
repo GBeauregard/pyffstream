@@ -889,6 +889,7 @@ class Progress(Generic[AnyStr]):
         self._sock.close()
         concurrent.futures.wait(self._futures)
         for future in self._futures:
+            # https://github.com/python/mypy/issues/9743
             exception = future.exception(5)
             if exception:
                 raise exception
