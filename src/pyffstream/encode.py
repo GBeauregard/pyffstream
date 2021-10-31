@@ -762,11 +762,7 @@ def determine_afilters(fv: EncodeSession) -> None:
         ]
     fv.ev.samplerate = str(samplerate)
     if fv.ev.delay_start and fv.ev.timestamp is None:
-        fv.filts["adelay"] = [
-            "adelay",
-            f"{fv.ev.start_delay}s",
-            "all=1",
-        ]
+        fv.filts["adelay"] = ["adelay", f"{fv.ev.start_delay}s", "all=1"]
     close_futures(futures)
     audiofilters = [
         *fv.filts.if_exists("adelay"),
@@ -1569,17 +1565,8 @@ def set_srt_flags(fv: EncodeSession) -> None:
     if fv.ev.fifo:
         srt_flags += get_fifo_flags("mpegts")
     else:
-        # fmt: off
-        srt_flags += [
-            "-f", "mpegts",
-            "-mpegts_flags", "+initial_discontinuity",
-        ]
-        # fmt: on
-    srt_flags += [
-        "-transtype",
-        "live",
-        f"srt://{fv.ev.endpoint}?{srt_opts}",
-    ]
+        srt_flags += ["-f", "mpegts", "-mpegts_flags", "+initial_discontinuity"]
+    srt_flags += ["-transtype", "live", f"srt://{fv.ev.endpoint}?{srt_opts}"]
     fv.ev.output_flags = srt_flags
 
 
