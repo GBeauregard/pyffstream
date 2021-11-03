@@ -196,8 +196,7 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
         with console.capture() as capture:
             console.print(
                 rich.columns.Columns(
-                    table_list,
-                    title=rich.text.Text(title, style="bold italic"),
+                    table_list, title=rich.text.Text(title, style="bold italic")
                 )
             )
         return capture.get()
@@ -295,11 +294,7 @@ def status_wait(
                 else:
                     progress.reset(task_id, start=False)
                     completed = 0
-                progress.update(
-                    task_id,
-                    status=status.long_status,
-                    completed=completed,
-                )
+                progress.update(task_id, status=status.long_status, completed=completed)
 
         start_time = time.perf_counter()
         sleep_time = 1 / REFRESH_PER_SEC
@@ -916,11 +911,7 @@ def get_parserconfig(
     resolution_group = video_parser.add_mutually_exclusive_group()
 
     parser.add_argument(
-        "-v",
-        "--verbose",
-        action="count",
-        default=0,
-        help="increase verbosity level",
+        "-v", "--verbose", action="count", default=0, help="increase verbosity level"
     )
     video_parser.add_argument(
         "-b",

@@ -197,10 +197,7 @@ class FileStreamVals:
         if self.selector[0] in {"v", "a", "s"}:
             is_stream = True
             self.default_probetype = ffmpeg.ProbeType.STREAM
-            emptydict = {
-                "disposition": {},
-                "tags": {},
-            }
+            emptydict = {"disposition": {}, "tags": {}}
         elif self.selector[0] == "f":
             is_stream = False
             self.default_probetype = ffmpeg.ProbeType.FORMAT
