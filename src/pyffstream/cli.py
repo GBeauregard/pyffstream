@@ -51,7 +51,7 @@ console = rich.console.Console(highlight=False)
 
 def hl_path(path: os.PathLike[str]) -> str:
     pl_path = pathlib.Path(path)
-    name = str(pl_path.name)
+    name = "" if pl_path.is_dir() else str(pl_path.name)
     parent = str(pl_path).removesuffix(name)
     parent = "[magenta]" + rich.markup.escape(parent) if parent else ""
     name = "[bright_magenta]" + rich.markup.escape(name)
