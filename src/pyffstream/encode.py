@@ -492,6 +492,7 @@ class StaticEncodeVars:
     live: bool = False
     obs: bool = False
     vulkan: bool = False
+    vulkan_device: int = -1
     decimate_target: str = "24/1"
     is_playlist: bool = False
     eightbit: bool = False
@@ -534,6 +535,7 @@ class StaticEncodeVars:
         evars.zscale = args.zscale
         evars.eightbit = args.eightbit
         evars.vulkan = args.vulkan
+        evars.vulkan_device = args.vulkan_device
         evars.fdk = args.fdk
         evars.upscale = args.upscale
         evars.crop = args.crop
@@ -1489,7 +1491,8 @@ def set_input_flags(fv: EncodeSession) -> None:
     elif fv.ev.hwaccel:
         hwaccel_flags = ["-hwaccel", "auto"]
     if fv.ev.vulkan and "vulkan" in ffmpeg.ff_bin.hwaccels:
-        hwaccel_flags += ["-init_hw_device", "vulkan=vulk"]
+        device_str = "" if fv.ev.vulkan_device == -1 else f":{fv.ev.vulkan_device}"
+        hwaccel_flags += ["-init_hw_device", f"vulkan=vulk{device_str}"]
     input_flags = [
         *fv.ev.ffprogress.flags(0.25),
         *fv.ev.ff_verbosity_flags,

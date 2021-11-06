@@ -593,6 +593,7 @@ class DefaultConfig:
     preset: str = ENCODE_DEFAULTS.x264_preset
     zscale: bool = ENCODE_DEFAULTS.zscale
     vulkan: bool = ENCODE_DEFAULTS.vulkan
+    vulkan_device: int = ENCODE_DEFAULTS.vulkan_device
     fdk: bool = ENCODE_DEFAULTS.fdk
     hwaccel: bool = ENCODE_DEFAULTS.hwaccel
     height: int = int(ENCODE_DEFAULTS.target_h)
@@ -815,6 +816,7 @@ def get_parserconfig(
         config.soxr = main_conf.getboolean("soxr", config.soxr)
         config.zscale = main_conf.getboolean("zscale", config.zscale)
         config.vulkan = main_conf.getboolean("vulkan", config.vulkan)
+        config.vulkan_device = main_conf.getint("vulkan_device", config.vulkan_device)
         config.fdk = main_conf.getboolean("fdk", config.fdk)
         config.hwaccel = main_conf.getboolean("hwaccel", config.hwaccel)
         config.height = main_conf.getint("height", config.height)
@@ -1166,6 +1168,13 @@ def get_parserconfig(
         action=argparse.BooleanOptionalAction,
         default=config.vulkan,
     )
+    video_parser.add_argument(
+        "--vulkan-device",
+        type=int_ge_zero,
+        metavar="NUM",
+        help="GPU device listing to use for vulkan HW context",
+        default=config.vulkan_device,
+    )
     subtitle_parser.add_argument(
         "-z",
         "--cropsecond",
@@ -1510,6 +1519,7 @@ def main() -> None:
             ConfName("soxr", "soxr"),
             ConfName("zscale", "zscale"),
             ConfName("vulkan", "vulkan"),
+            ConfName("vulkan_device", "vulkan_device"),
             ConfName("fdk", "fdk"),
             ConfName("hwaccel", "hwaccel"),
             ConfName("height", "height"),
