@@ -1421,7 +1421,7 @@ def main() -> None:
     if args.startdelay and args.timestamp is not None:
         parser.error("timestamp seeking cannot be used with a start delay")
 
-    if args.eightbit and not args.hevc_nvenc:
+    if args.eightbit and not args.vencoder == "hevc_nvenc":
         parser.error("8-bit HEVC encoding must be specified with HEVC")
 
     if args.eightbit:
