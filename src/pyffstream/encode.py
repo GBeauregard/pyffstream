@@ -1217,6 +1217,9 @@ def determine_scale(fv: EncodeSession) -> None:
         custom_shaders = [
             pathlib.Path(s) for s in fv.ev.shader_list if pathlib.Path(s).is_file()
         ]
+        shader_names = {s.stem.lower() for s in custom_shaders}
+        if not fv.ev.upscale and "ssimdownscaler" in shader_names:
+            libplacebo.append("disable_linear=1")
         if len(custom_shaders) < len(fv.ev.shader_list):
             logger.warning("Could not find all specified shaders in list.")
         if custom_shaders:
