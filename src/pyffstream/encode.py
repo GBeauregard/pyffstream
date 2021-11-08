@@ -507,7 +507,6 @@ class StaticEncodeVars:
     fix_start_time: bool = True
     fdk: bool = False
     pyffserver: bool = False
-    shader_dir: pathlib.Path = pathlib.Path.home()
     ffprogress: ffmpeg.Progress[str] = dataclasses.field(
         default_factory=ffmpeg.Progress
     )
@@ -585,7 +584,6 @@ class StaticEncodeVars:
             else "yuv420p"
         )
         evars.subfile_provided = args.subfile is not None
-        evars.shader_dir = args.shaderdir
         evars.ff_deepprobe_flags = (
             ["-analyzeduration", "100M", "-probesize", "100M"]
             if args.deep_probe
@@ -1217,9 +1215,7 @@ def determine_scale(fv: EncodeSession) -> None:
             f"format={fv.ev.pix_fmt}",
         ]
         custom_shaders = [
-            fv.ev.shader_dir / s
-            for s in fv.ev.shader_list
-            if pathlib.Path(fv.ev.shader_dir / s).is_file()
+            pathlib.Path(s) for s in fv.ev.shader_list if pathlib.Path(s).is_file()
         ]
         if len(custom_shaders) < len(fv.ev.shader_list):
             logger.warning("Could not find all specified shaders in list.")

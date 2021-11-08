@@ -597,7 +597,6 @@ class DefaultConfig:
     fdk: bool = ENCODE_DEFAULTS.fdk
     hwaccel: bool = ENCODE_DEFAULTS.hwaccel
     height: int = int(ENCODE_DEFAULTS.target_h)
-    shader_dir: pathlib.Path = ENCODE_DEFAULTS.shader_dir
     shader_list: list[str] = dataclasses.field(default_factory=list)
     kf_target_sec: float = ENCODE_DEFAULTS.kf_target_sec
     ffmpeg_bin: str = ffmpeg.ff_bin.ffmpeg
@@ -820,7 +819,6 @@ def get_parserconfig(
         config.fdk = main_conf.getboolean("fdk", config.fdk)
         config.hwaccel = main_conf.getboolean("hwaccel", config.hwaccel)
         config.height = main_conf.getint("height", config.height)
-        config.shader_dir = main_conf.getpath("shader_dir", config.shader_dir)
         config.shader_list = main_conf.getlist("shader_list", config.shader_list)
         config.kf_target_sec = main_conf.getfloat("kf_target_sec", config.kf_target_sec)
         config.ffmpeg_bin = main_conf.get("ffmpeg_bin", config.ffmpeg_bin)
@@ -1246,22 +1244,15 @@ def get_parserconfig(
         metavar="DIR",
     )
     parser.add_argument(
-        "--shaderdir",
-        type=pathlib.Path,
-        help="directory for libplacebo shaders",
-        default=config.shader_dir,
-        metavar="DIR",
-    )
-    parser.add_argument(
         "--shaders",
         type=str,
         help=(
-            "list of shaders to use (specify once for each shader to add) (default:"
+            "shader to use with vulkan (specify once for each shader to add) (default:"
             " %(default)s)"
         ),
         default=config.shader_list,
         action="append",
-        metavar="SHADER",
+        metavar="PATH_TO_SHADER",
     )
     ff_binary_group.add_argument(
         "--system-ffmpeg",
@@ -1523,7 +1514,6 @@ def main() -> None:
             ConfName("fdk", "fdk"),
             ConfName("hwaccel", "hwaccel"),
             ConfName("height", "height"),
-            ConfName("shader_dir", "shaderdir"),
             ConfName("kf_target_sec", "keyframe_target_sec"),
         }
         for conf in conf_names:
