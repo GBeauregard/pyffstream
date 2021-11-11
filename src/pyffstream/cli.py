@@ -1238,6 +1238,12 @@ def get_parserconfig(
         "--startdelay", help="delay stream start by 30 seconds", action="store_true"
     )
     parser.add_argument(
+        "--endpad",
+        help="Automatically pad end of stream with nothing to prevent early stream cutoff.",
+        action=argparse.BooleanOptionalAction,
+        default=encode.StaticEncodeVars.end_pad,
+    )
+    parser.add_argument(
         "--tempdir",
         type=pathlib.Path,
         help="directory to use for storing temporary files",

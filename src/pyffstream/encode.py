@@ -443,6 +443,7 @@ class StaticEncodeVars:
     abitrate: str = "256k"
     chlayout: str = "stereo"
     start_delay: str = "30"
+    end_pad: bool = True
     end_delay: str = "600"
     timestamp: str | None = None
     # timestamp to attempt crop at (can be ffmpeg timestamp)
@@ -541,6 +542,7 @@ class StaticEncodeVars:
         evars.deinterlace = args.deinterlace
         evars.cropsecond = args.cropsecond
         evars.delay_start = args.startdelay
+        evars.end_pad = args.endpad
         evars.is_playlist = args.playlist
         evars.hwaccel = args.hwaccel
         if args.obs:
@@ -1310,7 +1312,7 @@ def determine_vfilters(fv: EncodeSession) -> None:
         determine_decimation(fv)
     if fv.ev.deinterlace:
         determine_deinterlace(fv)
-    if not fv.ev.live and fv.ev.outfile is None:
+    if fv.ev.end_pad and not fv.ev.live and fv.ev.outfile is None:
         fv.filts["endpadfilt"] = ["tpad", f"stop_duration={fv.ev.end_delay}"]
     if fv.ev.delay_start:
         fv.filts["startpadfilt"] = ["tpad", f"start_duration={fv.ev.start_delay}"]
