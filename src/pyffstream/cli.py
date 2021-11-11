@@ -1239,7 +1239,7 @@ def get_parserconfig(
     )
     parser.add_argument(
         "--endpad",
-        help="Automatically pad end of stream with nothing to prevent early stream cutoff.",
+        help="Pad end of stream with nothing to prevent early stream cutoff.",
         action=argparse.BooleanOptionalAction,
         default=encode.StaticEncodeVars.end_pad,
     )
