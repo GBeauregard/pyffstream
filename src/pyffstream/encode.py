@@ -1309,7 +1309,7 @@ def determine_vfilters(fv: EncodeSession) -> None:
         determine_decimation(fv)
     if fv.ev.deinterlace:
         determine_deinterlace(fv)
-    if not fv.ev.clip_length:
+    if not fv.ev.live and fv.ev.outfile is None:
         fv.filts["endpadfilt"] = ["tpad", f"stop_duration={fv.ev.end_delay}"]
     if fv.ev.delay_start:
         fv.filts["startpadfilt"] = ["tpad", f"start_duration={fv.ev.start_delay}"]
