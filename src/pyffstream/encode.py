@@ -1275,6 +1275,7 @@ def get_hwtransfer(
     prefilter_list: list[ffmpeg.Filter] = []
     postfilter_list: list[ffmpeg.Filter] = []
     if fv.ev.vulkan:
+        prefilter_list += [ffmpeg.Filter("hwupload")]
         prefilter_list += [ffmpeg.Filter("hwupload", "derive_device=vulkan")]
         if fv.ev.vencoder in fv.ev.SW_ENCODERS:
             postfilter_list += [
