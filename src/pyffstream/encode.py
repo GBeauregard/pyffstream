@@ -1253,7 +1253,7 @@ def determine_scale(fv: EncodeSession) -> None:
         ]
 
 
-def determine_deinterlace(fv: EncodeSession) -> None:
+def determine_deinterlace(_: EncodeSession) -> None:
     raise NotImplementedError("video deinterlace is not currently implemented")
 
 
@@ -1265,7 +1265,7 @@ def close_futures(futures: Iterable[concurrent.futures.Future[Any]]) -> None:
             raise exception
 
 
-def determine_decimation(fv: EncodeSession) -> None:
+def determine_decimation(_: EncodeSession) -> None:
     raise NotImplementedError("video decimation is not currently implemented")
 
 
@@ -1309,7 +1309,8 @@ def determine_vfilters(fv: EncodeSession) -> None:
         determine_decimation(fv)
     if fv.ev.deinterlace:
         determine_deinterlace(fv)
-    fv.filts["endpadfilt"] = ["tpad", f"stop_duration={fv.ev.end_delay}"]
+    if not fv.ev.clip_length:
+        fv.filts["endpadfilt"] = ["tpad", f"stop_duration={fv.ev.end_delay}"]
     if fv.ev.delay_start:
         fv.filts["startpadfilt"] = ["tpad", f"start_duration={fv.ev.start_delay}"]
     pretransfer_filts, posttransfer_filts = get_hwtransfer(fv)
@@ -1582,11 +1583,11 @@ def set_filter_flags(fv: EncodeSession) -> None:
         ]
         # fmt: on
     if fv.ev.copy_audio:
-        filter_flags += ["-map", f"0:a:{fv.ev.aindex}"]
+        filter_flags += ["-map", f"0:a:{fv.ev.aindex}?"]
     else:
         filter_flags += [
             "-map",
-            f"0:a:{fv.ev.aindex}",
+            f"0:a:{fv.ev.aindex}?",
             *(("-resampler", "soxr") if fv.ev.soxr else ()),
             *(("-af", fv.ev.afilters) if fv.ev.afilters else ()),
         ]
