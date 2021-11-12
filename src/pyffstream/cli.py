@@ -531,6 +531,10 @@ def parse_files(args: argparse.Namespace, parser: argparse.ArgumentParser) -> No
     elif args.files:
         stream_flist: list[pathlib.Path] = []
         for path in args.files:
+            try:
+                path = path.expanduser()
+            except RuntimeError:
+                parser.error("could not resolve user home")
             if path.is_dir():
                 stream_flist += [f for f in sorted(path.iterdir()) if f.is_file()]
             elif path.is_file():
