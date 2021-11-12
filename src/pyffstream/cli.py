@@ -39,9 +39,6 @@ import rich.text
 
 from . import APPNAME, encode, ffmpeg
 
-# import rich.traceback
-# rich.traceback.install(console=console)
-
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").propagate = False
 logging.getLogger("urllib3").propagate = False

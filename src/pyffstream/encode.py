@@ -594,7 +594,7 @@ class StaticEncodeVars:
         if evars.verbosity >= 4:
             evars.ff_verbosity_flags = ["-loglevel", "trace", "-debug_ts"]
         if evars.verbosity >= 3:
-            evars.ff_verbosity_flags = ["-loglevel", "trace"]
+            evars.ff_verbosity_flags = ["-loglevel", "debug", "-debug_ts"]
         elif evars.verbosity >= 2:
             evars.ff_verbosity_flags = ["-loglevel", "debug"]
         elif evars.verbosity >= 1:
