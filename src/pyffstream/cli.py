@@ -610,7 +610,7 @@ class DefaultConfig:
     )
 
 
-def set_console_logger(verbosity: int) -> None:
+def set_console_logger(verbosity: int, logfile: pathlib.Path | None) -> None:
     """Set loglevel."""
     root_logger = logging.getLogger("")
     if verbosity >= 2:
@@ -620,12 +620,15 @@ def set_console_logger(verbosity: int) -> None:
     else:
         root_logger.setLevel(logging.WARNING)
 
-    rhandler = rich.logging.RichHandler(
-        console=console, show_time=False, show_path=False
+    handlers: list[logging.Handler] = []
+    handlers.append(
+        rich.logging.RichHandler(console=console, show_time=False, show_path=False)
     )
+    if logfile is not None:
+        handlers.append(logging.FileHandler(logfile, mode="x", encoding="utf-8"))
     que: queue.Queue[object] = queue.Queue()
     queue_handler = logging.handlers.QueueHandler(que)
-    listener = logging.handlers.QueueListener(que, rhandler)
+    listener = logging.handlers.QueueListener(que, *handlers)
     root_logger.addHandler(queue_handler)
     listener.start()
     atexit.register(listener.stop)
@@ -916,6 +919,12 @@ def get_parserconfig(
 
     parser.add_argument(
         "-v", "--verbose", action="count", default=0, help="increase verbosity level"
+    )
+    parser.add_argument(
+        "--logfile",
+        type=pathlib.Path,
+        help="path to logfile to send output to",
+        metavar="FILE",
     )
     video_parser.add_argument(
         "-b",
@@ -1317,7 +1326,9 @@ def main() -> None:
     parser, config = get_parserconfig(False)
     args = parser.parse_args()
 
-    set_console_logger(args.verbose)
+    if args.logfile is not None and args.logfile.exists():
+        parser.error("logfile already exists")
+    set_console_logger(args.verbose, args.logfile)
 
     if not args.system_ffmpeg:
         ffmpeg.ff_bin = ffmpeg.FFBin(
