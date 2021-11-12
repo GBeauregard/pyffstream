@@ -615,6 +615,8 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
         fv.sdv("v", "r_frame_rate", fv.ev.decimate_target)
     framerate = fractions.Fraction(fv.v("v", "r_frame_rate"))
     if fv.ev.copy_video:
+        if fv.ev.outfile is not None:
+            return
         fv.ev.use_timeline = True
         frame_json = ffmpeg.ff_bin.probe_json(
             "packet=pts,flags",
