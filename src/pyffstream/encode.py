@@ -1565,6 +1565,7 @@ def set_srt_flags(fv: EncodeSession) -> None:
         *((f"passphrase={fv.ev.srt_passphrase}",) if fv.ev.srt_passphrase else ()),
         "pbkeylen=32",
         "pkt_size=1316",
+        "connect_timeout=6000",
         "latency=5000000",  # 5s
     ]
     srt_opts = "&".join(srt_options)
