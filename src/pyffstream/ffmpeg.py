@@ -857,9 +857,10 @@ class Progress(Generic[AnyStr]):
         conn, _ = self._sock.accept()
         # https://github.com/python/mypy/issues/9743
         f: typing.IO[str]
-        with contextlib.closing(conn), contextlib.closing(self._sock), conn.makefile(
-            encoding="utf-8"
-        ) as f:
+        # TODO: 3.10 parenthesized context managers
+        with contextlib.suppress(ConnectionResetError), contextlib.closing(
+            conn
+        ), contextlib.closing(self._sock), conn.makefile(encoding="utf-8") as f:
             while result.poll() is None:
                 packet: list[str] = []
                 while line := f.readline():
