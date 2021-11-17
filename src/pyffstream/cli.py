@@ -238,6 +238,8 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
             console.out(vid)
         if aud := aud_fut.result():
             console.out(aud)
+        if fopts.fpath != fopts.sfpath:
+            console.print(f"subfile: {hl_path(fopts.sfpath)}")
         if subs := sub_fut.result():
             console.out(subs)
 
