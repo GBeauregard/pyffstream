@@ -630,7 +630,15 @@ def set_console_logger(verbosity: int, logfile: pathlib.Path | None) -> None:
     listener = logging.handlers.QueueListener(que, *handlers)
     root_logger.addHandler(queue_handler)
     listener.start()
-    atexit.register(listener.stop)
+    atexit.register(shutdown_logging, listener, queue_handler)
+
+
+def shutdown_logging(
+    listener: logging.handlers.QueueListener, handler: logging.handlers.QueueHandler
+) -> None:
+    root_logger = logging.getLogger("")
+    root_logger.removeHandler(handler)
+    listener.stop()
 
 
 def download_win_ffmpeg(dltype: str = "git") -> bool:

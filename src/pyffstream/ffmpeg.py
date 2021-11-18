@@ -893,4 +893,4 @@ class Progress(Generic[AnyStr]):
             # https://github.com/python/mypy/issues/9743
             exception = future.exception(5)
             if exception:
-                raise exception
+                logger.error("unexpected exception: %r", exception)
