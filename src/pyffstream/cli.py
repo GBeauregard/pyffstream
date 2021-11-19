@@ -403,14 +403,16 @@ def start_stream(fv: encode.EncodeSession) -> None:
             ts_offset = ffmpeg.duration(fv.ev.timestamp)
         else:
             ts_offset = 0.0
+        if fv.ev.delay_start:
+            ts_offset -= float(fv.ev.start_delay)
 
         ts = 0.0
         ts += ts_offset
 
         def sec_to_str(seconds: float | int) -> str:
-            m, s = divmod(seconds, 60)
+            m, s = divmod(abs(seconds), 60)
             h, m = divmod(m, 60)
-            return f"{int(h):02d}:{int(m):02d}:{int(s):02d}"
+            return f"{'-' if seconds<0 else ''}{int(h):02d}:{int(m):02d}:{int(s):02d}"
 
         length_str = "" if fv.fv("f", "duration") is None else f"/{sec_to_str(length)}"
 
