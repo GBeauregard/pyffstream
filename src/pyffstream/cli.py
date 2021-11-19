@@ -457,7 +457,7 @@ def start_stream(fv: encode.EncodeSession) -> None:
         )
 
     if result.returncode != 0:
-        if logging.getLogger("").level > progress_loglevel:
+        if not logging.getLogger("").isEnabledFor(progress_loglevel):
             logger.error("\n".join(fv.ev.ffprogress.output))
         logger.error(f"stream finished with exit code {result.returncode}")
     else:
