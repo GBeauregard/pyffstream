@@ -429,8 +429,9 @@ def start_stream(fv: encode.EncodeSession) -> None:
         else:
             progress.update(task_id, total=0)
 
+        progress_loglevel = logging.INFO
         fv.ev.ffprogress.monitor_progress(
-            result, result.stdout, maxlen=50, loglevel=logging.INFO
+            result, result.stdout, maxlen=50, loglevel=progress_loglevel
         )
 
         fv.ev.ffprogress.progress_avail.wait()
@@ -456,7 +457,8 @@ def start_stream(fv: encode.EncodeSession) -> None:
         )
 
     if result.returncode != 0:
-        logger.error("\n".join(fv.ev.ffprogress.output))
+        if logging.getLogger("").level > progress_loglevel:
+            logger.error("\n".join(fv.ev.ffprogress.output))
         logger.error(f"stream finished with exit code {result.returncode}")
     else:
         console.print("stream finished")
