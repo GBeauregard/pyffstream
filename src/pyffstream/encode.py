@@ -493,6 +493,7 @@ class StaticEncodeVars:
     live: bool = False
     obs: bool = False
     vulkan: bool = False
+    trust_vulkan: bool = False
     vulkan_device: int = -1
     decimate_target: str = "24/1"
     is_playlist: bool = False
@@ -535,6 +536,7 @@ class StaticEncodeVars:
         evars.zscale = args.zscale
         evars.eightbit = args.eightbit
         evars.vulkan = args.vulkan
+        evars.trust_vulkan = args.trust_vulkan
         evars.vulkan_device = args.vulkan_device
         evars.fdk = args.fdk
         evars.upscale = args.upscale
@@ -1236,7 +1238,10 @@ def determine_scale(fv: EncodeSession) -> None:
             libplacebo.append(
                 f"custom_shader_path={ffmpeg.Filter.full_escape(str(shader_concat))}"
             )
-        fv.filts["scale"] = libplacebo
+        if fv.ev.trust_vulkan:
+            fv.filts["scale"] = libplacebo
+        else:
+            fv.filts["scale"] = f"scale_vulkan,{ffmpeg.Filter(*libplacebo)}"
     elif fv.ev.zscale:
         if fv.ev.upscale:
             # TODO: implement zscale upscaling
@@ -1281,7 +1286,8 @@ def get_hwtransfer(
     prefilter_list: list[ffmpeg.Filter] = []
     postfilter_list: list[ffmpeg.Filter] = []
     if fv.ev.vulkan:
-        prefilter_list += [ffmpeg.Filter("hwupload")]
+        if not fv.ev.trust_vulkan:
+            prefilter_list += [ffmpeg.Filter("hwupload")]
         prefilter_list += [ffmpeg.Filter("hwupload", "derive_device=vulkan")]
         if fv.ev.vencoder in fv.ev.SW_ENCODERS:
             postfilter_list += [

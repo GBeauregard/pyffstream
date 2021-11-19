@@ -596,6 +596,7 @@ class DefaultConfig:
     preset: str = ENCODE_DEFAULTS.x264_preset
     zscale: bool = ENCODE_DEFAULTS.zscale
     vulkan: bool = ENCODE_DEFAULTS.vulkan
+    trust_vulkan: bool = ENCODE_DEFAULTS.trust_vulkan
     vulkan_device: int = ENCODE_DEFAULTS.vulkan_device
     fdk: bool = ENCODE_DEFAULTS.fdk
     hwaccel: bool = ENCODE_DEFAULTS.hwaccel
@@ -829,6 +830,7 @@ def get_parserconfig(
         config.soxr = main_conf.getboolean("soxr", config.soxr)
         config.zscale = main_conf.getboolean("zscale", config.zscale)
         config.vulkan = main_conf.getboolean("vulkan", config.vulkan)
+        config.trust_vulkan = main_conf.getboolean("trust_vulkan", config.trust_vulkan)
         config.vulkan_device = main_conf.getint("vulkan_device", config.vulkan_device)
         config.fdk = main_conf.getboolean("fdk", config.fdk)
         config.hwaccel = main_conf.getboolean("hwaccel", config.hwaccel)
@@ -1187,6 +1189,12 @@ def get_parserconfig(
         default=config.vulkan,
     )
     video_parser.add_argument(
+        "--trust-vulkan",
+        help="whether to trust ffmpeg vulkan to do the right thing or use workarounds",
+        action=argparse.BooleanOptionalAction,
+        default=config.trust_vulkan,
+    )
+    video_parser.add_argument(
         "--vulkan-device",
         type=int_ge_zero,
         metavar="NUM",
@@ -1538,6 +1546,7 @@ def main() -> None:
             ConfName("soxr", "soxr"),
             ConfName("zscale", "zscale"),
             ConfName("vulkan", "vulkan"),
+            ConfName("trust_vulkan", "trust_vulkan"),
             ConfName("vulkan_device", "vulkan_device"),
             ConfName("fdk", "fdk"),
             ConfName("hwaccel", "hwaccel"),
