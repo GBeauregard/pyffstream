@@ -583,7 +583,6 @@ _SI_PREFIXES: Final[dict[str, float]] = {
 }
 
 
-@functools.singledispatch
 def num(val: str) -> float:
     """Process input into float in a way that mimics ffmpeg.
 
@@ -618,12 +617,6 @@ def num(val: str) -> float:
     power = 1024 if match.group("binary") == "i" else 1000
     byte = 8 if match.group("byte") == "B" else 1
     return float(basenum) * power ** prefix * byte
-
-
-@num.register(int)
-@num.register(float)
-def num_float(val: float) -> float:
-    return float(val)
 
 
 def duration(timestamp: str | float | int) -> float:
