@@ -1264,10 +1264,6 @@ def determine_scale(fv: EncodeSession) -> None:
         ]
 
 
-def determine_deinterlace(_: EncodeSession) -> None:
-    raise NotImplementedError("video deinterlace is not currently implemented")
-
-
 def close_futures(futures: Iterable[concurrent.futures.Future[Any]]) -> None:
     """Wait on futures in list, then raise any exceptions in them."""
     concurrent.futures.wait(futures)
@@ -1321,7 +1317,7 @@ def determine_vfilters(fv: EncodeSession) -> None:
     if fv.ev.obs:
         determine_decimation(fv)
     if fv.ev.deinterlace:
-        determine_deinterlace(fv)
+        fv.filts["deinterlace"] = ["yadif"]
     if fv.ev.end_pad and not fv.ev.live and fv.ev.outfile is None:
         fv.filts["endpadfilt"] = ["tpad", f"stop_duration={fv.ev.end_delay}"]
     if fv.ev.delay_start:
@@ -1329,6 +1325,7 @@ def determine_vfilters(fv: EncodeSession) -> None:
     pretransfer_filts, posttransfer_filts = get_hwtransfer(fv)
     close_futures(futures)
     vfilter_list = [
+        *fv.filts.if_exists("deinterlace"),
         *(fv.filts.if_exists("vcrop") if not fv.ev.cropsecond else ()),
         *fv.filts.if_exists("startpadfilt"),
         *fv.filts.if_exists("endpadfilt"),
