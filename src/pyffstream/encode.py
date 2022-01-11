@@ -1489,7 +1489,7 @@ def get_vflags(fv: EncodeSession) -> list[str]:
 
 def set_input_flags(fv: EncodeSession) -> None:
     hwaccel_flags = []
-    if fv.ev.vencoder in fv.ev.NVIDIA_ENCODERS:
+    if fv.ev.hwaccel and fv.ev.vencoder in fv.ev.NVIDIA_ENCODERS:
         # fmt: off
         hwaccel_flags = [
             "-hwaccel", "cuda",
