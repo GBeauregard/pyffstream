@@ -475,6 +475,7 @@ class StaticEncodeVars:
     srt_passphrase: str = ""
     ff_verbosity_flags: Sequence[str] = dataclasses.field(default_factory=list)
     ff_deepprobe_flags: Sequence[str] = dataclasses.field(default_factory=list)
+    placebo_opts: Sequence[str] = dataclasses.field(default_factory=list)
     copy_audio: bool = False
     copy_video: bool = False
     use_timeline: bool = False
@@ -538,6 +539,7 @@ class StaticEncodeVars:
         evars.vulkan = args.vulkan
         evars.trust_vulkan = args.trust_vulkan
         evars.vulkan_device = args.vulkan_device
+        evars.placebo_opts = args.placebo_opts or []
         evars.fdk = args.fdk
         evars.upscale = args.upscale
         evars.crop = args.crop
@@ -1220,6 +1222,7 @@ def determine_scale(fv: EncodeSession) -> None:
             "color_primaries=bt709",
             "color_trc=bt709",
             "range=tv",
+            *fv.ev.placebo_opts,
             f"format={fv.ev.pix_fmt}",
         ]
         custom_shaders = [

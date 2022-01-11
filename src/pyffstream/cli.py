@@ -1205,6 +1205,12 @@ def get_parserconfig(
         help="GPU device listing to use for vulkan HW context",
         default=config.vulkan_device,
     )
+    video_parser.add_argument(
+        "-P",
+        "--placebo-opts",
+        help="pass option to vf_libplacebo when using vulkan such as gamma=1.1",
+        action="append",
+    )
     subtitle_parser.add_argument(
         "-z",
         "--cropsecond",
