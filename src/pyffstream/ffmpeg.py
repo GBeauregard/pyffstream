@@ -528,9 +528,7 @@ def format_probe(*queries: tuple[str, Iterable[str]], allow_empty: bool = False)
     )
 
 
-def format_q_tuple(
-    init_tuple: InitTuple | None, is_stream: bool, *, allow_empty: bool = False
-) -> str:
+def format_q_tuple(init_tuple: InitTuple | None, is_stream: bool) -> str:
     """Format the entries arg for raw JSON queries to the probefile.
 
     This corresponds to the ``-show_entries`` flag in ffprobe and can be
@@ -553,12 +551,11 @@ def format_q_tuple(
     if is_stream:
         assert isinstance(init_tuple, tuple)
         return format_probe(
-            *zip(("stream", "stream_tags", "stream_disposition"), init_tuple),
-            allow_empty=allow_empty,
+            *zip(("stream", "stream_tags", "stream_disposition"), init_tuple)
         )
     else:
         assert not isinstance(init_tuple, tuple)
-        return format_probe(("format", init_tuple), allow_empty=allow_empty)
+        return format_probe(("format", init_tuple))
 
 
 _SI_PREFIXES: Final[dict[str, float]] = {
