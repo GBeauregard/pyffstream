@@ -631,7 +631,7 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
         if frame_json:
             pts_list = [
                 int(pts)
-                for packet in frame_json.get("packets", {})
+                for packet in frame_json.get("packets", [])
                 if str(pts := packet.get("pts", "")).isdecimal()
                 and packet.get("flags", "__")[0] == "K"
             ]
