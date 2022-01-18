@@ -11,10 +11,10 @@ import logging
 import math
 import pathlib
 import re
-import statistics
 import subprocess
 import threading
 from collections.abc import (
+    Collection,
     Iterable,
     Iterator,
     Mapping,
@@ -22,7 +22,7 @@ from collections.abc import (
     MutableSequence,
     Sequence,
 )
-from typing import Any, ClassVar, Final, NamedTuple, cast
+from typing import Any, ClassVar, Final, NamedTuple, Protocol, TypeVar, cast
 
 from . import ffmpeg
 
@@ -464,6 +464,7 @@ class StaticEncodeVars:
     )
     kf_int: str = "0"
     kf_sec: str = "0"
+    latency_target: str = "0"
     afilters: str = ""
     filter_complex: str = ""
     input_flags: MutableSequence[str] = dataclasses.field(default_factory=list)
@@ -608,6 +609,18 @@ class StaticEncodeVars:
         return evars
 
 
+class Sortable(Protocol):
+    def __lt__(self: CT, __other: CT) -> bool:
+        ...
+
+
+CT = TypeVar("CT", bound=Sortable)
+
+
+def percentile(data: Collection[CT], perc: float) -> CT:
+    return sorted(data)[math.ceil((len(data) * perc) / 100) - 1]
+
+
 def divide_off(num: int, divisor: int) -> int:
     while not math.remainder(num, divisor):
         num //= divisor
@@ -636,15 +649,20 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
                 and packet.get("flags", "__")[0] == "K"
             ]
             if len(pts_list) >= 2:
-                min_diff = statistics.median_low(
-                    y - x for x, y in zip(pts_list, pts_list[1:])
-                )
+                time_diffs = [y - x for x, y in zip(pts_list, pts_list[1:])]
+                min_diff = percentile(time_diffs, 40)
+                max_diff = percentile(time_diffs, 99)
                 timebase = fractions.Fraction(fv.v("v", "time_base"))
                 fv.ev.kf_int = str(int(min_diff * timebase * framerate))
                 fv.ev.kf_sec = (
                     f"{float(min_diff*timebase):.7f}"[:-1].rstrip("0").rstrip(".")
                 )
-                logger.debug(f"keyframe interval: {fv.ev.kf_int}")
+                fv.ev.latency_target = (
+                    f"{max(4*float(fv.ev.kf_sec), float(max_diff*timebase*2)):.8g}"
+                )
+                logger.debug("keyframe interval: %s", fv.ev.kf_int)
+                logger.debug("keyframe seconds: %s", fv.ev.kf_sec)
+                logger.debug("latency target: %s", fv.ev.latency_target)
                 return
     # see https://trac.ffmpeg.org/ticket/9440
     ideal_gop = fv.ev.kf_target_sec * framerate
@@ -663,6 +681,7 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
         seg_length = gop_size / framerate
     fv.ev.kf_int = str(gop_size)
     fv.ev.kf_sec = f"{float(seg_length):.7f}"[:-1].rstrip("0").rstrip(".")
+    fv.ev.latency_target = f"{4*float(fv.ev.kf_sec):.8g}"
     logger.debug(f"keyframe interval: {fv.ev.kf_int}")
 
 

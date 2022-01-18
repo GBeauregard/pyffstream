@@ -317,6 +317,7 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
         "framerate": fv.v("v", "r_frame_rate"),
         "keyframe_int": fv.ev.kf_int,
         "keyframe_sec": fv.ev.kf_sec,
+        "latency_target": fv.ev.latency_target,
         "inputbitrate": fv.ev.vbitrate,
         "inputabitrate": fv.ev.abitrate,
         "use_timeline": str(fv.ev.use_timeline).lower(),
