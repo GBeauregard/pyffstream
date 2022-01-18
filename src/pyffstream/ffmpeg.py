@@ -26,7 +26,7 @@ import socket
 import subprocess
 import threading
 import typing
-from collections.abc import Iterable, Mapping, MutableSequence, Sequence
+from collections.abc import Iterable, MutableSequence, Sequence
 from typing import Any, AnyStr, Final, Generic, NamedTuple, TypedDict, Union, cast
 
 # if sys.version_info >= (3, 10):
@@ -52,12 +52,12 @@ InitTuple = Union[StreamQueryTuple, set[str]]
 
 class FFProbeJSON(TypedDict, total=False):
     # https://github.com/FFmpeg/FFmpeg/blob/master/doc/ffprobe.xsd
-    streams: Sequence[Mapping[str, Any]]
-    packets: Sequence[Mapping[str, Any]]
-    library_versions: Sequence[Mapping[str, Any]]
-    side_data_list: Sequence[Any]
-    format: Mapping[str, Any]
-    program_version: Mapping[str, Any]
+    streams: list[dict[str, Any]]
+    packets: list[dict[str, Any]]
+    library_versions: list[dict[str, Any]]
+    side_data_list: list[Any]
+    format: dict[str, Any]
+    program_version: dict[str, Any]
 
 
 @functools.total_ordering
