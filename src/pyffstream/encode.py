@@ -14,7 +14,6 @@ import re
 import subprocess
 import threading
 from collections.abc import (
-    Collection,
     Iterable,
     Iterator,
     Mapping,
@@ -22,7 +21,7 @@ from collections.abc import (
     MutableSequence,
     Sequence,
 )
-from typing import Any, ClassVar, Final, NamedTuple, Protocol, TypeVar, cast
+from typing import Any, ClassVar, Final, NamedTuple, TypeVar, cast
 
 from . import ffmpeg
 
@@ -609,16 +608,11 @@ class StaticEncodeVars:
         return evars
 
 
-class Sortable(Protocol):
-    def __lt__(self: CT, __other: CT) -> bool:
-        ...
+T = TypeVar("T")
 
 
-CT = TypeVar("CT", bound=Sortable)
-
-
-def percentile(data: Collection[CT], perc: float) -> CT:
-    return sorted(data)[math.ceil((len(data) * perc) / 100) - 1]
+def percentile(data: Sequence[T], perc: float) -> T:
+    return data[math.ceil((len(data) * perc) / 100) - 1]
 
 
 def divide_off(num: int, divisor: int) -> int:
@@ -649,7 +643,7 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
                 and packet.get("flags", "__")[0] == "K"
             ]
             if len(pts_list) >= 2:
-                time_diffs = [y - x for x, y in zip(pts_list, pts_list[1:])]
+                time_diffs = sorted(y - x for x, y in zip(pts_list, pts_list[1:]))
                 min_diff = percentile(time_diffs, 40)
                 max_diff = percentile(time_diffs, 99)
                 timebase = fractions.Fraction(fv.v("v", "time_base"))
