@@ -180,14 +180,16 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
                 box=rich.box.ROUNDED,
                 row_styles=["none", "dim"],
             )
-            table.add_column(style="green", max_width=19, overflow="fold")
-            table.add_column(style="blue", max_width=30, overflow="fold")
+            NAME_MAX_WIDTH: Final = 19
+            VALUE_MAX_WIDTH: Final = 30
+            table.add_column(style="green", max_width=NAME_MAX_WIDTH, overflow="fold")
+            table.add_column(style="blue", max_width=VALUE_MAX_WIDTH, overflow="fold")
             for tup in vallist:
                 # table.add_row(*map(rich.markup.escape, tup))
                 # pre-calculate the line wrap so the table width is correct
                 table.add_row(
-                    rich.markup.escape(textwrap.fill(tup[0], 19)),
-                    rich.markup.escape(textwrap.fill(tup[1], 30)),
+                    rich.markup.escape(textwrap.fill(tup[0], NAME_MAX_WIDTH)),
+                    rich.markup.escape(textwrap.fill(tup[1], VALUE_MAX_WIDTH)),
                 )
             table_list.append(table)
         with console.capture() as capture:
