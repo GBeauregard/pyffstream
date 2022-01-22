@@ -90,7 +90,7 @@ class EncodeSession:
         "duration": "1200",
     }
 
-    def __init__(self, fopts: FileOpts, ev: StaticEncodeVars):
+    def __init__(self, fopts: FileOpts, ev: StaticEncodeVars) -> None:
         self.executor = concurrent.futures.ThreadPoolExecutor()
         self.fopts = fopts
         self.ev = ev
@@ -319,7 +319,7 @@ class StatusCode(enum.Enum):
 
 
 class StatusThread:
-    def __init__(self, fv: EncodeSession, name: str):
+    def __init__(self, fv: EncodeSession, name: str) -> None:
         self.__lock = threading.RLock()
         self.fv = fv
         self.name = name

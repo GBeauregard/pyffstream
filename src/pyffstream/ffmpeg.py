@@ -64,7 +64,7 @@ class FFProbeJSON(TypedDict, total=False):
 class FFVersion:
     """Holds a ffmpeg component version."""
 
-    def __init__(self, *args: str | int | FFVersion):
+    def __init__(self, *args: str | int | FFVersion) -> None:
         """Construct version.
 
         Args:
@@ -130,7 +130,7 @@ class FFBin:
         ffmpeg: str = "ffmpeg",
         ffprobe: str = "ffprobe",
         env: dict[str, str] | None = None,
-    ):
+    ) -> None:
         """Inits new FFBin instance.
 
         Args:
