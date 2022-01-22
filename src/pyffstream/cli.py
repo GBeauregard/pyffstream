@@ -396,8 +396,6 @@ def start_stream(fv: encode.EncodeSession) -> None:
         refresh_per_second=10 if fv.fv("f", "duration") is None else 4,
         console=console,
     ) as progress:
-        assert result.stdout is not None
-
         if fv.ev.clip_length:
             length = ffmpeg.duration(fv.ev.clip_length)
         else:
@@ -433,6 +431,8 @@ def start_stream(fv: encode.EncodeSession) -> None:
             progress.update(task_id, total=0)
 
         progress_loglevel = logging.INFO
+
+        assert result.stdout is not None
         fv.ev.ffprogress.monitor_progress(
             result, result.stdout, maxlen=50, loglevel=progress_loglevel
         )

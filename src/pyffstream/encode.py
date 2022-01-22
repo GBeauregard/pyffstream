@@ -721,7 +721,6 @@ def determine_autocrop(fv: EncodeSession) -> None:
         stderr=subprocess.PIPE,
         env=ffmpeg.ff_bin.env,
     ) as result:
-        assert result.stderr is not None
         fv.crop.setstatus(StatusCode.RUNNING, "calculating")
 
         def consume_output() -> str | None:
@@ -735,6 +734,7 @@ def determine_autocrop(fv: EncodeSession) -> None:
                     cropfilt = match.group("filter")
             return cropfilt
 
+        assert result.stderr is not None
         ffprogress.monitor_progress(
             result, result.stderr, make_queue=True, maxlen=50, loglevel=logging.DEBUG
         )
@@ -869,7 +869,6 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 stderr=subprocess.PIPE,
                 env=ffmpeg.ff_bin.env,
             ) as result:
-                assert result.stderr is not None
                 length = ffmpeg.duration(fv.v("f", "duration")) or 1
                 code = (
                     StatusCode.RUNNING
@@ -877,6 +876,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
                     else StatusCode.OTHER
                 )
                 fv.norm.setstatus(code, "calculating")
+                assert result.stderr is not None
                 ffprogress.monitor_progress(
                     result, result.stderr, maxlen=50, loglevel=logging.DEBUG
                 )
@@ -1091,9 +1091,9 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
             stderr=subprocess.PIPE,
             env=ffmpeg.ff_bin.env,
         ) as result:
-            assert result.stderr is not None
             fv.subs.setstatus(StatusCode.RUNNING, "extracting")
             length = ffmpeg.duration(fv.v("f", "duration"))
+            assert result.stderr is not None
             ffprogress.monitor_progress(
                 result, result.stderr, maxlen=50, loglevel=logging.DEBUG
             )
