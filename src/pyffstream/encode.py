@@ -832,7 +832,8 @@ def determine_anormalize(fv: EncodeSession) -> None:
             else:
                 fv.norm.setstatus(StatusCode.FINISHED, "success")
 
-        if fv.ev.normfile is None or not fv.ev.normfile.exists():
+        normfile = fv.ev.normfile
+        if normfile is None or not normfile.exists():
             normanalyze = [
                 *fv.filts.if_exists("adownmix"),
                 ffmpeg.Filter(
@@ -892,8 +893,8 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 )
             ):
                 jsonout = json.loads(jsonmatch.group("json"))
-                if fv.ev.normfile is not None:
-                    fv.ev.normfile.write_text(
+                if normfile is not None:
+                    normfile.write_text(
                         json.dumps(jsonout, separators=(",", ":")), encoding="utf-8"
                     )
                 fv.norm.setstatus(StatusCode.OTHER, "read json")
@@ -902,9 +903,9 @@ def determine_anormalize(fv: EncodeSession) -> None:
                 logger.info("\n".join(ffprogress.output))
                 logger.warning("normalization failed")
                 fv.norm.setstatus(StatusCode.FAILED, "[red]failed")
-        elif fv.ev.normfile.is_file():
+        elif normfile.is_file():
             fv.norm.setstatus(StatusCode.OTHER, "opening")
-            jsonout = json.loads(fv.ev.normfile.read_text(encoding="utf-8"))
+            jsonout = json.loads(normfile.read_text(encoding="utf-8"))
             fv.norm.setstatus(StatusCode.OTHER, "read file")
             json_to_normfilt(jsonout)
         else:
