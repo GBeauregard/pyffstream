@@ -172,6 +172,8 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
     def make_columns(title: str, *args: Any) -> str:
         slist = get_stream_list(*args)
         table_list: list[rich.table.Table] = []
+        NAME_MAX_WIDTH: Final = 19
+        VALUE_MAX_WIDTH: Final = 30
         for subindex, vallist in enumerate(slist):
             table = rich.table.Table(
                 title=f"{subindex}",
@@ -180,8 +182,6 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
                 box=rich.box.ROUNDED,
                 row_styles=["none", "dim"],
             )
-            NAME_MAX_WIDTH: Final = 19
-            VALUE_MAX_WIDTH: Final = 30
             table.add_column(style="green", max_width=NAME_MAX_WIDTH, overflow="fold")
             table.add_column(style="blue", max_width=VALUE_MAX_WIDTH, overflow="fold")
             for tup in vallist:
