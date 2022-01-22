@@ -543,6 +543,8 @@ class StaticEncodeVars:
         evars.fdk = args.fdk
         evars.upscale = args.upscale
         evars.crop = args.crop
+        evars.crop_ts = args.croptime
+        evars.crop_len = args.croplength
         evars.deinterlace = args.deinterlace
         evars.cropsecond = args.cropsecond
         evars.delay_start = args.startdelay

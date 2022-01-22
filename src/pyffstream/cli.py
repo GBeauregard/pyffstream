@@ -992,7 +992,11 @@ def get_parserconfig(
         action="store_true",
     )
     parser.add_argument(
-        "-t", "--timestamp", type=ffmpeg_duration, help="timestamp to start stream from"
+        "-t",
+        "--timestamp",
+        type=ffmpeg_duration,
+        help="timestamp to start stream from",
+        metavar="TIMESTAMP",
     )
     output_parser.add_argument(
         "--pyffserver",
@@ -1187,6 +1191,20 @@ def get_parserconfig(
     )
     video_parser.add_argument(
         "-C", "--crop", help="automatically crop video", action="store_true"
+    )
+    video_parser.add_argument(
+        "--croptime",
+        type=ffmpeg_duration,
+        help="timestamp to start crop calculation at (default: %(default)s)",
+        default=ENCODE_DEFAULTS.crop_ts,
+        metavar="TIMESTAMP",
+    )
+    video_parser.add_argument(
+        "--croplength",
+        type=ffmpeg_duration,
+        help="duration to estimate crop for (default: %(default)s)",
+        default=ENCODE_DEFAULTS.crop_len,
+        metavar="DURATION",
     )
     video_parser.add_argument(
         "-V",
