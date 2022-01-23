@@ -1054,14 +1054,11 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
     subpath = fv.fopts.sfpath
     subindex = fv.ev.sindex
     if not fv.ev.subfile_provided or fv.ev.timestamp is not None:
-        if fv.fv("s", "codec_name") == "mov_text":
-            sub_container = "mp4"
-        else:
-            sub_container = "mkv"
-        subpath = fv.ev.tempdir / f"subs.{sub_container}"
+        subpath = fv.ev.tempdir / f"subs.mkv"
         subindex = 0
-        # fmt: off
         ffprogress = ffmpeg.Progress[str]()
+        sub_codec = "ass" if fv.fv("s", "codec_name") == "mov_text" else "copy"
+        # fmt: off
         subargs = [
             ffmpeg.ff_bin.ffmpeg,
             *ffprogress.flags(0.1),
@@ -1076,13 +1073,15 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
                 else ("-ss", fv.ev.timestamp)
             ),
             "-vn", "-an",
-            "-c", "copy",
+            "-c:s", sub_codec,
             "-map", f"0:s:{fv.ev.sindex}",
             "-map", "0:t?",
             "-y",
             str(subpath),
         ]
         # fmt: on
+        if sub_codec == "copy":
+            sub_codec = fv.fv("s", "codec_name")
         # TODO: does -an -vn make a difference if playlist isn't duration'd?
         with subprocess.Popen(
             subargs,
@@ -1110,7 +1109,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
                 f"extracting subtitles failed with exit code {result.returncode}"
             )
             return []
-        if fv.ev.is_playlist and fv.fv("s", "codec_name") == "ass":
+        if fv.ev.is_playlist and sub_codec == "ass":
             fv.subs.setstatus(StatusCode.OTHER, "merging")
             stylegen = extract_styles(
                 fv.fopts.allpaths, cast(int, fv.ev.sindex), fv.ev.deep_probe
