@@ -85,7 +85,9 @@ class EncodeSession:
         "sample_rate": "48000",
         "codec_name": "aac",
     }
-    SUBTITLE_DEF: Final[dict[str, str]] = {}
+    SUBTITLE_DEF: Final = {
+        "codec_name": "srt",
+    }
     FORMAT_DEF: Final = {
         "duration": "1200",
     }
@@ -1081,7 +1083,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
         ]
         # fmt: on
         if sub_codec == "copy":
-            sub_codec = fv.fv("s", "codec_name")
+            sub_codec = fv.v("s", "codec_name")
         # TODO: does -an -vn make a difference if playlist isn't duration'd?
         with subprocess.Popen(
             subargs,
