@@ -401,9 +401,9 @@ class StaticEncodeVars:
     Needs to be passed to an encode session to initialize it.
     """
 
-    NVIDIA_ENCODERS: ClassVar = {"hevc_nvenc", "h264_nvenc"}
-    SW_ENCODERS: ClassVar = {"libx264"}
-    ALLOWED_PRESETS: ClassVar = [
+    NVIDIA_ENCODERS: ClassVar[set[str]] = {"hevc_nvenc", "h264_nvenc"}
+    SW_ENCODERS: ClassVar[set[str]] = {"libx264"}
+    ALLOWED_PRESETS: ClassVar[list[str]] = [
         "medium",
         "fast",
         "faster",
@@ -411,11 +411,11 @@ class StaticEncodeVars:
         "superfast",
         "ultrafast",
     ]
-    H264_ENCODERS: ClassVar = {"h264_nvenc", "libx264"}
-    HEVC_ENCODERS: ClassVar = {"hevc_nvenc"}
-    VIDEO_ENCODERS: ClassVar = NVIDIA_ENCODERS | SW_ENCODERS
-    AUDIO_STANDARDS: ClassVar = {"aac", "opus"}
-    STREAM_PROTOCOLS: ClassVar = {"srt", "rtmp"}
+    H264_ENCODERS: ClassVar[set[str]] = {"h264_nvenc", "libx264"}
+    HEVC_ENCODERS: ClassVar[set[str]] = {"hevc_nvenc"}
+    VIDEO_ENCODERS: ClassVar[set[str]] = NVIDIA_ENCODERS | SW_ENCODERS
+    AUDIO_STANDARDS: ClassVar[set[str]] = {"aac", "opus"}
+    STREAM_PROTOCOLS: ClassVar[set[str]] = {"srt", "rtmp"}
 
     tempdir: pathlib.Path
 
