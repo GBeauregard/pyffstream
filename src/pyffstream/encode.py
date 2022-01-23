@@ -1054,7 +1054,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
     subpath = fv.fopts.sfpath
     subindex = fv.ev.sindex
     if not fv.ev.subfile_provided or fv.ev.timestamp is not None:
-        subpath = fv.ev.tempdir / f"subs.mkv"
+        subpath = fv.ev.tempdir / "subs.mkv"
         subindex = 0
         ffprogress = ffmpeg.Progress[str]()
         sub_codec = "ass" if fv.fv("s", "codec_name") == "mov_text" else "copy"
