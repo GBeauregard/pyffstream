@@ -558,7 +558,7 @@ def format_q_tuple(init_tuple: InitTuple | None, is_stream: bool) -> str:
         return format_probe(("format", init_tuple))
 
 
-_SI_PREFIXES: Final[dict[str, float]] = {
+_SI_PREFIXES: Final = {
     "Y": 8,
     "Z": 7,
     "E": 6,
