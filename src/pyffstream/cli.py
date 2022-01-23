@@ -633,7 +633,7 @@ def set_console_logger(verbosity: int, logfile: pathlib.Path | None) -> None:
     )
     if logfile is not None:
         handlers.append(logging.FileHandler(logfile, mode="x", encoding="utf-8"))
-    que: queue.Queue[object] = queue.Queue()
+    que = queue.Queue[object]()
     queue_handler = logging.handlers.QueueHandler(que)
     listener = logging.handlers.QueueListener(que, *handlers)
     root_logger.addHandler(queue_handler)
