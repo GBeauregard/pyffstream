@@ -85,9 +85,7 @@ class EncodeSession:
         "sample_rate": "48000",
         "codec_name": "aac",
     }
-    SUBTITLE_DEF: Final = {
-        "codec_name": "srt",
-    }
+    SUBTITLE_DEF: Final[dict[str, str]] = {}
     FORMAT_DEF: Final = {
         "duration": "1200",
     }
@@ -1056,10 +1054,13 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
     subpath = fv.fopts.sfpath
     subindex = fv.ev.sindex
     if not fv.ev.subfile_provided or fv.ev.timestamp is not None:
-        subpath = fv.ev.tempdir / "subs.mkv"
+        if fv.fv("s", "codec_name") == "mov_text":
+            sub_container = "mp4"
+        else:
+            sub_container = "mkv"
+        subpath = fv.ev.tempdir / f"subs.{sub_container}"
         subindex = 0
         ffprogress = ffmpeg.Progress[str]()
-        sub_codec = "ass" if fv.fv("s", "codec_name") == "mov_text" else "copy"
         # fmt: off
         subargs = [
             ffmpeg.ff_bin.ffmpeg,
@@ -1075,15 +1076,13 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
                 else ("-ss", fv.ev.timestamp)
             ),
             "-vn", "-an",
-            "-c:s", sub_codec,
+            "-c:s", "copy",
             "-map", f"0:s:{fv.ev.sindex}",
             "-map", "0:t?",
             "-y",
             str(subpath),
         ]
         # fmt: on
-        if sub_codec == "copy":
-            sub_codec = fv.v("s", "codec_name")
         # TODO: does -an -vn make a difference if playlist isn't duration'd?
         with subprocess.Popen(
             subargs,
@@ -1111,7 +1110,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
                 f"extracting subtitles failed with exit code {result.returncode}"
             )
             return []
-        if fv.ev.is_playlist and sub_codec == "ass":
+        if fv.ev.is_playlist and fv.fv("s", "codec_name") == "ass":
             fv.subs.setstatus(StatusCode.OTHER, "merging")
             stylegen = extract_styles(
                 fv.fopts.allpaths, cast(int, fv.ev.sindex), fv.ev.deep_probe
