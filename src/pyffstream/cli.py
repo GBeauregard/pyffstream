@@ -98,70 +98,103 @@ def get_stream_list(
 
 
 class InfoKeys:
-    VSTREAMS: Final = {
-        "codec_name",
-        "width",
-        "height",
-        "r_frame_rate",
-        "field_order",
-        "pix_fmt",
-        "color_space",
-        "color_transfer",
-        "color_primaries",
-        "color_range",
-    }
-    VSTREAM_TAGS: Final = {
-        "title",
-        "language",
-    }
-    ASTREAMS: Final = {
-        "codec_name",
-        "channels",
-        "channel_layout",
-        "sample_fmt",
-        "bits_per_raw_sample",
-        "sample_rate",
-        "bit_rate",
-    }
-    ASTREAM_TAGS: Final = {
-        "title",
-        "language",
-    }
-    SSTREAMS: Final = {
-        "codec_name",
-    }
-    SSTREAM_TAGS: Final = {
-        "title",
-        "language",
-    }
-    DISPOSITIONS: Final = {
-        "default",
-        "forced",
-        "dub",
-        "original",
-        "comment",
-        "lyrics",
-        "karaoke",
-        "hearing_impaired",
-        "visual_impaired",
-        "clean_effects",
-        "attached_pic",
-        "timed_thumbnails",
-        "captions",
-        "descriptions",
-        "metadata",
-        "dependent",
-        "still_image",
-    }
+    VSTREAMS: Final = [
+        {
+            "codec_name",
+            "width",
+            "height",
+            "r_frame_rate",
+            "field_order",
+            "pix_fmt",
+            "color_space",
+            "color_transfer",
+            "color_primaries",
+            "color_range",
+        },
+        {"start_time"},
+    ]
+    VSTREAM_TAGS: Final = [
+        {
+            "title",
+            "language",
+        }
+    ]
+    ASTREAMS: Final = [
+        {
+            "codec_name",
+            "channels",
+            "channel_layout",
+            "sample_fmt",
+            "bits_per_raw_sample",
+            "sample_rate",
+            "bit_rate",
+        },
+        {"start_time"},
+    ]
+    ASTREAM_TAGS: Final = [
+        {
+            "title",
+            "language",
+        }
+    ]
+    SSTREAMS: Final = [
+        {
+            "codec_name",
+        },
+        {"start_time"},
+    ]
+    SSTREAM_TAGS: Final = [
+        {
+            "title",
+            "language",
+        }
+    ]
+    DISPOSITIONS: Final = [
+        {
+            "default",
+            "forced",
+            "dub",
+            "original",
+            "comment",
+            "lyrics",
+            "karaoke",
+            "hearing_impaired",
+            "visual_impaired",
+            "clean_effects",
+            "attached_pic",
+            "timed_thumbnails",
+            "captions",
+            "descriptions",
+            "metadata",
+            "dependent",
+            "still_image",
+        }
+    ]
+
+    @classmethod
+    def get_keys(cls, streamtype: str, verbosity: int) -> tuple[set[str], ...]:
+        # TODO: 3.10 match case
+        if streamtype == "v":
+            keylist = (cls.VSTREAMS, cls.VSTREAM_TAGS, cls.DISPOSITIONS)
+        elif streamtype == "a":
+            keylist = (cls.ASTREAMS, cls.ASTREAM_TAGS, cls.DISPOSITIONS)
+        elif streamtype == "s":
+            keylist = (cls.SSTREAMS, cls.SSTREAM_TAGS, cls.DISPOSITIONS)
+        else:
+            raise ValueError("Invalid streamtype provied")
+        return tuple(set[str]().union(*k[: verbosity + 1]) for k in keylist)
 
 
-def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
+def print_info(
+    fopts: encode.FileOpts, *, verbosity: int = 0, deep_probe: bool = False
+) -> None:
     """Prints to console formatted information about the input file.
 
     Output is nicely formatted for console usage using rich tables.
 
     Args:
         fopts: The file to print information about.
+        verbosity: Print extra fields based on size.
         deep_probe: Whether or not to probe the file deeply.
     """
     probefargs = copy.copy(fopts.main)
@@ -214,7 +247,7 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
             make_columns,
             "Video",
             "v",
-            (InfoKeys.VSTREAMS, InfoKeys.VSTREAM_TAGS, InfoKeys.DISPOSITIONS),
+            InfoKeys.get_keys("v", verbosity),
             probefargs,
             deep_probe,
         )
@@ -222,7 +255,7 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
             make_columns,
             "Audio",
             "a",
-            (InfoKeys.ASTREAMS, InfoKeys.ASTREAM_TAGS, InfoKeys.DISPOSITIONS),
+            InfoKeys.get_keys("a", verbosity),
             probefargs,
             deep_probe,
         )
@@ -230,7 +263,7 @@ def print_info(fopts: encode.FileOpts, deep_probe: bool = False) -> None:
             make_columns,
             "Subtitles",
             "s",
-            (InfoKeys.SSTREAMS, InfoKeys.SSTREAM_TAGS, InfoKeys.DISPOSITIONS),
+            InfoKeys.get_keys("s", verbosity),
             probesfargs,
             deep_probe,
         )
@@ -520,7 +553,7 @@ def process_file(
         insubfile_args, sfpath = ["-i", str(args.subfile)], args.subfile
     fopts = encode.FileOpts(infile_args, insubfile_args, fpath, sfpath, stream_flist)
     if args.print_info:
-        print_info(fopts, args.deep_probe)
+        print_info(fopts, verbosity=max(args.verbose, 0), deep_probe=args.deep_probe)
     else:
         stream_file(fopts, args)
 
