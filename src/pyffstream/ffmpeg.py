@@ -755,13 +755,13 @@ class Progress(Generic[AnyStr]):
         self._sock.listen(1)
         self._packet_avail = threading.Event()
         self._progress_packet: list[str] = []
-        self._loglevel: int
+        self._loglevel: int = logging.DEBUG
         self._futures: list[concurrent.futures.Future[Any]] = []
         self.progress_avail = threading.Event()
         self.finished = threading.Event()
-        self.output: collections.deque[AnyStr]
-        self.output_que: queue.Queue[AnyStr | None]
-        self._make_queue: bool
+        self.output: collections.deque[AnyStr] = collections.deque()
+        self.output_que: queue.Queue[AnyStr | None] = queue.Queue()
+        self._make_queue: bool = False
         self.status = {
             "frame": "0",
             "fps": "0",
@@ -808,8 +808,6 @@ class Progress(Generic[AnyStr]):
     ) -> None:
         self._loglevel = loglevel
         self._make_queue = make_queue
-        if self._make_queue:
-            self.output_que = queue.Queue()
         self.output = collections.deque(maxlen=maxlen)
         executor = concurrent.futures.ThreadPoolExecutor()
         try:
