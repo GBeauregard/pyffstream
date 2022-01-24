@@ -181,7 +181,7 @@ class InfoKeys:
         elif streamtype == "s":
             keylist = (cls.SSTREAMS, cls.SSTREAM_TAGS, cls.DISPOSITIONS)
         else:
-            raise ValueError("Invalid streamtype provied")
+            raise ValueError(f"Invalid streamtype provied: {streamtype!r}")
         return tuple(set[str]().union(*k[: verbosity + 1]) for k in keylist)
 
 
@@ -633,7 +633,7 @@ class DefaultConfig:
     api_url: str = ENCODE_DEFAULTS.api_url
     api_key: str = ENCODE_DEFAULTS.api_key
     soxr: bool = ENCODE_DEFAULTS.soxr
-    preset: str = ENCODE_DEFAULTS.x264_preset
+    preset: str = ENCODE_DEFAULTS.x26X_preset
     zscale: bool = ENCODE_DEFAULTS.zscale
     vulkan: bool = ENCODE_DEFAULTS.vulkan
     trust_vulkan: bool = ENCODE_DEFAULTS.trust_vulkan
@@ -1187,7 +1187,7 @@ def get_parserconfig(
     video_parser.add_argument(
         "-8",
         "--eightbit",
-        help="encode with 8-bit NVENC HEVC (default 10-bit)",
+        help="encode with 8-bit HEVC (default 10-bit)",
         action="store_true",
     )
     vencoder_group.add_argument(
@@ -1198,7 +1198,7 @@ def get_parserconfig(
     )
     video_parser.add_argument(
         "--preset",
-        help="preset to use for x264 encoding (default: %(default)s)",
+        help="preset to use for x264/x265 encoding (default: %(default)s)",
         type=ffmpeg_preset,
         default=config.preset,
         choices=encode.StaticEncodeVars.ALLOWED_PRESETS,
@@ -1512,10 +1512,12 @@ def main() -> None:
     if args.startdelay and args.timestamp is not None:
         parser.error("timestamp seeking cannot be used with a start delay")
 
-    if args.eightbit and args.vencoder != "hevc_nvenc":
-        parser.error("8-bit HEVC encoding must be specified with HEVC")
+    if args.eightbit and args.vencoder not in encode.StaticEncodeVars.TENBIT_ENCODERS:
+        parser.error(
+            "8-bit encoding must be specified with encoder that supports 10-bit"
+        )
 
-    if args.eightbit:
+    if args.eightbit and args.vencoder == "hevc_nvenc":
         logger.warning(
             "8-bit NVENC encoding is vastly inferior to 10-bit. Consider using H264"
             " instead if you require 8-bit."

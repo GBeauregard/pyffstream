@@ -402,8 +402,11 @@ class StaticEncodeVars:
     """
 
     NVIDIA_ENCODERS: ClassVar[set[str]] = {"hevc_nvenc", "h264_nvenc"}
-    SW_ENCODERS: ClassVar[set[str]] = {"libx264"}
+    SW_ENCODERS: ClassVar[set[str]] = {"libx264", "libx265"}
     ALLOWED_PRESETS: ClassVar[list[str]] = [
+        "veryslow",
+        "slower",
+        "slow",
         "medium",
         "fast",
         "faster",
@@ -412,7 +415,8 @@ class StaticEncodeVars:
         "ultrafast",
     ]
     H264_ENCODERS: ClassVar[set[str]] = {"h264_nvenc", "libx264"}
-    HEVC_ENCODERS: ClassVar[set[str]] = {"hevc_nvenc"}
+    HEVC_ENCODERS: ClassVar[set[str]] = {"hevc_nvenc", "libx265"}
+    TENBIT_ENCODERS: ClassVar[set[str]] = HEVC_ENCODERS
     VIDEO_ENCODERS: ClassVar[set[str]] = NVIDIA_ENCODERS | SW_ENCODERS
     AUDIO_STANDARDS: ClassVar[set[str]] = {"aac", "opus"}
     STREAM_PROTOCOLS: ClassVar[set[str]] = {"srt", "rtmp"}
@@ -434,7 +438,7 @@ class StaticEncodeVars:
     kf_target_sec: float = 5.0
     clip_length: str | None = None
     vencoder: str = "libx264"
-    x264_preset: str = "medium"
+    x26X_preset: str = "medium"
     vstandard: str = "h264"
     astandard: str = "aac"
     protocol: str = "srt"
@@ -527,7 +531,7 @@ class StaticEncodeVars:
         elif evars.vencoder in cls.HEVC_ENCODERS:
             evars.vstandard = "hevc"
 
-        evars.x264_preset = args.preset
+        evars.x26X_preset = args.preset
         evars.astandard = args.astandard
         evars.fix_start_time = args.fix_start_time
         evars.dynamicnorm = args.dynamicnorm
@@ -588,7 +592,7 @@ class StaticEncodeVars:
         evars.timestamp = args.timestamp
         evars.pix_fmt = (
             "p010le"
-            if args.vencoder == "hevc_nvenc" and not args.eightbit
+            if args.vencoder in cls.TENBIT_ENCODERS and not args.eightbit
             else "yuv420p"
         )
         evars.subfile_provided = args.subfile is not None
@@ -1371,13 +1375,37 @@ def get_x264_flags(fv: EncodeSession) -> list[str]:
     flags = [
         "-c:v", "libx264",
         "-profile:v", "high",
-        "-preset:v", fv.ev.x264_preset,
+        "-preset:v", fv.ev.x26X_preset,
         "-g:v", f"{fv.ev.kf_int}",
         "-keyint_min:v", f"{fv.ev.kf_int}",
         "-sc_threshold:v", "0",
         "-forced-idr:v", "1",
         "-x264-params:v", "scenecut=0",
 
+        "-b:v", f"{fv.ev.vbitrate}",
+        "-maxrate:v", f"{fv.ev.vbitrate}",
+        "-bufsize:v", f"{fv.ev.kf_sec}*{fv.ev.vbitrate}",
+    ]
+    # fmt: on
+    return flags
+
+
+def get_x265_flags(fv: EncodeSession) -> list[str]:
+    if fv.ev.eightbit:
+        profile = "main"
+    else:
+        profile = "main10"
+    # fmt: off
+    flags = [
+        "-c:v", "libx265",
+        "-profile:v", profile,
+        "-preset:v", fv.ev.x26X_preset,
+        "-g:v", f"{fv.ev.kf_int}",
+        "-keyint_min:v", f"{fv.ev.kf_int}",
+        "-forced-idr:v", "1",
+        "-x265-params:v", "scenecut=0",
+
+        "-tag:v", "hvc1",
         "-b:v", f"{fv.ev.vbitrate}",
         "-maxrate:v", f"{fv.ev.vbitrate}",
         "-bufsize:v", f"{fv.ev.kf_sec}*{fv.ev.vbitrate}",
@@ -1415,6 +1443,7 @@ def get_nvenc_hevc_flags(fv: EncodeSession) -> list[str]:
         *min_version(("-s12m_tc:v", "0"), ("libavcodec", "59.1.101")),
         *min_version(("-extra_sei:v", "0"), ("libavcodec", "59.1.101")),
 
+        "-tag:v", "hvc1",
         "-b:v", f"{fv.ev.vbitrate}",
         "-maxrate:v", f"{fv.ev.vbitrate}",
         "-bufsize:v", f"{fv.ev.kf_sec}*{fv.ev.vbitrate}",
@@ -1502,6 +1531,8 @@ def get_vflags(fv: EncodeSession) -> list[str]:
     # TODO: match case in 3.10
     if fv.ev.vencoder == "libx264":
         return get_x264_flags(fv)
+    elif fv.ev.vencoder == "libx265":
+        return get_x265_flags(fv)
     elif fv.ev.vencoder == "hevc_nvenc":
         return get_nvenc_hevc_flags(fv)
     elif fv.ev.vencoder == "h264_nvenc":
