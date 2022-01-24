@@ -26,7 +26,7 @@ import socket
 import subprocess
 import threading
 import typing
-from collections.abc import Iterable, Mapping, MutableSequence, Sequence
+from collections.abc import Collection, Iterable, Mapping, MutableSequence, Sequence
 from typing import Any, AnyStr, Final, Generic, NamedTuple, TypedDict, Union, cast
 
 # if sys.version_info >= (3, 10):
@@ -45,7 +45,7 @@ class ProbeType(enum.Enum):
 
 
 # TODO: use typing.TypeAlias in 3.10
-StreamQueryTuple = tuple[Iterable[str], Iterable[str], Iterable[str]]
+StreamQueryTuple = tuple[Collection[str], Collection[str], Collection[str]]
 # TODO: 3.10 | union syntax
 InitTuple = Union[StreamQueryTuple, set[str]]
 
@@ -520,7 +520,9 @@ class FFBin:
 ff_bin = FFBin()
 
 
-def format_probe(*queries: tuple[str, Iterable[str]], allow_empty: bool = False) -> str:
+def format_probe(
+    *queries: tuple[str, Collection[str]], allow_empty: bool = False
+) -> str:
     return ":".join(
         f"{sect[0]}{'=' + ','.join(sect[1]) if sect[1] else ''}"
         for sect in queries
