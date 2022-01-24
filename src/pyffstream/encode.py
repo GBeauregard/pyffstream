@@ -1616,7 +1616,7 @@ def set_output_flags(fv: EncodeSession) -> None:
         rtmp_flags += [f"rtmp://{fv.ev.endpoint}"]
         fv.ev.output_flags = rtmp_flags
     else:
-        raise ValueError("Invalid stream protocol passed")
+        raise ValueError(f"Invalid stream protocol passed: {fv.ev.protocol!r}")
 
 
 def set_srt_flags(fv: EncodeSession) -> None:
