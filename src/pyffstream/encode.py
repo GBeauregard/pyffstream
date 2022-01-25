@@ -698,8 +698,8 @@ def determine_autocrop(fv: EncodeSession) -> None:
         if flength - crop_ts_num < crop_len_num:
             crop_len_num = flength - crop_ts_num
             crop_len_string = f"{crop_len_num:.3f}".rstrip("0").rstrip(".")
-    # fmt: off
     ffprogress = ffmpeg.Progress[str]()
+    # fmt: off
     cropargs = [
         ffmpeg.ff_bin.ffmpeg,
         *ffprogress.flags(0.1),
@@ -849,8 +849,8 @@ def determine_anormalize(fv: EncodeSession) -> None:
                     "print_format=json",
                 ),
             ]
-            # fmt: off
             ffprogress = ffmpeg.Progress[str]()
+            # fmt: off
             normargs = [
                 ffmpeg.ff_bin.ffmpeg,
                 *ffprogress.flags(0.25),
