@@ -360,6 +360,7 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
         "bound_h": fv.ev.bound_h,
     }
     logger.debug("json payload: \n%r", json_payload)
+    SERVER_ERROR_SLEEP_SEC: Final = 2
     with requests.Session() as s:
         while True:
             try:
@@ -373,7 +374,7 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
                         markup=False,
                     )
                     console.print("waiting and trying again")
-                    time.sleep(1)
+                    time.sleep(SERVER_ERROR_SLEEP_SEC)
                     continue
                 status = req.text.strip()
             except requests.exceptions.RequestException:
@@ -383,15 +384,15 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
                 break
             elif status == "running":
                 console.print("Server running, waiting and trying again")
-                time.sleep(1)
+                time.sleep(SERVER_ERROR_SLEEP_SEC)
             elif status == "req_exception":
                 console.print(
                     "API request returned exception, waiting and trying again"
                 )
-                time.sleep(1)
+                time.sleep(SERVER_ERROR_SLEEP_SEC)
             else:
                 console.print("Unknown server status, waiting and trying again")
-                time.sleep(1)
+                time.sleep(SERVER_ERROR_SLEEP_SEC)
         try:
             r = s.post(fv.ev.api_url + "/stream", json=json_payload, params=payload)
         except requests.exceptions.RequestException as e:
