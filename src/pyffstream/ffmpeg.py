@@ -618,7 +618,7 @@ def num(val: str) -> float:
     prefix = _SI_PREFIXES[si_prefix] if (si_prefix := match.group("siprefix")) else 0
     power = 1024 if match.group("binary") == "i" else 1000
     byte = 8 if match.group("byte") == "B" else 1
-    return float(basenum) * power ** prefix * byte
+    return float(basenum) * power**prefix * byte
 
 
 def duration(timestamp: str | float | int) -> float:
