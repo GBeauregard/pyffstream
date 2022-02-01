@@ -1219,8 +1219,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
     return [subfilter]
 
 
-def get_picsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
-    subfilter_list: list[ffmpeg.Filter | str] = []
+def get_picsub_list(fv: EncodeSession) -> list[ffmpeg.Filter]:
     if fv.ev.subfirst or not fv.ev.vulkan:
         if re.fullmatch(r"yuv[ja]?4[0-4]{2}p", fv.v("v", "pix_fmt")):
             overlay_fmt = "yuv420"
@@ -1228,7 +1227,7 @@ def get_picsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
             overlay_fmt = "yuv420p10"
     else:
         overlay_fmt = "yuv420" if fv.ev.eightbit else "yuv420p10"
-    subfilter_list.append(
+    subfilter_list = [
         ffmpeg.Filter(
             "scale2ref",
             "w='trunc(min(ih*mdar,iw))'",
@@ -1236,13 +1235,10 @@ def get_picsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
             "flags=bicubic",
             src=[f"{int(fv.ev.subfile_provided)}:s:{fv.ev.sindex}", 0],
             dst=[0, 1],
-        )
-    )
-    subfilter_list.append(
-        ffmpeg.Filter("overlay", "(W-w)/2", "H-h", f"format={overlay_fmt}", src=[1, 0])
-    )
-    if fv.ev.subfirst:
-        subfilter_list.append(ffmpeg.Filter(f"format={fv.ev.pix_fmt}"))
+        ),
+        ffmpeg.Filter("overlay", "(W-w)/2", "H-h", f"format={overlay_fmt}", src=[1, 0]),
+        ffmpeg.Filter(f"format={fv.ev.pix_fmt}"),
+    ]
     fv.subs.setstatus(StatusCode.FINISHED, "success")
     return subfilter_list
 
