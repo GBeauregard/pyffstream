@@ -292,7 +292,7 @@ class FFBin:
         self,
         pathlist: Iterable[pathlib.Path],
         directory: pathlib.Path,
-        add_duration: bool,
+        idxs: Sequence[int] = (0, 0),
         deep_probe: bool = False,
         name: str = "streamplaylist.txt",
     ) -> pathlib.Path:
@@ -304,31 +304,47 @@ class FFBin:
         Args:
             pathlist: Ordered pathlist to construct ffconcat with.
             directory: Directory to put the constructed playlist in.
-            add_duration: Whether or not to include duration metadata.
+            idxs: Tuple of (video, audio) stream index.
             deep_probe: Whether to probe file deeply.
             name: Optional; name of playlist file.
 
         Returns:
             Path to created ffconcat playlist.
         """
-        durfutures = None
-        if add_duration:
-            probe_args = [
-                ("duration", str(fpath), None, ProbeType.FORMAT, deep_probe)
-                for fpath in pathlist
-            ]
-            executor = concurrent.futures.ThreadPoolExecutor()
-            try:
-                durfutures = executor.map(lambda p: self.probe_val(*p), probe_args)
-            finally:
-                executor.shutdown(wait=False)
+        dur_pargs = [
+            ("duration", str(fpath), None, ProbeType.FORMAT, deep_probe)
+            for fpath in pathlist
+        ]
+        vstart_pargs = [
+            ("start_time", str(fpath), f"v:{idxs[0]}", ProbeType.STREAM, deep_probe)
+            for fpath in pathlist
+        ]
+        astart_pargs = [
+            ("start_time", str(fpath), f"a:{idxs[1]}", ProbeType.STREAM, deep_probe)
+            for fpath in pathlist
+        ]
+        executor = concurrent.futures.ThreadPoolExecutor()
+        try:
+            durfutures = executor.map(lambda p: self.probe_val(*p), dur_pargs)
+            vstarts = executor.map(
+                lambda p: duration(self.probe_val(*p) or 0), vstart_pargs
+            )
+            astarts = executor.map(
+                lambda p: duration(self.probe_val(*p) or 0), astart_pargs
+            )
+        finally:
+            executor.shutdown(wait=False)
         playlistpath = directory / name
         with playlistpath.open(mode="x", encoding="utf-8") as f:
             f.write("ffconcat version 1.0\n")
             for fpath in pathlist:
                 f.write("file '" + str(fpath.resolve()).replace("'", "'\\''") + "'\n")
-                if durfutures is not None and (fdur := next(durfutures)) is not None:
-                    f.write(f"duration {fdur}\n")
+                inpoint = 0.0
+                if (vstart := next(vstarts)) != (astart := next(astarts)):
+                    inpoint = max(vstart, astart)
+                    f.write(f"inpoint {inpoint:f}\n")
+                if (fdur := next(durfutures)) is not None:
+                    f.write(f"duration {duration(fdur)-inpoint:f}\n")
         return playlistpath
 
     @functools.cached_property
@@ -626,14 +642,12 @@ def duration(timestamp: str | float | int) -> float:
 
     https://ffmpeg.org/ffmpeg-utils.html#Time-duration
     """
-    timestamp = str(timestamp)
-    if re.fullmatch(r"(\d+:)?\d?\d:\d\d(\.\d*)?", timestamp, flags=re.ASCII):
+    time = str(timestamp)
+    if match := re.fullmatch(r"(-)?(\d+:)?\d?\d:\d\d(\.\d*)?", time, flags=re.ASCII):
         return sum(
-            s * float(t) for s, t in zip([1, 60, 3600], reversed(timestamp.split(":")))
-        )
-    if match := re.fullmatch(
-        r"(-?(?:\d+\.?\d*|\.\d+))([mu]?s)?", timestamp, flags=re.ASCII
-    ):
+            s * float(t) for s, t in zip([1, 60, 3600], reversed(time.split(":")))
+        ) * (-1 if match.group(1) else 1)
+    if match := re.fullmatch(r"(-?(?:\d+\.?\d*|\.\d+))([mu]?s)?", time, flags=re.ASCII):
         val = float(match.group(1))
         if match.group(2) == "ms":
             val /= 1000

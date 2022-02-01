@@ -593,14 +593,11 @@ def parse_files(args: argparse.Namespace, parser: argparse.ArgumentParser) -> No
             )
         if args.playlist:
             with console.status("constructing playlist..."):
-                add_duration = bool(
-                    args.timestamp is not None
-                    or args.print_info
-                    or args.crop
-                    or args.subs
-                )
                 playlist = ffmpeg.ff_bin.make_playlist(
-                    stream_flist, args.tempdir, add_duration, args.deep_probe
+                    stream_flist,
+                    args.tempdir,
+                    (args.vindex, args.aindex),
+                    args.deep_probe,
                 )
             process_file(playlist, args, stream_flist)
         else:
