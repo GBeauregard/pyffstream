@@ -1332,7 +1332,7 @@ def get_parserconfig(
         "--endpad",
         help="Pad end of stream with nothing to prevent early stream cutoff.",
         action=argparse.BooleanOptionalAction,
-        default=encode.StaticEncodeVars.end_pad,
+        default=ENCODE_DEFAULTS.end_pad,
     )
     parser.add_argument(
         "--tempdir",
