@@ -84,7 +84,7 @@ def get_stream_list(
         val_list: list[tuple[str, str]] = []
         ituple = (
             ("", s, q_tuple[0], BAD_VALS),
-            ("tags: ", s.get("tags", {}), q_tuple[1], BAD_VALS),
+            ("tag: ", s.get("tags", {}), q_tuple[1], BAD_VALS),
             ("disposition: ", s.get("disposition", {}), q_tuple[2], BAD_VALS | {0}),
         )
         for prefix, sdict, valid_keys, forbidden in ituple:
@@ -147,6 +147,7 @@ class InfoKeys:
         {
             "title",
             "language",
+            "handler_name",
         }
     ]
     DISPOSITIONS: Final = [
