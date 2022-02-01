@@ -1273,7 +1273,7 @@ def get_parserconfig(
     )
     subtitle_parser.add_argument(
         "--subfirst",
-        help="render subtitles before scaling",
+        help="render subtitles and crop video before scaling",
         action=argparse.BooleanOptionalAction,
         default=ENCODE_DEFAULTS.subfirst,
     )
