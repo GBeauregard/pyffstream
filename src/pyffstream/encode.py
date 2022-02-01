@@ -1355,9 +1355,9 @@ def determine_vfilters(fv: EncodeSession) -> None:
     close_futures(futures)
     vfilter_list = [
         *fv.filts.if_exists("deinterlace"),
-        *(fv.filts.if_exists("vcrop") if not fv.ev.cropsecond else ()),
         *fv.filts.if_exists("startpadfilt"),
         *fv.filts.if_exists("endpadfilt"),
+        *(fv.filts.if_exists("vcrop") if not fv.ev.cropsecond else ()),
         *fv.ev.subfilter_list,
         *(fv.filts.if_exists("vcrop") if fv.ev.cropsecond else ()),
         *pretransfer_filts,
