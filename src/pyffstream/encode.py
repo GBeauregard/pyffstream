@@ -433,6 +433,8 @@ class StaticEncodeVars:
     endpoint: str = "127.0.0.1:9998"
     target_w: str = "1920"
     target_h: str = "1080"
+    scale_w: str = target_w
+    scale_h: str = target_h
     bound_w: str = "1920"
     bound_h: str = "1080"
     kf_target_sec: float = 5.0
@@ -504,6 +506,7 @@ class StaticEncodeVars:
     is_playlist: bool = False
     eightbit: bool = False
     cropsecond: bool = False
+    subfirst: bool = False
     delay_start: bool = False
     deinterlace: bool = False
     crop: bool = False
@@ -539,7 +542,6 @@ class StaticEncodeVars:
         evars.anormalize = args.anormalize
         evars.soxr = args.soxr
         evars.zscale = args.zscale
-        evars.eightbit = args.eightbit
         evars.vulkan = args.vulkan
         evars.trust_vulkan = args.trust_vulkan
         evars.vulkan_device = args.vulkan_device
@@ -551,6 +553,7 @@ class StaticEncodeVars:
         evars.crop_len = args.croplength
         evars.deinterlace = args.deinterlace
         evars.cropsecond = args.cropsecond
+        evars.subfirst = args.subfirst
         evars.delay_start = args.startdelay
         evars.end_pad = args.endpad
         evars.is_playlist = args.playlist
@@ -590,11 +593,13 @@ class StaticEncodeVars:
         evars.shader_list = args.shaders
         evars.chlayout = "stereo" if not args.mono else "mono"
         evars.timestamp = args.timestamp
+        evars.eightbit = args.eightbit
         evars.pix_fmt = (
-            "p010le"
+            ("yuv420p10le" if args.vencoder in cls.SW_ENCODERS else "p010le")
             if args.vencoder in cls.TENBIT_ENCODERS and not args.eightbit
             else "yuv420p"
         )
+        evars.eightbit = evars.pix_fmt == "yuv420p"
         evars.subfile_provided = args.subfile is not None
         evars.ff_deepprobe_flags = (
             ["-analyzeduration", "100M", "-probesize", "100M"]
@@ -699,6 +704,19 @@ def determine_autocrop(fv: EncodeSession) -> None:
             crop_len_num = flength - crop_ts_num
             crop_len_string = f"{crop_len_num:.3f}".rstrip("0").rstrip(".")
     ffprogress = ffmpeg.Progress[str]()
+    prescale = [
+        ffmpeg.Filter(
+            "scale",
+            f"w='{fv.ev.scale_w}'",
+            f"h='{fv.ev.scale_h}'",
+            "force_original_aspect_ratio=decrease",
+            "force_divisible_by=2",
+        )
+    ]
+    detect_filters: list[ffmpeg.Filter | str] = [
+        *(prescale if not fv.ev.subfirst else ()),
+        "cropdetect=round=2",
+    ]
     # fmt: off
     cropargs = [
         ffmpeg.ff_bin.ffmpeg,
@@ -712,7 +730,8 @@ def determine_autocrop(fv: EncodeSession) -> None:
         *(("-ss", crop_ts_string) if fv.ev.slowseek else ()),
         "-an", "-sn",
         "-t", crop_len_string,
-        "-vf", "cropdetect=round=2",
+        "-sws_flags", "bilinear",
+        "-vf", ffmpeg.Filter.vf_join(detect_filters),
         "-map", f"0:v:{fv.ev.vindex}",
         "-f", "null", "-",
     ]
@@ -1202,10 +1221,13 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
 
 def get_picsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
     subfilter_list: list[ffmpeg.Filter | str] = []
-    if re.fullmatch(r"yuv[ja]?4[0-4]{2}p", fv.v("v", "pix_fmt")):
-        overlay_fmt = "yuv420"
+    if fv.ev.subfirst or not fv.ev.vulkan:
+        if re.fullmatch(r"yuv[ja]?4[0-4]{2}p", fv.v("v", "pix_fmt")):
+            overlay_fmt = "yuv420"
+        else:
+            overlay_fmt = "yuv420p10"
     else:
-        overlay_fmt = "yuv420p10"
+        overlay_fmt = "yuv420" if fv.ev.eightbit else "yuv420p10"
     subfilter_list.append(
         ffmpeg.Filter(
             "scale2ref",
@@ -1219,7 +1241,7 @@ def get_picsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
     subfilter_list.append(
         ffmpeg.Filter("overlay", "(W-w)/2", "H-h", f"format={overlay_fmt}", src=[1, 0])
     )
-    if not fv.ev.vulkan:
+    if fv.ev.subfirst:
         subfilter_list.append(ffmpeg.Filter(f"format={fv.ev.pix_fmt}"))
     fv.subs.setstatus(StatusCode.FINISHED, "success")
     return subfilter_list
@@ -1228,17 +1250,17 @@ def get_picsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
 def determine_scale(fv: EncodeSession) -> None:
     if fv.ev.upscale:
         softflags = "lanczos"
-        scale_w = fv.ev.target_w
-        scale_h = fv.ev.target_h
+        fv.ev.scale_w = fv.ev.target_w
+        fv.ev.scale_h = fv.ev.target_h
     else:
         softflags = "spline"
-        scale_w = f"min({fv.ev.target_w},iw)"
-        scale_h = f"min({fv.ev.target_h},ih)"
+        fv.ev.scale_w = f"min({fv.ev.target_w},iw)"
+        fv.ev.scale_h = f"min({fv.ev.target_h},ih)"
     if fv.ev.vulkan:
         libplacebo = [
             "libplacebo",
-            f"w='{scale_w}'",
-            f"h='{scale_h}'",
+            f"w='{fv.ev.scale_w}'",
+            f"h='{fv.ev.scale_h}'",
             "force_original_aspect_ratio=decrease",
             "force_divisible_by=2",
             "pad_crop_ratio=1",
@@ -1286,8 +1308,8 @@ def determine_scale(fv: EncodeSession) -> None:
     else:
         fv.filts["scale"] = [
             "scale",
-            f"w='{scale_w}'",
-            f"h='{scale_h}'",
+            f"w='{fv.ev.scale_w}'",
+            f"h='{fv.ev.scale_h}'",
             "force_original_aspect_ratio=decrease",
             f"force_divisible_by=2:flags={softflags}",
         ]
@@ -1307,42 +1329,46 @@ def determine_decimation(_: EncodeSession) -> None:
 
 def get_hwtransfer(
     fv: EncodeSession,
-) -> tuple[list[ffmpeg.Filter], list[ffmpeg.Filter]]:
-    prefilter_list: list[ffmpeg.Filter] = []
-    postfilter_list: list[ffmpeg.Filter] = []
+) -> tuple[list[ffmpeg.Filter], list[ffmpeg.Filter], list[ffmpeg.Filter]]:
+    prescale_transfer: list[ffmpeg.Filter] = []
+    sw_transfer: list[ffmpeg.Filter] = []
+    encode_transfer: list[ffmpeg.Filter] = []
     if fv.ev.vulkan:
         if not fv.ev.trust_vulkan:
-            prefilter_list += [ffmpeg.Filter("hwupload")]
-        prefilter_list += [ffmpeg.Filter("hwupload", "derive_device=vulkan")]
+            prescale_transfer += [ffmpeg.Filter("hwupload")]
+        prescale_transfer += [ffmpeg.Filter("hwupload", "derive_device=vulkan")]
+
+    if fv.ev.vulkan and not fv.ev.subfirst:
+        sw_transfer += [
+            ffmpeg.Filter("hwdownload"),
+            ffmpeg.Filter("format", fv.ev.pix_fmt),
+        ]
+
+    if fv.ev.vulkan and fv.ev.subfirst:
         if fv.ev.vencoder in fv.ev.SW_ENCODERS:
-            postfilter_list += [
+            encode_transfer += [
                 ffmpeg.Filter("hwdownload"),
-                ffmpeg.Filter("format", f"{fv.ev.pix_fmt}"),
+                ffmpeg.Filter("format", fv.ev.pix_fmt),
             ]
         elif fv.ev.vencoder in fv.ev.NVIDIA_ENCODERS:
-            postfilter_list += [ffmpeg.Filter("hwupload", "derive_device=cuda")]
+            encode_transfer += [ffmpeg.Filter("hwupload", "derive_device=cuda")]
         else:
             raise ValueError(f"No valid transfer found for encoder {fv.ev.vencoder!r}.")
     else:
-        if fv.ev.vencoder in fv.ev.SW_ENCODERS:
-            postfilter_list += [ffmpeg.Filter("format", "yuv420p")]
-        elif fv.ev.vencoder in fv.ev.NVIDIA_ENCODERS:
-            postfilter_list += [
-                ffmpeg.Filter("format", f"{fv.ev.pix_fmt}"),
-                ffmpeg.Filter("hwupload", "derive_device=cuda"),
-            ]
-        else:
-            raise ValueError(f"No valid transfer found for encoder {fv.ev.vencoder!r}.")
-    return prefilter_list, postfilter_list
+        encode_transfer += [ffmpeg.Filter("format", fv.ev.pix_fmt)]
+        if fv.ev.vencoder in fv.ev.NVIDIA_ENCODERS:
+            encode_transfer += [ffmpeg.Filter("hwupload", "derive_device=cuda")]
+
+    return prescale_transfer, sw_transfer, encode_transfer
 
 
 def determine_vfilters(fv: EncodeSession) -> None:
     futures: list[concurrent.futures.Future[Any]] = []
-    if fv.ev.crop:
-        futures.append(fv.executor.submit(determine_autocrop, fv))
     if fv.ev.subs:
         futures.append(fv.executor.submit(determine_subtitles, fv))
     determine_scale(fv)
+    if fv.ev.crop:
+        futures.append(fv.executor.submit(determine_autocrop, fv))
     if fv.ev.obs:
         determine_decimation(fv)
     if fv.ev.deinterlace:
@@ -1351,18 +1377,23 @@ def determine_vfilters(fv: EncodeSession) -> None:
         fv.filts["endpadfilt"] = ["tpad", f"stop_duration={fv.ev.end_delay}"]
     if fv.ev.delay_start:
         fv.filts["startpadfilt"] = ["tpad", f"start_duration={fv.ev.start_delay}"]
-    pretransfer_filts, posttransfer_filts = get_hwtransfer(fv)
+    prescale_transfer, sw_transfer, encode_transfer = get_hwtransfer(fv)
     close_futures(futures)
+    sub_and_crop = [
+        *(fv.filts.if_exists("vcrop") if not fv.ev.cropsecond else ()),
+        *fv.ev.subfilter_list,
+        *(fv.filts.if_exists("vcrop") if fv.ev.cropsecond else ()),
+    ]
     vfilter_list = [
         *fv.filts.if_exists("deinterlace"),
         *fv.filts.if_exists("startpadfilt"),
         *fv.filts.if_exists("endpadfilt"),
-        *(fv.filts.if_exists("vcrop") if not fv.ev.cropsecond else ()),
-        *fv.ev.subfilter_list,
-        *(fv.filts.if_exists("vcrop") if fv.ev.cropsecond else ()),
-        *pretransfer_filts,
+        *(sub_and_crop if fv.ev.subfirst else ()),
+        *prescale_transfer,
         fv.filts["scale"],
-        *posttransfer_filts,
+        *sw_transfer,
+        *(sub_and_crop if not fv.ev.subfirst else ()),
+        *encode_transfer,
     ]
     fv.ev.filter_complex = ffmpeg.Filter.complex_join(
         vfilter_list, startkey=f"0:v:{fv.ev.vindex}", endkey="b"

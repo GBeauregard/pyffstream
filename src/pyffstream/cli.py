@@ -1161,6 +1161,7 @@ def get_parserconfig(
         metavar="FILE",
     )
     output_parser.add_argument(
+        "-T",
         "--cliplength",
         type=ffmpeg_duration,
         help="clip stream to this length",
@@ -1269,6 +1270,12 @@ def get_parserconfig(
         "--cropsecond",
         help="crop after subtitles are rendered",
         action="store_true",
+    )
+    subtitle_parser.add_argument(
+        "--subfirst",
+        help="render subtitles before scaling",
+        action=argparse.BooleanOptionalAction,
+        default=ENCODE_DEFAULTS.subfirst,
     )
     decimate_group.add_argument(
         "--nodecimate",
