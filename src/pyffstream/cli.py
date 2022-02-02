@@ -110,9 +110,11 @@ class InfoKeys:
             "color_space",
             "color_transfer",
             "color_primaries",
+        },
+        {
+            "start_time",
             "color_range",
         },
-        {"start_time"},
     ]
     VSTREAM_TAGS: Final = [
         {
