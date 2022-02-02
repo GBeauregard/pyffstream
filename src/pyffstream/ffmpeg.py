@@ -207,10 +207,10 @@ class FFBin:
         return cast(FFProbeJSON, json.loads(result.stdout))
 
     _QUERY_PREFIX: Final = {
-        ProbeType.STREAM: "stream=",
-        ProbeType.TAGS: "stream_tags=",
-        ProbeType.DISPOSITION: "stream_disposition=",
-        ProbeType.FORMAT: "format=",
+        ProbeType.STREAM: "stream",
+        ProbeType.TAGS: "stream_tags",
+        ProbeType.DISPOSITION: "stream_disposition",
+        ProbeType.FORMAT: "format",
     }
 
     def probe_vals(
@@ -265,7 +265,7 @@ class FFBin:
         """
         entries = list(entries)
         jsonout = self.probe_json(
-            self._QUERY_PREFIX[probetype] + ",".join(entries),
+            format_probe((self._QUERY_PREFIX[probetype], entries)),
             fileargs,
             streamtype,
             deep_probe,
