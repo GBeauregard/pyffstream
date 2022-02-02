@@ -213,15 +213,15 @@ class FFBin:
         ProbeType.FORMAT: "format=",
     }
 
-    def probe_val(
+    def probe_vals(
         self,
-        entries: str,
+        entries: Iterable[str],
         fileargs: str | Iterable[str] | None,
         streamtype: str | None = None,
         probetype: ProbeType = ProbeType.STREAM,
         deep_probe: bool = False,
         extraargs: str | Iterable[str] | None = None,
-    ) -> str | None:
+    ) -> list[str | None]:
         """Probes a media file with ffprobe and returns results.
 
         Generic function for probing a media file for information using
@@ -229,10 +229,10 @@ class FFBin:
 
         Args:
             entries:
-                Argument passed to the ``-show_entries`` flag in
-                ffprobe. If a non-raw streamtype is specified, then the
-                argument may be the type field you want to query, for
-                example the duration.
+                List of arguments passed to the ``-show_entries`` flag
+                in ffprobe. If a non-raw streamtype is specified, then
+                the argument may be the type field you want to query,
+                for example the duration.
             fileargs:
                 String of the file you want to analyze. If additional
                 args are needed to specify the input, accepts a list of
@@ -255,38 +255,61 @@ class FFBin:
                 request ``-sexagesimal`` formatting of duration fields.
 
         Returns:
+            list of values in order of entries iterable containing:
             None: The query failed or returned "unknown" or "N/A".
 
-            str: Returns the value of the requested query.
+            str: The value of the requested query.
 
         Raises:
             ValueError: Invalid probetype was passed.
         """
+        entries = list(entries)
         jsonout = self.probe_json(
-            self._QUERY_PREFIX[probetype] + entries,
+            self._QUERY_PREFIX[probetype] + ",".join(entries),
             fileargs,
             streamtype,
             deep_probe,
             extraargs,
         )
         if jsonout is None:
-            return None
+            return [None] * len(entries)
         try:
             # TODO: change to match case in 3.10
             if probetype is ProbeType.STREAM:
-                returnval = jsonout["streams"][0][entries]
+                jsonbase = jsonout["streams"][0]
             elif probetype is ProbeType.TAGS:
-                returnval = jsonout["streams"][0]["tags"][entries]
+                jsonbase = jsonout["streams"][0]["tags"]
             elif probetype is ProbeType.DISPOSITION:
-                returnval = jsonout["streams"][0]["disposition"][entries]
+                jsonbase = jsonout["streams"][0]["disposition"]
             elif probetype is ProbeType.FORMAT:
-                returnval = jsonout["format"][entries]
+                jsonbase = jsonout["format"]
             else:
                 raise ValueError("invalid probe type query")
         except (KeyError, IndexError):
             # TODO: remove parentheses in 3.10
-            return None
-        return None if returnval in {"N/A", "unknown"} else str(returnval)
+            return [None] * len(entries)
+        returnvals: list[str | None] = []
+        for entry in entries:
+            try:
+                val = jsonbase[entry]
+                returnvals.append(None if val in {"N/A", "unknown"} else str(val))
+            except KeyError:
+                returnvals.append(None)
+        return returnvals
+
+    def probe_val(
+        self,
+        entry: str,
+        fileargs: str | Iterable[str] | None,
+        streamtype: str | None = None,
+        probetype: ProbeType = ProbeType.STREAM,
+        deep_probe: bool = False,
+        extraargs: str | Iterable[str] | None = None,
+    ) -> str | None:
+        """Wrapper for probe_vals to probe a single val."""
+        return self.probe_vals(
+            [entry], fileargs, streamtype, probetype, deep_probe, extraargs
+        )[0]
 
     def make_playlist(
         self,

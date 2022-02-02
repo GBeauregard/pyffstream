@@ -115,6 +115,8 @@ class InfoKeys:
             "start_time",
             "color_range",
         },
+        set[str](),
+        {"index"},
     ]
     VSTREAM_TAGS: Final = [
         {
@@ -136,7 +138,11 @@ class InfoKeys:
             "sample_rate",
             "bit_rate",
         },
-        {"start_time"},
+        {
+            "start_time",
+        },
+        set[str](),
+        {"index"},
     ]
     ASTREAM_TAGS: Final = [
         {
@@ -157,6 +163,7 @@ class InfoKeys:
             "start_time",
             "bit_rate",
         },
+        {"index"},
     ]
     SSTREAM_TAGS: Final = [
         {
@@ -255,9 +262,9 @@ def print_info(
 
     console.print(f"file: {hl_path(fopts.fpath)}")
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        fileduration = executor.submit(
-            ffmpeg.ff_bin.probe_val,
-            "duration",
+        format_fut = executor.submit(
+            ffmpeg.ff_bin.probe_vals,
+            ["duration", "bit_rate"],
             probefargs,
             probetype=ffmpeg.ProbeType.FORMAT,
             extraargs="-pretty",
@@ -287,8 +294,11 @@ def print_info(
             probesfargs,
             deep_probe,
         )
-        if (duration := fileduration.result()) is not None:
-            console.print("format_duration=[green]" + duration)
+        if (form := format_fut.result()) is not None:
+            if (duration := form[0]) is not None:
+                console.print("format_duration=[green]" + duration)
+            if (bitrate := form[1]) is not None:
+                console.print("bitrate=[green]" + bitrate)
         if vid := vid_fut.result():
             console.out(vid)
         if aud := aud_fut.result():
