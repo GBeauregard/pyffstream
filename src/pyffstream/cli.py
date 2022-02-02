@@ -148,7 +148,11 @@ class InfoKeys:
         {
             "title",
             "language",
-        }
+        },
+        {
+            "BPS",
+            "BPS-eng",
+        },
     ]
     SSTREAMS: Final = [
         {
