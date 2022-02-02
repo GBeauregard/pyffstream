@@ -103,6 +103,7 @@ class InfoKeys:
             "codec_name",
             "width",
             "height",
+            "bit_rate",
             "r_frame_rate",
             "field_order",
             "pix_fmt",
@@ -117,7 +118,11 @@ class InfoKeys:
         {
             "title",
             "language",
-        }
+        },
+        {
+            "BPS",
+            "BPS-eng",
+        },
     ]
     ASTREAMS: Final = [
         {
@@ -141,7 +146,13 @@ class InfoKeys:
         {
             "codec_name",
         },
-        {"start_time"},
+        {
+            "nb_frames",
+        },
+        {
+            "start_time",
+            "bit_rate",
+        },
     ]
     SSTREAM_TAGS: Final = [
         {
