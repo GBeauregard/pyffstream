@@ -152,6 +152,8 @@ class InfoKeys:
             "nb_frames",
         },
         {
+            "width",
+            "height",
             "start_time",
             "bit_rate",
         },
@@ -161,7 +163,11 @@ class InfoKeys:
             "title",
             "language",
             "handler_name",
-        }
+        },
+        {
+            "NUMBER_OF_FRAMES",
+            "NUMBER_OF_FRAMES-eng",
+        },
     ]
     DISPOSITIONS: Final = [
         {
