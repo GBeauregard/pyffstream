@@ -1686,7 +1686,7 @@ def set_filter_flags(fv: EncodeSession) -> None:
             *(("-resampler", "soxr") if fv.ev.soxr else ()),
             *(("-af", fv.ev.afilters) if fv.ev.afilters else ()),
         ]
-    filter_flags += ["-map_metadata", "-1"]
+    filter_flags += ["-map_metadata", "-1", "-map_chapters", "-1"]
     fv.ev.filter_flags = filter_flags
 
 
