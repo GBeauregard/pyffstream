@@ -1651,6 +1651,7 @@ def set_srt_flags(fv: EncodeSession) -> None:
         *((f"passphrase={fv.ev.srt_passphrase}",) if fv.ev.srt_passphrase else ()),
         "pbkeylen=32",
         "pkt_size=1316",
+        "transtype=live",
         "connect_timeout=6000",
         "latency=5000000",  # 5s
     ]
@@ -1660,7 +1661,7 @@ def set_srt_flags(fv: EncodeSession) -> None:
         srt_flags += get_fifo_flags("mpegts")
     else:
         srt_flags += ["-f", "mpegts", "-mpegts_flags", "+initial_discontinuity"]
-    srt_flags += ["-transtype", "live", f"srt://{fv.ev.endpoint}?{srt_opts}"]
+    srt_flags += [f"srt://{fv.ev.endpoint}?{srt_opts}"]
     fv.ev.output_flags = srt_flags
 
 
