@@ -1648,12 +1648,15 @@ def set_output_flags(fv: EncodeSession) -> None:
 
 def set_srt_flags(fv: EncodeSession) -> None:
     srt_options = [
+        "mode=caller",
+        "transtype=live",
+        "tlpktdrop=0",
         *((f"passphrase={fv.ev.srt_passphrase}",) if fv.ev.srt_passphrase else ()),
         "pbkeylen=32",
+        "mss=1360",
         "pkt_size=1316",
-        "transtype=live",
         "connect_timeout=6000",
-        "latency=5000000",  # 5s
+        "latency=1000000",
     ]
     srt_opts = "&".join(srt_options)
     srt_flags = ["-flush_packets", "0"]
