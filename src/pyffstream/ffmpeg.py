@@ -668,7 +668,7 @@ def duration(timestamp: str | float | int) -> float:
     time = str(timestamp)
     if match := re.fullmatch(r"(-)?(\d+:)?\d?\d:\d\d(\.\d*)?", time, flags=re.ASCII):
         return sum(
-            s * float(t) for s, t in zip([1, 60, 3600], reversed(time.split(":")))
+            s * abs(float(t)) for s, t in zip([1, 60, 3600], reversed(time.split(":")))
         ) * (-1 if match.group(1) else 1)
     if match := re.fullmatch(r"(-?(?:\d+\.?\d*|\.\d+))([mu]?s)?", time, flags=re.ASCII):
         val = float(match.group(1))
