@@ -1356,6 +1356,7 @@ def get_parserconfig(
         "-7", "--res720", help="set 720p encoding resolution", action="store_true"
     )
     output_parser.add_argument(
+        "-K",
         "--keyframe-target-sec",
         type=float_gt_pointfive,
         help="target keyframe interval in seconds (default: %(default)s)",
