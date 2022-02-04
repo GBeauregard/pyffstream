@@ -388,6 +388,7 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
         "keyframe_sec": fv.ev.kf_sec,
         "latency_target": fv.ev.latency_target,
         "inputbitrate": fv.ev.vbitrate,
+        "srt_latency": f"{fv.ev.srt_latency:.6f}",
         "inputabitrate": fv.ev.abitrate,
         "use_timeline": str(fv.ev.use_timeline).lower(),
         "bound_w": fv.ev.bound_w,
@@ -675,6 +676,7 @@ class DefaultConfig:
     height: int = int(ENCODE_DEFAULTS.target_h)
     shader_list: list[str] = dataclasses.field(default_factory=list)
     kf_target_sec: float = ENCODE_DEFAULTS.kf_target_sec
+    srt_latency: float = ENCODE_DEFAULTS.srt_latency
     ffmpeg_bin: str = ffmpeg.ff_bin.ffmpeg
     ffprobe_bin: str = ffmpeg.ff_bin.ffprobe
     env: dict[str, str] = dataclasses.field(
@@ -909,6 +911,7 @@ def get_parserconfig(
         config.height = main_conf.getint("height", config.height)
         config.shader_list = main_conf.getlist("shader_list", config.shader_list)
         config.kf_target_sec = main_conf.getfloat("kf_target_sec", config.kf_target_sec)
+        config.srt_latency = main_conf.getfloat("srt_latency", config.srt_latency)
         config.ffmpeg_bin = main_conf.get("ffmpeg_bin", config.ffmpeg_bin)
         config.ffprobe_bin = main_conf.get("ffprobe_bin", config.ffprobe_bin)
 
@@ -947,6 +950,14 @@ def get_parserconfig(
         if fvalue <= 0.5:
             raise argparse.ArgumentTypeError(
                 f"{value.strip()!r} not a float greater than 0.5"
+            )
+        return fvalue
+
+    def float_gt_zero(value: str) -> float:
+        fvalue = float(value.strip())
+        if fvalue <= 0:
+            raise argparse.ArgumentTypeError(
+                f"{value.strip()!r} not a float greater than 0"
             )
         return fvalue
 
@@ -1075,6 +1086,13 @@ def get_parserconfig(
         type=str,
         default="",
         metavar="PASSWORD",
+    )
+    output_parser.add_argument(
+        "--srt-latency",
+        help="SRT latency (default: %(default)s)",
+        type=float_gt_zero,
+        default=config.srt_latency,
+        metavar="SEC",
     )
     aencoder_group.add_argument(
         "--protocol",
@@ -1658,6 +1676,7 @@ def main() -> None:
             ConfName("hwaccel", "hwaccel"),
             ConfName("height", "height"),
             ConfName("kf_target_sec", "keyframe_target_sec"),
+            ConfName("srt_latency", "srt_latency"),
         }
         for conf in conf_names:
             if getattr(config, conf.file_name) != getattr(

@@ -479,6 +479,7 @@ class StaticEncodeVars:
     shader_list: MutableSequence[str] = dataclasses.field(default_factory=list)
     ff_flags: MutableSequence[str] = dataclasses.field(default_factory=list)
     srt_passphrase: str = ""
+    srt_latency: float = 5.0
     ff_verbosity_flags: Sequence[str] = dataclasses.field(default_factory=list)
     ff_deepprobe_flags: Sequence[str] = dataclasses.field(default_factory=list)
     placebo_opts: Sequence[str] = dataclasses.field(default_factory=list)
@@ -528,6 +529,7 @@ class StaticEncodeVars:
         evars.pyffserver = args.pyffserver
         evars.protocol = args.protocol
         evars.srt_passphrase = args.srt_passphrase
+        evars.srt_latency = args.srt_latency
         evars.vencoder = args.vencoder
         if evars.vencoder in cls.H264_ENCODERS:
             evars.vstandard = "h264"
@@ -1651,7 +1653,7 @@ def set_srt_flags(fv: EncodeSession) -> None:
     BPS: Final = int(1.05 * int(fv.ev.vbitrate) + int(fv.ev.abitrate))
     PAYLOAD_SIZE: Final = 1316
     MSS: Final = 1360
-    LATENCY_SEC: Final = 0.8
+    LATENCY_SEC: Final = fv.ev.srt_latency
     LATENCY_USEC: Final = int(LATENCY_SEC * 1_000_000)
     FULL_LATENCY_SEC: Final = LATENCY_SEC + RTT_SEC / 2
     TARGET_PAYLOAD_BYTES: Final = FULL_LATENCY_SEC * BPS / 8
