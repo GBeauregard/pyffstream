@@ -1671,7 +1671,7 @@ def set_srt_flags(fv: EncodeSession) -> None:
         "connect_timeout=6000",
         f"rcvlatency={LATENCY_USEC}",
         f"peerlatency={LATENCY_USEC}",
-        f"ffs={FC_WINDOW}",
+        f"ffs={FC_WINDOW*PAYLOAD_SIZE}",
         f"rcvbuf={RCVBUF}",
     ]
     srt_opts = "&".join(srt_options)
