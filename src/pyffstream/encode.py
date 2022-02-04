@@ -1647,16 +1647,30 @@ def set_output_flags(fv: EncodeSession) -> None:
 
 
 def set_srt_flags(fv: EncodeSession) -> None:
+    RTT_SEC: Final = 0.3
+    BPS: Final = int(1.05 * int(fv.ev.vbitrate) + int(fv.ev.abitrate))
+    PAYLOAD_SIZE: Final = 1316
+    MSS: Final = 1360
+    LATENCY_SEC: Final = 0.8
+    LATENCY_USEC: Final = int(LATENCY_SEC * 1_000_000)
+    FULL_LATENCY_SEC: Final = LATENCY_SEC + RTT_SEC / 2
+    TARGET_PAYLOAD_BYTES: Final = FULL_LATENCY_SEC * BPS / 8
+    FC_WINDOW: Final = math.ceil(TARGET_PAYLOAD_BYTES / PAYLOAD_SIZE)
+    UDPHDRSIZE: Final = 28
+    RCVBUF: Final = math.ceil(FC_WINDOW * (MSS - UDPHDRSIZE))
     srt_options = [
         "mode=caller",
         "transtype=live",
         "tlpktdrop=0",
         *((f"passphrase={fv.ev.srt_passphrase}",) if fv.ev.srt_passphrase else ()),
         "pbkeylen=32",
-        "mss=1360",
-        "pkt_size=1316",
+        f"mss={MSS}",
+        f"payload_size={PAYLOAD_SIZE}",
         "connect_timeout=6000",
-        "latency=1000000",
+        f"rcvlatency={LATENCY_USEC}",
+        f"peerlatency={LATENCY_USEC}",
+        f"ffs={FC_WINDOW}",
+        f"rcvbuf={RCVBUF}",
     ]
     srt_opts = "&".join(srt_options)
     srt_flags = ["-flush_packets", "0"]
