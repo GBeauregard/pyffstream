@@ -404,6 +404,7 @@ class StaticEncodeVars:
     NVIDIA_ENCODERS: ClassVar[set[str]] = {"hevc_nvenc", "h264_nvenc"}
     SW_ENCODERS: ClassVar[set[str]] = {"libx264", "libx265"}
     ALLOWED_PRESETS: ClassVar[list[str]] = [
+        "placebo",
         "veryslow",
         "slower",
         "slow",
