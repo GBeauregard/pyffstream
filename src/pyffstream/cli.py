@@ -104,6 +104,7 @@ class InfoKeys:
             "width",
             "height",
             "bit_rate",
+            "max_bit_rate",
             "r_frame_rate",
             "field_order",
             "pix_fmt",
