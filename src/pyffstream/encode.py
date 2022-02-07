@@ -1652,16 +1652,16 @@ def set_output_flags(fv: EncodeSession) -> None:
 def set_srt_flags(fv: EncodeSession) -> None:
     RTT_SEC: Final = 0.3
     BPS_MULTIPLIER: Final = 5.0
-    BPS: Final = int(BPS_MULTIPLIER * int(fv.ev.vbitrate) + int(fv.ev.abitrate))
-    PAYLOAD_SIZE: Final = 1316
-    MSS: Final = 1360
+    BPS: Final[int] = int(BPS_MULTIPLIER * int(fv.ev.vbitrate) + int(fv.ev.abitrate))
+    PAYLOAD_SIZE: Final[int] = 1316
+    MSS: Final[int] = 1360
     LATENCY_SEC: Final = fv.ev.srt_latency
-    LATENCY_USEC: Final = int(LATENCY_SEC * 1_000_000)
+    LATENCY_USEC: Final[int] = int(LATENCY_SEC * 1_000_000)
     FULL_LATENCY_SEC: Final = LATENCY_SEC + RTT_SEC / 2
     TARGET_PAYLOAD_BYTES: Final = FULL_LATENCY_SEC * BPS / 8
-    FC_WINDOW: Final = math.ceil(TARGET_PAYLOAD_BYTES / PAYLOAD_SIZE)
+    FC_WINDOW: Final[int] = math.ceil(TARGET_PAYLOAD_BYTES / PAYLOAD_SIZE)
     UDPHDRSIZE: Final = 28
-    RCVBUF: Final = math.ceil(FC_WINDOW * (MSS - UDPHDRSIZE))
+    RCVBUF: Final[int] = math.ceil(FC_WINDOW * (MSS - UDPHDRSIZE))
     srt_options = [
         "mode=caller",
         "transtype=live",
