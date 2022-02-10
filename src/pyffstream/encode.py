@@ -1423,7 +1423,7 @@ def get_x264_flags(fv: EncodeSession) -> list[str]:
 
         "-b:v", f"{fv.ev.vbitrate}",
         "-maxrate:v", f"{fv.ev.vbitrate}",
-        "-bufsize:v", f"{fv.ev.kf_sec}*{fv.ev.vbitrate}",
+        "-bufsize:v", f"{int(float(fv.ev.kf_sec)*int(fv.ev.vbitrate))}",
     ]
     # fmt: on
     return flags
@@ -1458,7 +1458,7 @@ def get_x265_flags(fv: EncodeSession) -> list[str]:
         "-tag:v", "hvc1",
         "-b:v", f"{fv.ev.vbitrate}",
         "-maxrate:v", f"{fv.ev.vbitrate}",
-        "-bufsize:v", f"{fv.ev.kf_sec}*{fv.ev.vbitrate}",
+        "-bufsize:v", f"{int(float(fv.ev.kf_sec)*int(fv.ev.vbitrate))}",
     ]
     # fmt: on
     return flags
@@ -1496,7 +1496,7 @@ def get_nvenc_hevc_flags(fv: EncodeSession) -> list[str]:
         "-tag:v", "hvc1",
         "-b:v", f"{fv.ev.vbitrate}",
         "-maxrate:v", f"{fv.ev.vbitrate}",
-        "-bufsize:v", f"{fv.ev.kf_sec}*{fv.ev.vbitrate}",
+        "-bufsize:v", f"{int(float(fv.ev.kf_sec)*int(fv.ev.vbitrate))}",
     ]
     # fmt: on
     return flags
@@ -1530,7 +1530,7 @@ def get_nvenc_h264_flags(fv: EncodeSession) -> list[str]:
 
         "-b:v", f"{fv.ev.vbitrate}",
         "-maxrate:v", f"{fv.ev.vbitrate}",
-        "-bufsize:v", f"{fv.ev.kf_sec}*{fv.ev.vbitrate}",
+        "-bufsize:v", f"{int(float(fv.ev.kf_sec)*int(fv.ev.vbitrate))}",
     ]
     # fmt: on
     return flags
