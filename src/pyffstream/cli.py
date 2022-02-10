@@ -1255,6 +1255,20 @@ def get_parserconfig(
         default=config.preset,
         choices=encode.StaticEncodeVars.ALLOWED_PRESETS,
     )
+    video_parser.add_argument(
+        "--pass",
+        dest="npass",
+        help="encoder pass",
+        type=int_gt_zero,
+        choices=[1, 2, 3],
+        metavar="N",
+    )
+    video_parser.add_argument(
+        "--passfile",
+        help="multipass statistics file to use",
+        type=pathlib.Path,
+        metavar="FILE",
+    )
     vencoder_group.add_argument(
         "--vencoder",
         type=ffmpeg_vencoder,
@@ -1575,6 +1589,14 @@ def main() -> None:
         parser.error(
             "8-bit encoding must be specified with encoder that supports 10-bit"
         )
+
+    if args.passfile is not None and args.npass is None:
+        parser.error("Multipass statfile writing requires picking a pass mode")
+
+    if (
+        args.npass is not None or args.passfile is not None
+    ) and args.vencoder not in encode.StaticEncodeVars.MULTIPASS_ENCODERS:
+        parser.error(f"{args.vencoder!r} does not support multipass encoding")
 
     if args.eightbit and args.vencoder == "hevc_nvenc":
         logger.warning(

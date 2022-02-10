@@ -418,6 +418,7 @@ class StaticEncodeVars:
     H264_ENCODERS: ClassVar[set[str]] = {"h264_nvenc", "libx264"}
     HEVC_ENCODERS: ClassVar[set[str]] = {"hevc_nvenc", "libx265"}
     TENBIT_ENCODERS: ClassVar[set[str]] = HEVC_ENCODERS
+    MULTIPASS_ENCODERS: ClassVar[set[str]] = {"libx264", "libx265"}
     VIDEO_ENCODERS: ClassVar[set[str]] = NVIDIA_ENCODERS | SW_ENCODERS
     AUDIO_STANDARDS: ClassVar[set[str]] = {"aac", "opus"}
     STREAM_PROTOCOLS: ClassVar[set[str]] = {"srt", "rtmp"}
@@ -494,6 +495,8 @@ class StaticEncodeVars:
     aindex: int = 0
     sindex: int | None = None
     outfile: pathlib.Path | None = None
+    npass: int = 1
+    passfile: pathlib.Path | None = None
     wait: bool = False
     fifo: bool = False
     soxr: bool = False
@@ -576,6 +579,10 @@ class StaticEncodeVars:
         evars.slowseek = args.slowseek
         evars.live = args.live
         evars.outfile = args.outfile
+        evars.npass = args.npass
+        evars.passfile = args.passfile
+        if args.npass in (1, 3):
+            evars.outfile = pathlib.Path("-")
         evars.vindex = args.vindex
         evars.aindex = args.aindex
         evars.sindex = args.sindex
@@ -1411,6 +1418,8 @@ def get_x264_flags(fv: EncodeSession) -> list[str]:
         "-sc_threshold:v", "0",
         "-forced-idr:v", "1",
         "-x264-params:v", "scenecut=0",
+        *(("-pass", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
+        *(("-passlogfile", f"{fv.ev.passfile}") if fv.ev.passfile is not None else ()),
 
         "-b:v", f"{fv.ev.vbitrate}",
         "-maxrate:v", f"{fv.ev.vbitrate}",
@@ -1425,6 +1434,17 @@ def get_x265_flags(fv: EncodeSession) -> list[str]:
         profile = "main"
     else:
         profile = "main10"
+    if fv.ev.passfile is not None:
+        escaped_passfile = str(fv.ev.passfile).replace("'", "'\\''")
+    else:
+        escaped_passfile = None
+    x265_params = ":".join(
+        [
+            "scenecut=0",
+            *((f"pass={fv.ev.npass}",) if fv.ev.npass is not None else ()),
+            *((f"stats='{escaped_passfile}'",) if fv.ev.passfile is not None else ()),
+        ]
+    )
     # fmt: off
     flags = [
         "-c:v", "libx265",
@@ -1433,7 +1453,7 @@ def get_x265_flags(fv: EncodeSession) -> list[str]:
         "-g:v", f"{fv.ev.kf_int}",
         "-keyint_min:v", f"{fv.ev.kf_int}",
         "-forced-idr:v", "1",
-        "-x265-params:v", "scenecut=0",
+        "-x265-params:v", x265_params,
 
         "-tag:v", "hvc1",
         "-b:v", f"{fv.ev.vbitrate}",
@@ -1518,6 +1538,8 @@ def get_nvenc_h264_flags(fv: EncodeSession) -> list[str]:
 
 def get_aflags(fv: EncodeSession) -> list[str]:
     aflags: list[str] = []
+    if fv.ev.npass in (1, 3):
+        return ["-an"]
     if fv.ev.copy_audio:
         fv.ev.astandard = fv.v("a", "codec_name")
         fv.ev.samplerate = fv.v("a", "sample_rate")
@@ -1635,7 +1657,10 @@ def get_fifo_flags(fifo_format: str) -> list[str]:
 
 def set_output_flags(fv: EncodeSession) -> None:
     if fv.ev.outfile is not None:
-        fv.ev.output_flags = [str(fv.ev.outfile)]
+        if fv.ev.npass in (1, 3):
+            fv.ev.output_flags = ["-f", "null", "-"]
+        else:
+            fv.ev.output_flags = [str(fv.ev.outfile)]
         return
     if fv.ev.protocol == "srt":
         set_srt_flags(fv)
@@ -1698,15 +1723,16 @@ def set_filter_flags(fv: EncodeSession) -> None:
             "-map", "[b]",
         ]
         # fmt: on
-    if fv.ev.copy_audio:
-        filter_flags += ["-map", f"0:a:{fv.ev.aindex}?"]
-    else:
-        filter_flags += [
-            "-map",
-            f"0:a:{fv.ev.aindex}?",
-            *(("-resampler", "soxr") if fv.ev.soxr else ()),
-            *(("-af", fv.ev.afilters) if fv.ev.afilters else ()),
-        ]
+    if fv.ev.npass not in (1, 3):
+        if fv.ev.copy_audio:
+            filter_flags += ["-map", f"0:a:{fv.ev.aindex}?"]
+        else:
+            filter_flags += [
+                "-map",
+                f"0:a:{fv.ev.aindex}?",
+                *(("-resampler", "soxr") if fv.ev.soxr else ()),
+                *(("-af", fv.ev.afilters) if fv.ev.afilters else ()),
+            ]
     filter_flags += ["-map_metadata", "-1", "-map_chapters", "-1"]
     fv.ev.filter_flags = filter_flags
 
