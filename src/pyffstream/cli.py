@@ -671,6 +671,7 @@ class DefaultConfig:
     zscale: bool = ENCODE_DEFAULTS.zscale
     vulkan: bool = ENCODE_DEFAULTS.vulkan
     trust_vulkan: bool = ENCODE_DEFAULTS.trust_vulkan
+    vgop: bool = ENCODE_DEFAULTS.vulkan
     vulkan_device: int = ENCODE_DEFAULTS.vulkan_device
     fdk: bool = ENCODE_DEFAULTS.fdk
     hwaccel: bool = ENCODE_DEFAULTS.hwaccel
@@ -906,6 +907,7 @@ def get_parserconfig(
         config.zscale = main_conf.getboolean("zscale", config.zscale)
         config.vulkan = main_conf.getboolean("vulkan", config.vulkan)
         config.trust_vulkan = main_conf.getboolean("trust_vulkan", config.trust_vulkan)
+        config.vgop = main_conf.getboolean("vgop", config.vgop)
         config.vulkan_device = main_conf.getint("vulkan_device", config.vulkan_device)
         config.fdk = main_conf.getboolean("fdk", config.fdk)
         config.hwaccel = main_conf.getboolean("hwaccel", config.hwaccel)
@@ -1268,6 +1270,12 @@ def get_parserconfig(
         help="multipass statistics file to use",
         type=pathlib.Path,
         metavar="FILE",
+    )
+    video_parser.add_argument(
+        "--vgop",
+        help="use variable GOP length and treat keyframe target as max",
+        action=argparse.BooleanOptionalAction,
+        default=config.vgop,
     )
     vencoder_group.add_argument(
         "--vencoder",
@@ -1694,6 +1702,7 @@ def main() -> None:
             ConfName("zscale", "zscale"),
             ConfName("vulkan", "vulkan"),
             ConfName("trust_vulkan", "trust_vulkan"),
+            ConfName("vgop", "vgop"),
             ConfName("vulkan_device", "vulkan_device"),
             ConfName("fdk", "fdk"),
             ConfName("hwaccel", "hwaccel"),

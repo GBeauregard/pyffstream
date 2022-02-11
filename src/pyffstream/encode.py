@@ -470,6 +470,8 @@ class StaticEncodeVars:
         default_factory=list
     )
     kf_int: str = "0"
+    min_kf_int: str = "0"
+    bufsize: str = "0"
     kf_sec: str = "0"
     latency_target: str = "0"
     afilters: str = ""
@@ -505,6 +507,7 @@ class StaticEncodeVars:
     live: bool = False
     obs: bool = False
     vulkan: bool = False
+    vgop: bool = False
     trust_vulkan: bool = False
     vulkan_device: int = -1
     decimate_target: str = "24/1"
@@ -548,6 +551,7 @@ class StaticEncodeVars:
         evars.anormalize = args.anormalize
         evars.soxr = args.soxr
         evars.zscale = args.zscale
+        evars.vgop = args.vgop
         evars.vulkan = args.vulkan
         evars.trust_vulkan = args.trust_vulkan
         evars.vulkan_device = args.vulkan_device
@@ -669,6 +673,7 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
                 max_diff = percentile(time_diffs, 99)
                 timebase = fractions.Fraction(fv.v("v", "time_base"))
                 fv.ev.kf_int = str(int(min_diff * timebase * framerate))
+                fv.ev.min_kf_int = fv.ev.kf_int
                 fv.ev.kf_sec = (
                     f"{float(min_diff*timebase):.7f}"[:-1].rstrip("0").rstrip(".")
                 )
@@ -694,10 +699,20 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
         fv.ev.use_timeline = True
         gop_size = math.ceil(ideal_gop)
         seg_length = gop_size / framerate
-    fv.ev.kf_int = str(gop_size)
+    if not fv.ev.vgop:
+        fv.ev.kf_int = str(gop_size)
+        fv.ev.min_kf_int = fv.ev.kf_int
+    else:
+        fv.ev.min_kf_int = str(int(framerate))
+        fv.ev.kf_int = str(max(gop_size, int(fv.ev.min_kf_int)))
     fv.ev.kf_sec = f"{float(seg_length):.7f}"[:-1].rstrip("0").rstrip(".")
+    fv.ev.bufsize = f"{int(float(fv.ev.kf_sec)*int(fv.ev.vbitrate))}"
     fv.ev.latency_target = f"{4*float(fv.ev.kf_sec):.8g}"
+    if fv.ev.vgop:
+        fv.ev.kf_sec = f"{float(fv.ev.kf_sec)/2:.7f}"[:-1].rstrip("0").rstrip(".")
+    logger.debug(f"min keyframe interval: {fv.ev.min_kf_int}")
     logger.debug(f"keyframe interval: {fv.ev.kf_int}")
+    logger.debug(f"latency target: {fv.ev.latency_target}")
 
 
 def determine_autocrop(fv: EncodeSession) -> None:
@@ -1414,7 +1429,7 @@ def get_x264_flags(fv: EncodeSession) -> list[str]:
         "-profile:v", "high",
         "-preset:v", fv.ev.x26X_preset,
         "-g:v", f"{fv.ev.kf_int}",
-        "-keyint_min:v", f"{fv.ev.kf_int}",
+        "-keyint_min:v", f"{fv.ev.min_kf_int}",
         "-sc_threshold:v", "0",
         "-forced-idr:v", "1",
         "-x264-params:v", "scenecut=0",
@@ -1423,7 +1438,7 @@ def get_x264_flags(fv: EncodeSession) -> list[str]:
 
         "-b:v", f"{fv.ev.vbitrate}",
         "-maxrate:v", f"{fv.ev.vbitrate}",
-        "-bufsize:v", f"{int(float(fv.ev.kf_sec)*int(fv.ev.vbitrate))}",
+        "-bufsize:v", f"{fv.ev.bufsize}",
     ]
     # fmt: on
     return flags
@@ -1451,14 +1466,14 @@ def get_x265_flags(fv: EncodeSession) -> list[str]:
         "-profile:v", profile,
         "-preset:v", fv.ev.x26X_preset,
         "-g:v", f"{fv.ev.kf_int}",
-        "-keyint_min:v", f"{fv.ev.kf_int}",
+        "-keyint_min:v", f"{fv.ev.min_kf_int}",
         "-forced-idr:v", "1",
         "-x265-params:v", x265_params,
 
         "-tag:v", "hvc1",
         "-b:v", f"{fv.ev.vbitrate}",
         "-maxrate:v", f"{fv.ev.vbitrate}",
-        "-bufsize:v", f"{int(float(fv.ev.kf_sec)*int(fv.ev.vbitrate))}",
+        "-bufsize:v", f"{fv.ev.bufsize}",
     ]
     # fmt: on
     return flags
@@ -1477,7 +1492,7 @@ def get_nvenc_hevc_flags(fv: EncodeSession) -> list[str]:
         "-profile:v", profile,
         "-threads:v", "3",
         "-g:v", f"{fv.ev.kf_int}",
-        "-keyint_min:v", f"{fv.ev.kf_int}",
+        "-keyint_min:v", f"{fv.ev.min_kf_int}",
         "-forced-idr:v", "1",
         "-no-scenecut:v", "1",
         "-spatial-aq:v", "1",
@@ -1496,7 +1511,7 @@ def get_nvenc_hevc_flags(fv: EncodeSession) -> list[str]:
         "-tag:v", "hvc1",
         "-b:v", f"{fv.ev.vbitrate}",
         "-maxrate:v", f"{fv.ev.vbitrate}",
-        "-bufsize:v", f"{int(float(fv.ev.kf_sec)*int(fv.ev.vbitrate))}",
+        "-bufsize:v", f"{fv.ev.bufsize}",
     ]
     # fmt: on
     return flags
@@ -1511,7 +1526,7 @@ def get_nvenc_h264_flags(fv: EncodeSession) -> list[str]:
         "-profile:v", "high",
         "-threads:v", "3",
         "-g:v", f"{fv.ev.kf_int}",
-        "-keyint_min:v", f"{fv.ev.kf_int}",
+        "-keyint_min:v", f"{fv.ev.min_kf_int}",
         "-forced-idr:v", "1",
         "-no-scenecut:v", "1",
         "-rc-lookahead:v", "32",
@@ -1530,7 +1545,7 @@ def get_nvenc_h264_flags(fv: EncodeSession) -> list[str]:
 
         "-b:v", f"{fv.ev.vbitrate}",
         "-maxrate:v", f"{fv.ev.vbitrate}",
-        "-bufsize:v", f"{int(float(fv.ev.kf_sec)*int(fv.ev.vbitrate))}",
+        "-bufsize:v", f"{fv.ev.bufsize}",
     ]
     # fmt: on
     return flags
