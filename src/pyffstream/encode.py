@@ -1432,9 +1432,9 @@ def get_x264_flags(fv: EncodeSession) -> list[str]:
         "-preset:v", fv.ev.x26X_preset,
         "-g:v", f"{fv.ev.kf_int}",
         "-keyint_min:v", f"{fv.ev.min_kf_int}",
-        "-sc_threshold:v", "0",
+        *(("-sc_threshold:v", "0") if not fv.ev.vgop else ()),
         "-forced-idr:v", "1",
-        "-x264-params:v", "scenecut=0",
+        *(("-x264-params:v", "scenecut=0") if not fv.ev.vgop else ()),
         *(("-pass", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
         *(("-passlogfile", f"{fv.ev.passfile}") if fv.ev.passfile is not None else ()),
 
@@ -1457,7 +1457,7 @@ def get_x265_flags(fv: EncodeSession) -> list[str]:
         escaped_passfile = None
     x265_params = ":".join(
         [
-            "scenecut=0",
+            *(("scenecut=0",) if not fv.ev.vgop else ()),
             *((f"pass={fv.ev.npass}",) if fv.ev.npass is not None else ()),
             *((f"stats='{escaped_passfile}'",) if fv.ev.passfile is not None else ()),
         ]
@@ -1470,7 +1470,7 @@ def get_x265_flags(fv: EncodeSession) -> list[str]:
         "-g:v", f"{fv.ev.kf_int}",
         "-keyint_min:v", f"{fv.ev.min_kf_int}",
         "-forced-idr:v", "1",
-        "-x265-params:v", x265_params,
+        *(("-x265-params:v", x265_params) if x265_params else ()),
 
         "-tag:v", "hvc1",
         "-b:v", f"{fv.ev.vbitrate}",
@@ -1496,7 +1496,7 @@ def get_nvenc_hevc_flags(fv: EncodeSession) -> list[str]:
         "-g:v", f"{fv.ev.kf_int}",
         "-keyint_min:v", f"{fv.ev.min_kf_int}",
         "-forced-idr:v", "1",
-        "-no-scenecut:v", "1",
+        *(("-no-scenecut:v", "1") if not fv.ev.vgop else ()),
         "-spatial-aq:v", "1",
         "-temporal-aq:v", "1",
 
@@ -1530,7 +1530,7 @@ def get_nvenc_h264_flags(fv: EncodeSession) -> list[str]:
         "-g:v", f"{fv.ev.kf_int}",
         "-keyint_min:v", f"{fv.ev.min_kf_int}",
         "-forced-idr:v", "1",
-        "-no-scenecut:v", "1",
+        *(("-no-scenecut:v", "1") if not fv.ev.vgop else ()),
         "-rc-lookahead:v", "32",
         "-coder:v", "cabac",
         "-bf:v", "3",
