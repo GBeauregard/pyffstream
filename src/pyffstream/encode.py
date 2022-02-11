@@ -710,9 +710,10 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
     fv.ev.latency_target = f"{4*float(fv.ev.kf_sec):.8g}"
     if fv.ev.vgop:
         fv.ev.kf_sec = f"{float(fv.ev.kf_sec)/2:.7f}"[:-1].rstrip("0").rstrip(".")
-    logger.debug(f"min keyframe interval: {fv.ev.min_kf_int}")
-    logger.debug(f"keyframe interval: {fv.ev.kf_int}")
-    logger.debug(f"latency target: {fv.ev.latency_target}")
+    logger.debug("min keyframe interval: %s", fv.ev.min_kf_int)
+    logger.debug("keyframe interval: %s", fv.ev.kf_int)
+    logger.debug("keyframe seconds: %s", fv.ev.kf_sec)
+    logger.debug("latency target: %s", fv.ev.latency_target)
 
 
 def determine_autocrop(fv: EncodeSession) -> None:
