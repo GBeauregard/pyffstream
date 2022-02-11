@@ -968,9 +968,10 @@ def determine_timeseek(fv: EncodeSession) -> None:
         vstart = ffmpeg.duration(fv.v("v", "start_time"))
         astart = ffmpeg.duration(fv.v("a", "start_time"))
         if vstart != astart:
-            fv.ev.timestamp = f"{max(vstart, astart):f}"
             if fv.ev.copy_video:
                 fv.ev.slowseek = True
+            else:
+                fv.ev.timestamp = f"{max(vstart, astart):f}"
 
 
 def determine_bounds(fv: EncodeSession) -> None:
