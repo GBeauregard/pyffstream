@@ -1425,6 +1425,12 @@ def determine_vfilters(fv: EncodeSession) -> None:
 
 
 def get_x264_flags(fv: EncodeSession) -> list[str]:
+    x264_params = ":".join(
+        [
+            "open-gop=0",
+            *(("scenecut=0",) if not fv.ev.vgop else ()),
+        ]
+    )
     # fmt: off
     flags = [
         "-c:v", "libx264",
@@ -1434,7 +1440,7 @@ def get_x264_flags(fv: EncodeSession) -> list[str]:
         "-keyint_min:v", f"{fv.ev.min_kf_int}",
         *(("-sc_threshold:v", "0") if not fv.ev.vgop else ()),
         "-forced-idr:v", "1",
-        *(("-x264-params:v", "scenecut=0") if not fv.ev.vgop else ()),
+        *(("-x264-params:v", x264_params) if x264_params else ()),
         *(("-pass", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
         *(("-passlogfile", f"{fv.ev.passfile}") if fv.ev.passfile is not None else ()),
 
@@ -1449,6 +1455,7 @@ def get_x264_flags(fv: EncodeSession) -> list[str]:
 def get_x265_flags(fv: EncodeSession) -> list[str]:
     x265_params = ":".join(
         [
+            "open-gop=0",
             *(("scenecut=0",) if not fv.ev.vgop else ()),
             *((f"pass={fv.ev.npass}",) if fv.ev.npass is not None else ()),
             *(
