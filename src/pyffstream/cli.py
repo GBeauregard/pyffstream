@@ -1522,7 +1522,7 @@ def main() -> None:
             parser.error(
                 "--write cannot be used with an output argument or other action"
             )
-        parser.error("Must specify at least one output argument")
+        parser.error("Must specify at least one input and output argument")
 
     if args.hevc_nvenc:
         args.vencoder = "hevc_nvenc"
