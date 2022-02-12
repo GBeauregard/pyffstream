@@ -368,7 +368,6 @@ class FFBin:
                     f.write(f"inpoint {inpoint:f}\n")
                 if (fdur := next(durfutures)) is not None:
                     f.write(f"duration {duration(fdur)-inpoint:f}\n")
-        print(playlistpath.read_text())
         return playlistpath
 
     @functools.cached_property
