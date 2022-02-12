@@ -1447,25 +1447,21 @@ def get_x264_flags(fv: EncodeSession) -> list[str]:
 
 
 def get_x265_flags(fv: EncodeSession) -> list[str]:
-    if fv.ev.eightbit:
-        profile = "main"
-    else:
-        profile = "main10"
-    if fv.ev.passfile is not None:
-        escaped_passfile = str(fv.ev.passfile).replace("'", "'\\''")
-    else:
-        escaped_passfile = None
     x265_params = ":".join(
         [
             *(("scenecut=0",) if not fv.ev.vgop else ()),
             *((f"pass={fv.ev.npass}",) if fv.ev.npass is not None else ()),
-            *((f"stats='{escaped_passfile}'",) if fv.ev.passfile is not None else ()),
+            *(
+                (f"stats={ffmpeg.single_quote(fv.ev.passfile)}",)
+                if fv.ev.passfile is not None
+                else ()
+            ),
         ]
     )
     # fmt: off
     flags = [
         "-c:v", "libx265",
-        "-profile:v", profile,
+        "-profile:v", *(("main",) if fv.ev.eightbit else ("main10",)),
         "-preset:v", fv.ev.x26X_preset,
         "-g:v", f"{fv.ev.kf_int}",
         "-keyint_min:v", f"{fv.ev.min_kf_int}",
@@ -1484,14 +1480,10 @@ def get_x265_flags(fv: EncodeSession) -> list[str]:
 # TODO: enable SEI when nvidia fixes their driver (495 series)
 # TODO: make workaround and encode options dependent on ffmpeg version
 def get_nvenc_hevc_flags(fv: EncodeSession) -> list[str]:
-    if fv.ev.eightbit:
-        profile = "main"
-    else:
-        profile = "main10"
     # fmt: off
     flags = [
         "-c:v", "hevc_nvenc",
-        "-profile:v", profile,
+        "-profile:v", *(("main",) if fv.ev.eightbit else ("main10",)),
         "-threads:v", "3",
         "-g:v", f"{fv.ev.kf_int}",
         "-keyint_min:v", f"{fv.ev.min_kf_int}",

@@ -361,7 +361,7 @@ class FFBin:
         with playlistpath.open(mode="x", encoding="utf-8") as f:
             f.write("ffconcat version 1.0\n")
             for fpath in pathlist:
-                f.write("file '" + str(fpath.resolve()).replace("'", "'\\''") + "'\n")
+                f.write(f"file {single_quote(fpath.resolve())}")
                 inpoint = 0.0
                 if (vstart := next(vstarts)) != (astart := next(astarts)):
                     inpoint = max(vstart, astart)
@@ -678,6 +678,11 @@ def duration(timestamp: str | float | int) -> float:
             val /= 1_000_000
         return val
     raise ValueError(f"Invalid ffmpeg duration: {timestamp!r}")
+
+
+def single_quote(unescaped: object) -> str:
+    """Return a single-quote escaped string from input."""
+    return "'" + str(unescaped).replace("'", "'\\''") + "'"
 
 
 class Filter:
