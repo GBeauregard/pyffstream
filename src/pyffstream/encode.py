@@ -670,7 +670,7 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
             if len(pts_list) >= 2:
                 time_diffs = sorted(y - x for x, y in zip(pts_list, pts_list[1:]))
                 min_diff = percentile(time_diffs, 40)
-                max_diff = percentile(time_diffs, 99)
+                max_diff = percentile(time_diffs, 99.5)
                 timebase = fractions.Fraction(fv.v("v", "time_base"))
                 fv.ev.kf_int = str(int(min_diff * timebase * framerate))
                 fv.ev.min_kf_int = fv.ev.kf_int
