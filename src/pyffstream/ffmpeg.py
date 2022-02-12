@@ -361,13 +361,14 @@ class FFBin:
         with playlistpath.open(mode="x", encoding="utf-8") as f:
             f.write("ffconcat version 1.0\n")
             for fpath in pathlist:
-                f.write(f"file {single_quote(fpath.resolve())}")
+                f.write(f"file {single_quote(fpath.resolve())}\n")
                 inpoint = 0.0
                 if (vstart := next(vstarts)) != (astart := next(astarts)):
                     inpoint = max(vstart, astart)
                     f.write(f"inpoint {inpoint:f}\n")
                 if (fdur := next(durfutures)) is not None:
                     f.write(f"duration {duration(fdur)-inpoint:f}\n")
+        print(playlistpath.read_text())
         return playlistpath
 
     @functools.cached_property
