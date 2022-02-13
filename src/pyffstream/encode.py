@@ -706,7 +706,7 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
         fv.ev.min_kf_int = str(int(framerate))
         fv.ev.kf_int = str(max(gop_size, int(fv.ev.min_kf_int)))
     fv.ev.kf_sec = f"{float(seg_length):.7f}"[:-1].rstrip("0").rstrip(".")
-    fv.ev.bufsize = f"{int(float(fv.ev.kf_sec)*int(fv.ev.vbitrate))}"
+    fv.ev.bufsize = f"{2*int(fv.ev.vbitrate)}"
     fv.ev.latency_target = f"{4*float(fv.ev.kf_sec):.8g}"
     if fv.ev.vgop:
         fv.ev.kf_sec = f"{float(fv.ev.kf_sec)/2:.7f}"[:-1].rstrip("0").rstrip(".")
