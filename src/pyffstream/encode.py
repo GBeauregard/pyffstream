@@ -401,8 +401,15 @@ class StaticEncodeVars:
     Needs to be passed to an encode session to initialize it.
     """
 
+    STREAM_PROTOCOLS: ClassVar[set[str]] = {"srt", "rtmp"}
+
+    H264_ENCODERS: ClassVar[set[str]] = {"h264_nvenc", "libx264"}
+    HEVC_ENCODERS: ClassVar[set[str]] = {"hevc_nvenc", "libx265"}
     NVIDIA_ENCODERS: ClassVar[set[str]] = {"hevc_nvenc", "h264_nvenc"}
     SW_ENCODERS: ClassVar[set[str]] = {"libx264", "libx265"}
+    TENBIT_ENCODERS: ClassVar[set[str]] = HEVC_ENCODERS
+    MULTIPASS_ENCODERS: ClassVar[set[str]] = {"libx264", "libx265"}
+    VIDEO_ENCODERS: ClassVar[set[str]] = H264_ENCODERS | HEVC_ENCODERS
     ALLOWED_PRESETS: ClassVar[list[str]] = [
         "placebo",
         "veryslow",
@@ -415,13 +422,10 @@ class StaticEncodeVars:
         "superfast",
         "ultrafast",
     ]
-    H264_ENCODERS: ClassVar[set[str]] = {"h264_nvenc", "libx264"}
-    HEVC_ENCODERS: ClassVar[set[str]] = {"hevc_nvenc", "libx265"}
-    TENBIT_ENCODERS: ClassVar[set[str]] = HEVC_ENCODERS
-    MULTIPASS_ENCODERS: ClassVar[set[str]] = {"libx264", "libx265"}
-    VIDEO_ENCODERS: ClassVar[set[str]] = NVIDIA_ENCODERS | SW_ENCODERS
-    AUDIO_STANDARDS: ClassVar[set[str]] = {"aac", "opus"}
-    STREAM_PROTOCOLS: ClassVar[set[str]] = {"srt", "rtmp"}
+
+    AAC_ENCODERS: ClassVar[set[str]] = {"aac", "libfdk_aac"}
+    OPUS_ENCODERS: ClassVar[set[str]] = {"libopus"}
+    AUDIO_ENCODERS: ClassVar[set[str]] = AAC_ENCODERS | OPUS_ENCODERS
 
     tempdir: pathlib.Path
 
@@ -442,6 +446,7 @@ class StaticEncodeVars:
     kf_target_sec: float = 5.0
     clip_length: str | None = None
     vencoder: str = "libx264"
+    aencoder: str = "aac"
     x26X_preset: str = "medium"
     vstandard: str = "h264"
     astandard: str = "aac"
@@ -523,7 +528,6 @@ class StaticEncodeVars:
     normfile: pathlib.Path | None = None
     dynamicnorm: bool = False
     fix_start_time: bool = True
-    fdk: bool = False
     pyffserver: bool = False
     ffprogress: ffmpeg.Progress[str] = dataclasses.field(
         default_factory=ffmpeg.Progress
@@ -542,9 +546,12 @@ class StaticEncodeVars:
             evars.vstandard = "h264"
         elif evars.vencoder in cls.HEVC_ENCODERS:
             evars.vstandard = "hevc"
-
+        evars.aencoder = args.aencoder
+        if evars.aencoder in cls.AAC_ENCODERS:
+            evars.astandard = "aac"
+        elif evars.aencoder in cls.OPUS_ENCODERS:
+            evars.astandard = "opus"
         evars.x26X_preset = args.preset
-        evars.astandard = args.astandard
         evars.fix_start_time = args.fix_start_time
         evars.dynamicnorm = args.dynamicnorm
         evars.normfile = args.normfile
@@ -556,7 +563,6 @@ class StaticEncodeVars:
         evars.trust_vulkan = args.trust_vulkan
         evars.vulkan_device = args.vulkan_device
         evars.placebo_opts = args.placebo_opts or []
-        evars.fdk = args.fdk
         evars.upscale = args.upscale
         evars.crop = args.crop
         evars.crop_ts = args.croptime
@@ -1566,16 +1572,25 @@ def get_aflags(fv: EncodeSession) -> list[str]:
         logger.debug(f"Using abitrate for copy: {fv.ev.abitrate}")
         return aflags
     # TODO: change to match case in 3.10
-    if fv.ev.astandard == "aac":
-        if fv.ev.fdk:
-            aflags += ["-c:a", "libfdk_aac"]
-        elif "aac" in ffmpeg.ff_bin.aencoders:
-            aflags += ["-c:a", "aac"]
-        else:
-            raise ValueError("No valid aac encoder found.")
-        aflags += ["-b:a", f"{fv.ev.abitrate}", "-cutoff:a", "19000"]
+    if fv.ev.aencoder == "aac":
+        # fmt: off
+        aflags += [
+            "-c:a", "aac",
+            "-b:a", f"{fv.ev.abitrate}",
+            "-cutoff:a", "19000",
+        ]
+        # fmt: on
         return aflags
-    elif fv.ev.astandard == "opus":
+    elif fv.ev.aencoder == "libfdk_aac":
+        # fmt: off
+        aflags += [
+            "-c:a", "libfdk_aac",
+            "-b:a", f"{fv.ev.abitrate}",
+            "-cutoff:a", "19000",
+        ]
+        # fmt: on
+        return aflags
+    elif fv.ev.aencoder == "libopus":
         aflags += ["-c:a", "libopus", "-b:a", f"{fv.ev.abitrate}"]
         return aflags
     raise ValueError("No valid audio encoder parameter selection found.")
@@ -1605,10 +1620,9 @@ def get_vflags(fv: EncodeSession) -> list[str]:
         return get_nvenc_hevc_flags(fv)
     elif fv.ev.vencoder == "h264_nvenc":
         return get_nvenc_h264_flags(fv)
-    else:
-        raise ValueError(
-            f"No valid video encoder parameter selection found: {fv.ev.vencoder!r}"
-        )
+    raise ValueError(
+        f"No valid video encoder parameter selection found: {fv.ev.vencoder!r}"
+    )
 
 
 def set_input_flags(fv: EncodeSession) -> None:

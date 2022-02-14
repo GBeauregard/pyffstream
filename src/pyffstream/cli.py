@@ -661,7 +661,7 @@ class DefaultConfig:
     protocol: str = ENCODE_DEFAULTS.protocol
     vbitrate: str = ENCODE_DEFAULTS.vbitrate
     abitrate: str = ENCODE_DEFAULTS.abitrate
-    astandard: str = ENCODE_DEFAULTS.astandard
+    aencoder: str = ENCODE_DEFAULTS.aencoder
     vencoder: str = ENCODE_DEFAULTS.vencoder
     endpoint: str = ENCODE_DEFAULTS.endpoint
     api_url: str = ENCODE_DEFAULTS.api_url
@@ -673,7 +673,6 @@ class DefaultConfig:
     trust_vulkan: bool = ENCODE_DEFAULTS.trust_vulkan
     vgop: bool = ENCODE_DEFAULTS.vulkan
     vulkan_device: int = ENCODE_DEFAULTS.vulkan_device
-    fdk: bool = ENCODE_DEFAULTS.fdk
     hwaccel: bool = ENCODE_DEFAULTS.hwaccel
     height: int = int(ENCODE_DEFAULTS.target_h)
     shader_list: list[str] = dataclasses.field(default_factory=list)
@@ -897,7 +896,7 @@ def get_parserconfig(
         config.protocol = main_conf.get("protocol", config.protocol)
         config.vbitrate = main_conf.get("vbitrate", config.vbitrate)
         config.abitrate = main_conf.get("abitrate", config.abitrate)
-        config.astandard = main_conf.get("astandard", config.astandard)
+        config.aencoder = main_conf.get("aencoder", config.aencoder)
         config.vencoder = main_conf.get("vencoder", config.vencoder)
         config.preset = main_conf.get("preset", config.preset)
         config.endpoint = main_conf.get("endpoint", config.endpoint)
@@ -909,7 +908,6 @@ def get_parserconfig(
         config.trust_vulkan = main_conf.getboolean("trust_vulkan", config.trust_vulkan)
         config.vgop = main_conf.getboolean("vgop", config.vgop)
         config.vulkan_device = main_conf.getint("vulkan_device", config.vulkan_device)
-        config.fdk = main_conf.getboolean("fdk", config.fdk)
         config.hwaccel = main_conf.getboolean("hwaccel", config.hwaccel)
         config.height = main_conf.getint("height", config.height)
         config.shader_list = main_conf.getlist("shader_list", config.shader_list)
@@ -972,12 +970,6 @@ def get_parserconfig(
         ffmpeg.duration(value)
         return value
 
-    def ffmpeg_astandard(value: str) -> str:
-        lvalue = value.lower()
-        if lvalue not in encode.StaticEncodeVars.AUDIO_STANDARDS:
-            raise argparse.ArgumentTypeError(f"unsupported astandard value: {value!r}")
-        return lvalue
-
     def ffmpeg_protocol(value: str) -> str:
         lvalue = value.lower()
         if lvalue not in encode.StaticEncodeVars.STREAM_PROTOCOLS:
@@ -990,6 +982,12 @@ def get_parserconfig(
         lvalue = value.lower()
         if lvalue not in encode.StaticEncodeVars.ALLOWED_PRESETS:
             raise argparse.ArgumentTypeError(f"unsupported preset value: {value!r}")
+        return lvalue
+
+    def ffmpeg_aencoder(value: str) -> str:
+        lvalue = value.lower()
+        if lvalue not in encode.StaticEncodeVars.AUDIO_ENCODERS:
+            raise argparse.ArgumentTypeError(f"unsupported aencoder value: {value!r}")
         return lvalue
 
     def ffmpeg_vencoder(value: str) -> str:
@@ -1038,11 +1036,11 @@ def get_parserconfig(
         metavar="BITRATE",
     )
     aencoder_group.add_argument(
-        "--astandard",
-        type=ffmpeg_astandard,
-        help="audio encoding standard to use (default: %(default)s)",
-        default=config.astandard,
-        choices=sorted(encode.StaticEncodeVars.AUDIO_STANDARDS),
+        "--aencoder",
+        type=ffmpeg_aencoder,
+        help="audio encoder to use (default: %(default)s)",
+        default=config.aencoder,
+        choices=sorted(encode.StaticEncodeVars.AUDIO_ENCODERS),
     )
     input_group.add_argument(
         "files",
@@ -1201,11 +1199,8 @@ def get_parserconfig(
         action=argparse.BooleanOptionalAction,
         default=config.zscale,
     )
-    audio_parser.add_argument(
-        "--fdk",
-        help="Use libfdk instead of ffmpeg's aac encoder",
-        action=argparse.BooleanOptionalAction,
-        default=config.fdk,
+    aencoder_group.add_argument(
+        "--fdk", help="Use libfdk_aac encoder", action="store_true"
     )
     output_parser.add_argument(
         "-f",
@@ -1532,6 +1527,9 @@ def main() -> None:
     elif args.x264:
         args.vencoder = "libx264"
 
+    if args.fdk:
+        args.aencoder = "libfdk_aac"
+
     if args.obs:
         args.live = True
 
@@ -1556,6 +1554,12 @@ def main() -> None:
                 if not args.copy_video
                 else True
             )
+            aencoder_future = executor.submit(
+                lambda: args.aencoder
+                in encode.StaticEncodeVars.AUDIO_ENCODERS & ffmpeg.ff_bin.aencoders
+                if not args.copy_audio
+                else True
+            )
             zscale_future = executor.submit(
                 lambda: "zscale" in ffmpeg.ff_bin.filters
                 if not args.copy_video and args.zscale
@@ -1566,14 +1570,14 @@ def main() -> None:
                 if not args.copy_audio and args.soxr
                 else True
             )
-            fdk_future = executor.submit(
-                lambda: "libfdk_aac" in ffmpeg.ff_bin.aencoders
-                if not args.copy_audio and args.fdk
-                else True
-            )
             if not vencoder_future.result():
                 parser.error(
                     f"selected vencoder {args.vencoder!r} not supported by ffmpeg"
+                    " installation"
+                )
+            if not aencoder_future.result():
+                parser.error(
+                    f"selected aencoder {args.aencoder!r} not supported by ffmpeg"
                     " installation"
                 )
             if not zscale_future.result():
@@ -1583,10 +1587,6 @@ def main() -> None:
             if not soxr_future.result():
                 parser.error(
                     "soxr specified, but using an ffmpeg build without support"
-                )
-            if not fdk_future.result():
-                parser.error(
-                    "fdk encoder specified, but using an ffmpeg build without support"
                 )
 
     if args.startdelay and (args.copy_video or args.copy_audio):
@@ -1693,7 +1693,7 @@ def main() -> None:
             ConfName("protocol", "protocol"),
             ConfName("vbitrate", "vbitrate"),
             ConfName("abitrate", "abitrate"),
-            ConfName("astandard", "astandard"),
+            ConfName("aencoder", "aencoder"),
             ConfName("vencoder", "vencoder"),
             ConfName("preset", "preset"),
             ConfName("endpoint", "endpoint"),
@@ -1705,7 +1705,6 @@ def main() -> None:
             ConfName("trust_vulkan", "trust_vulkan"),
             ConfName("vgop", "vgop"),
             ConfName("vulkan_device", "vulkan_device"),
-            ConfName("fdk", "fdk"),
             ConfName("hwaccel", "hwaccel"),
             ConfName("height", "height"),
             ConfName("kf_target_sec", "keyframe_target_sec"),
