@@ -1097,7 +1097,7 @@ def get_parserconfig(
         default=config.srt_latency,
         metavar="SEC",
     )
-    aencoder_group.add_argument(
+    output_parser.add_argument(
         "--protocol",
         type=ffmpeg_protocol,
         help="streaming protocol to use (default: %(default)s)",
