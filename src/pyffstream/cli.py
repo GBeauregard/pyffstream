@@ -1222,6 +1222,7 @@ def get_parserconfig(
         metavar="LENGTH",
     )
     input_parser.add_argument(
+        "-D",
         "--deep-probe",
         help="pass extra args to probe input file deeper",
         action="store_true",
@@ -1294,7 +1295,7 @@ def get_parserconfig(
         "--slowseek", help="use slow ffmpeg seeking", action="store_true"
     )
     video_parser.add_argument(
-        "--deinterlace", help="deinterlace video", action="store_true"
+        "-d", "--deinterlace", help="deinterlace video", action="store_true"
     )
     video_parser.add_argument(
         "-C", "--crop", help="automatically crop video", action="store_true"
