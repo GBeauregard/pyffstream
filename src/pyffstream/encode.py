@@ -439,6 +439,7 @@ class StaticEncodeVars:
     endpoint: str = "127.0.0.1:9998"
     target_w: str = "1920"
     target_h: str = "1080"
+    framerate: str = "24/1"
     scale_w: str = target_w
     scale_h: str = target_h
     bound_w: str = "1920"
@@ -658,6 +659,7 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
     if fv.ev.obs:
         fv.sdv("v", "r_frame_rate", fv.ev.decimate_target)
     framerate = fractions.Fraction(fv.v("v", "r_frame_rate"))
+    fv.ev.framerate = str(framerate)
     if fv.ev.copy_video:
         if fv.ev.outfile is not None:
             return
