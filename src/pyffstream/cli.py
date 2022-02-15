@@ -1254,6 +1254,9 @@ def get_parserconfig(
         choices=encode.StaticEncodeVars.ALLOWED_PRESETS,
     )
     video_parser.add_argument(
+        "--tune", help="tune parameter to use for x264/x265 encoding"
+    )
+    video_parser.add_argument(
         "--pass",
         dest="npass",
         help="encoder pass",

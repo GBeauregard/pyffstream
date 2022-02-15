@@ -448,6 +448,7 @@ class StaticEncodeVars:
     vencoder: str = "libx264"
     aencoder: str = "aac"
     x26X_preset: str = "medium"
+    x26X_tune: str | None = None
     vstandard: str = "h264"
     astandard: str = "aac"
     protocol: str = "srt"
@@ -552,6 +553,7 @@ class StaticEncodeVars:
         elif evars.aencoder in cls.OPUS_ENCODERS:
             evars.astandard = "opus"
         evars.x26X_preset = args.preset
+        evars.x26X_tune = args.tune
         evars.fix_start_time = args.fix_start_time
         evars.dynamicnorm = args.dynamicnorm
         evars.normfile = args.normfile
@@ -1449,6 +1451,7 @@ def get_x264_flags(fv: EncodeSession) -> list[str]:
         *(("-x264-params:v", x264_params) if x264_params else ()),
         *(("-pass", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
         *(("-passlogfile", f"{fv.ev.passfile}") if fv.ev.passfile is not None else ()),
+        *(("-tune", f"{fv.ev.x26X_tune}") if fv.ev.x26X_tune is not None else ()),
 
         "-b:v", f"{fv.ev.vbitrate}",
         "-maxrate:v", f"{fv.ev.vbitrate}",
@@ -1480,6 +1483,7 @@ def get_x265_flags(fv: EncodeSession) -> list[str]:
         "-keyint_min:v", f"{fv.ev.min_kf_int}",
         "-forced-idr:v", "1",
         *(("-x265-params:v", x265_params) if x265_params else ()),
+        *(("-tune", f"{fv.ev.x26X_tune}") if fv.ev.x26X_tune is not None else ()),
 
         "-tag:v", "hvc1",
         "-b:v", f"{fv.ev.vbitrate}",
