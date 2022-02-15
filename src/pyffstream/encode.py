@@ -503,7 +503,7 @@ class StaticEncodeVars:
     aindex: int = 0
     sindex: int | None = None
     outfile: pathlib.Path | None = None
-    npass: int = 1
+    npass: int | None = None
     passfile: pathlib.Path | None = None
     wait: bool = False
     fifo: bool = False
