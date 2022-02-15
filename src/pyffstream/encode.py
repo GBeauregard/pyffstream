@@ -280,8 +280,10 @@ class FileStreamVals:
                 return valdict[key]
             except KeyError:
                 logger.warning(
-                    f"File probed for uncached val {key!r} of type {probetype!r} for"
-                    f" {self.selector!r}"
+                    "File probed for uncached val %r of type %r for %r",
+                    key,
+                    probetype,
+                    self.selector,
                 )
                 if self.dont_probe:
                     readval = None
@@ -971,7 +973,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
             fv.norm.setstatus(StatusCode.FAILED, "[red]failed")
             raise ValueError("provided normalization file isn't a file")
     if fv.norm.status is StatusCode.FINISHED:
-        logger.info(f'anormalize filter:\n{fv.filts["anormalize"]}')
+        logger.info("anormalize filter:\n%s", fv.filts["anormalize"])
 
 
 def determine_timeseek(fv: EncodeSession) -> None:
@@ -1167,7 +1169,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
         if result.returncode != 0:
             fv.subs.setstatus(StatusCode.FAILED, "[red]failed")
             logger.warning(
-                f"extracting subtitles failed with exit code {result.returncode}"
+                "extracting subtitles failed with exit code %s", result.returncode
             )
             return []
         if fv.ev.is_playlist and fv.fv("s", "codec_name") == "ass":
@@ -1197,8 +1199,8 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
             if extract_result.returncode != 0:
                 fv.subs.setstatus(StatusCode.FAILED, "[red]failed")
                 logger.warning(
-                    "extracting merged subtitles failed with exit code"
-                    f" {result.returncode}"
+                    "extracting merged subtitles failed with exit code %s",
+                    result.returncode,
                 )
                 return []
             sublines = subass.read_text(
@@ -1245,8 +1247,8 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
             if merge_result.returncode != 0:
                 fv.subs.setstatus(StatusCode.FAILED, "[red]failed")
                 logger.warning(
-                    "merging subtitles with attachments failed with exit code"
-                    f" {result.returncode}"
+                    "merging subtitles with attachments failed with exit code %s",
+                    result.returncode,
                 )
                 return []
     subfilter = ffmpeg.Filter(
@@ -1575,7 +1577,7 @@ def get_aflags(fv: EncodeSession) -> list[str]:
         if (bitrate := fv.fv("a", "bit_rate")) is not None:
             fv.ev.abitrate = bitrate
         aflags += ["-c:a", "copy"]
-        logger.debug(f"Using abitrate for copy: {fv.ev.abitrate}")
+        logger.debug("Using abitrate for copy: %s", fv.ev.abitrate)
         return aflags
     # TODO: change to match case in 3.10
     if fv.ev.aencoder == "aac":
@@ -1615,7 +1617,7 @@ def get_vflags(fv: EncodeSession) -> list[str]:
             or fv.ev.vbitrate
         )
         vflags += ["-c:v", "copy"]
-        logger.debug(f"Using vbitrate for copy: {fv.ev.vbitrate}")
+        logger.debug("Using vbitrate for copy: %s", fv.ev.vbitrate)
         return vflags
     # TODO: match case in 3.10
     if fv.ev.vencoder == "libx264":
@@ -1782,5 +1784,5 @@ def set_ffmpeg_flags(fv: EncodeSession) -> None:
         *fv.ev.output_flags,
     ]
     logger.debug("Encode command:\n%r", ff_flags)
-    logger.info(f"Encode command:\n{' '.join(ff_flags)}")
+    logger.info("Encode command:\n%s", " ".join(ff_flags))
     fv.ev.ff_flags = ff_flags

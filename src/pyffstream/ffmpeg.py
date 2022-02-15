@@ -916,7 +916,7 @@ class Progress(Generic[AnyStr]):
                 try:
                     self.status[split[0]] = split[1]
                 except IndexError:
-                    logger.error(f"unexpected line in progress: {line!r}")
+                    logger.error("unexpected line in progress: %r", line)
             self.progress_avail.set()
             self._packet_avail.wait()
             self._packet_avail.clear()

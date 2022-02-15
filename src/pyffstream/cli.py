@@ -74,7 +74,7 @@ def get_stream_list(
         deep_probe=deep_probe,
     )
     if outjson is None:
-        logger.error(f"getting info for stream {streamtype} failed")
+        logger.error("getting info for stream %s failed", streamtype)
         return []
     if not (allstreams := outjson.get("streams")):
         return []
@@ -532,7 +532,7 @@ def start_stream(fv: encode.EncodeSession) -> None:
     if result.returncode != 0:
         if not logging.getLogger("").isEnabledFor(progress_loglevel):
             logger.error("\n".join(fv.ev.ffprogress.output))
-        logger.error(f"stream finished with exit code {result.returncode}")
+        logger.error("stream finished with exit code %s", result.returncode)
     else:
         console.print("stream finished")
 
@@ -735,7 +735,9 @@ def download_win_ffmpeg(dltype: str = "git") -> bool:
             r = s.get("https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest")
             if r.status_code != 200:
                 logger.error(
-                    f"Fetch failed, server returned error {r.status_code}: {r.reason}"
+                    "Fetch failed, server returned error %s: %s",
+                    r.status_code,
+                    r.reason,
                 )
                 return False
         except requests.exceptions.RequestException:
@@ -791,8 +793,9 @@ def download_win_ffmpeg(dltype: str = "git") -> bool:
                     progress.update(task_id, advance=len(chunk))
                 if response.status_code != 200:
                     logger.error(
-                        f"Fetch failed, server returned error {response.status_code}:"
-                        f" {response.reason}"
+                        "Fetch failed, server returned error %s: %s",
+                        response.status_code,
+                        response.reason,
                     )
                     return False
         except requests.exceptions.RequestException:
@@ -837,8 +840,8 @@ def win_set_local_ffmpeg(dltype: str, env: dict[str, str]) -> None:
             or shutil.which(local_bin / "ffprobe.exe") is None
         ):
             logger.error(
-                "ffmpeg download failed, download manually from"
-                f" {hl_url('https://ffmpeg.org/download.html')} or try again later"
+                "ffmpeg download failed, download manually from %s or try again later",
+                hl_url("https://ffmpeg.org/download.html"),
             )
             raise SystemExit(1)
     ffmpeg.ff_bin = ffmpeg.FFBin(
