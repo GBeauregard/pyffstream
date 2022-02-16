@@ -456,6 +456,7 @@ class StaticEncodeVars:
     astandard: str = "aac"
     protocol: str = "srt"
     vbitrate: str = "6M"
+    max_vbitrate: str = "6M"
     abitrate: str = "256k"
     chlayout: str = "stereo"
     start_delay: str = "30"
@@ -614,6 +615,7 @@ class StaticEncodeVars:
         evars.clip_length = args.cliplength
         evars.verbosity = args.verbose
         evars.vbitrate = str(int(ffmpeg.num(args.vbitrate)))
+        evars.max_vbitrate = evars.vbitrate
         evars.abitrate = str(int(ffmpeg.num(args.abitrate)))
         evars.shader_list = args.shaders
         evars.chlayout = "stereo" if not args.mono else "mono"
@@ -1458,7 +1460,7 @@ def get_x264_flags(fv: EncodeSession) -> list[str]:
         *(("-tune", f"{fv.ev.x26X_tune}") if fv.ev.x26X_tune is not None else ()),
 
         "-b:v", f"{fv.ev.vbitrate}",
-        "-maxrate:v", f"{fv.ev.vbitrate}",
+        "-maxrate:v", f"{fv.ev.max_vbitrate}",
         "-bufsize:v", f"{fv.ev.bufsize}",
     ]
     # fmt: on
@@ -1491,7 +1493,7 @@ def get_x265_flags(fv: EncodeSession) -> list[str]:
 
         "-tag:v", "hvc1",
         "-b:v", f"{fv.ev.vbitrate}",
-        "-maxrate:v", f"{fv.ev.vbitrate}",
+        "-maxrate:v", f"{fv.ev.max_vbitrate}",
         "-bufsize:v", f"{fv.ev.bufsize}",
     ]
     # fmt: on
@@ -1525,7 +1527,7 @@ def get_nvenc_hevc_flags(fv: EncodeSession) -> list[str]:
 
         "-tag:v", "hvc1",
         "-b:v", f"{fv.ev.vbitrate}",
-        "-maxrate:v", f"{fv.ev.vbitrate}",
+        "-maxrate:v", f"{fv.ev.max_vbitrate}",
         "-bufsize:v", f"{fv.ev.bufsize}",
     ]
     # fmt: on
@@ -1559,7 +1561,7 @@ def get_nvenc_h264_flags(fv: EncodeSession) -> list[str]:
         *min_version(("-extra_sei:v", "0"), ("libavcodec", "59.1.101")),
 
         "-b:v", f"{fv.ev.vbitrate}",
-        "-maxrate:v", f"{fv.ev.vbitrate}",
+        "-maxrate:v", f"{fv.ev.max_vbitrate}",
         "-bufsize:v", f"{fv.ev.bufsize}",
     ]
     # fmt: on
