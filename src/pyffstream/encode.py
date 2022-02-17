@@ -476,9 +476,7 @@ class StaticEncodeVars:
     pix_fmt: str = "yuv420p"
     subfile_provided: bool = False
     text_subs: bool = True
-    subfilter_list: Sequence[ffmpeg.Filter | str] = dataclasses.field(
-        default_factory=list
-    )
+    subfilter_list: Sequence[ffmpeg.Filter] = dataclasses.field(default_factory=list)
     kf_int: str = "0"
     min_kf_int: str = "0"
     bufsize: str = "0"
@@ -1116,7 +1114,7 @@ def extract_styles(
     return style_iterator()
 
 
-def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter | str]:
+def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter]:
     subpath = fv.fopts.sfpath
     subindex = fv.ev.sindex
     if not fv.ev.subfile_provided or fv.ev.timestamp is not None:
