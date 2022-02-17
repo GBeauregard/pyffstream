@@ -497,6 +497,7 @@ class StaticEncodeVars:
     ff_verbosity_flags: Sequence[str] = dataclasses.field(default_factory=list)
     ff_deepprobe_flags: Sequence[str] = dataclasses.field(default_factory=list)
     placebo_opts: Sequence[str] = dataclasses.field(default_factory=list)
+    vencoder_params: Sequence[str] = dataclasses.field(default_factory=list)
     copy_audio: bool = False
     copy_video: bool = False
     use_timeline: bool = False
@@ -569,6 +570,7 @@ class StaticEncodeVars:
         evars.trust_vulkan = args.trust_vulkan
         evars.vulkan_device = args.vulkan_device
         evars.placebo_opts = args.placebo_opts or []
+        evars.vencoder_params = args.vencoder_params or []
         evars.upscale = args.upscale
         evars.crop = args.crop
         evars.crop_ts = args.croptime
@@ -1443,6 +1445,7 @@ def get_x264_flags(fv: EncodeSession) -> list[str]:
         [
             "open-gop=0",
             *(("scenecut=0",) if not fv.ev.vgop else ()),
+            *fv.ev.vencoder_params,
         ]
     )
     # fmt: off
@@ -1478,6 +1481,7 @@ def get_x265_flags(fv: EncodeSession) -> list[str]:
                 if fv.ev.passfile is not None
                 else ()
             ),
+            *fv.ev.vencoder_params,
         ]
     )
     # fmt: off
