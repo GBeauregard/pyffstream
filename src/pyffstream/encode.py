@@ -495,6 +495,7 @@ class StaticEncodeVars:
     ff_verbosity_flags: Sequence[str] = dataclasses.field(default_factory=list)
     ff_deepprobe_flags: Sequence[str] = dataclasses.field(default_factory=list)
     placebo_opts: Sequence[str] = dataclasses.field(default_factory=list)
+    sw_filters: Sequence[str] = dataclasses.field(default_factory=list)
     vencoder_params: Sequence[str] = dataclasses.field(default_factory=list)
     copy_audio: bool = False
     copy_video: bool = False
@@ -568,6 +569,7 @@ class StaticEncodeVars:
         evars.trust_vulkan = args.trust_vulkan
         evars.vulkan_device = args.vulkan_device
         evars.placebo_opts = args.placebo_opts or []
+        evars.sw_filters = args.sw_filters or []
         evars.vencoder_params = args.vencoder_params or []
         evars.upscale = args.upscale
         evars.crop = args.crop
@@ -1423,6 +1425,7 @@ def determine_vfilters(fv: EncodeSession) -> None:
     ]
     vfilter_list = [
         *fv.filts.if_exists("deinterlace"),
+        *fv.ev.sw_filters,
         *fv.filts.if_exists("startpadfilt"),
         *fv.filts.if_exists("endpadfilt"),
         *(sub_and_crop if fv.ev.subfirst else ()),
