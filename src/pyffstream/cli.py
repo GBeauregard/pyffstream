@@ -1340,11 +1340,13 @@ def get_parserconfig(
         "--placebo-opts",
         help="pass option to vf_libplacebo when using vulkan such as gamma=1.1",
         action="append",
+        metavar="OPT",
     )
     video_parser.add_argument(
         "--vencoder-params",
         help="pass option to params argument of x264/x265 such as frame-dup=1",
         action="append",
+        metavar="PARAM",
     )
     subtitle_parser.add_argument(
         "-z",
