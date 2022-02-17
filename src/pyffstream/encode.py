@@ -524,7 +524,7 @@ class StaticEncodeVars:
     is_playlist: bool = False
     eightbit: bool = False
     cropsecond: bool = False
-    subfirst: bool = False
+    subcropfirst: bool = False
     delay_start: bool = False
     deinterlace: bool = False
     crop: bool = False
@@ -577,7 +577,7 @@ class StaticEncodeVars:
         evars.crop_len = args.croplength
         evars.deinterlace = args.deinterlace
         evars.cropsecond = args.cropsecond
-        evars.subfirst = args.subfirst
+        evars.subcropfirst = args.subfirst
         evars.delay_start = args.startdelay
         evars.end_pad = args.endpad
         evars.is_playlist = args.playlist
@@ -756,7 +756,7 @@ def determine_autocrop(fv: EncodeSession) -> None:
         )
     ]
     detect_filters: list[ffmpeg.Filter | str] = [
-        *(prescale if not fv.ev.subfirst else ()),
+        *(prescale if not fv.ev.subcropfirst else ()),
         "cropdetect=round=2",
     ]
     # fmt: off
@@ -1263,7 +1263,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter]:
 
 
 def get_picsub_list(fv: EncodeSession) -> list[ffmpeg.Filter]:
-    if fv.ev.subfirst or not fv.ev.vulkan:
+    if fv.ev.subcropfirst or not fv.ev.vulkan:
         if re.fullmatch(r"yuv[ja]?4[0-4]{2}p", fv.v("v", "pix_fmt")):
             overlay_fmt = "yuv420"
         else:
@@ -1372,18 +1372,22 @@ def get_hwtransfer(
     prescale_transfer: list[ffmpeg.Filter] = []
     sw_transfer: list[ffmpeg.Filter] = []
     encode_transfer: list[ffmpeg.Filter] = []
+
+    if not fv.ev.subs and not fv.ev.crop:
+        fv.ev.subcropfirst = True
+
     if fv.ev.vulkan:
         if not fv.ev.trust_vulkan:
             prescale_transfer += [ffmpeg.Filter("hwupload")]
         prescale_transfer += [ffmpeg.Filter("hwupload", "derive_device=vulkan")]
 
-    if fv.ev.vulkan and not fv.ev.subfirst:
+    if fv.ev.vulkan and not fv.ev.subcropfirst:
         sw_transfer += [
             ffmpeg.Filter("hwdownload"),
             ffmpeg.Filter("format", fv.ev.pix_fmt),
         ]
 
-    if fv.ev.vulkan and fv.ev.subfirst:
+    if fv.ev.vulkan and fv.ev.subcropfirst:
         if fv.ev.vencoder in fv.ev.SW_ENCODERS:
             encode_transfer += [
                 ffmpeg.Filter("hwdownload"),
@@ -1428,11 +1432,11 @@ def determine_vfilters(fv: EncodeSession) -> None:
         *fv.ev.sw_filters,
         *fv.filts.if_exists("startpadfilt"),
         *fv.filts.if_exists("endpadfilt"),
-        *(sub_and_crop if fv.ev.subfirst else ()),
+        *(sub_and_crop if fv.ev.subcropfirst else ()),
         *prescale_transfer,
         fv.filts["scale"],
         *sw_transfer,
-        *(sub_and_crop if not fv.ev.subfirst else ()),
+        *(sub_and_crop if not fv.ev.subcropfirst else ()),
         *encode_transfer,
     ]
     fv.ev.filter_complex = ffmpeg.Filter.complex_join(
