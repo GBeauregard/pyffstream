@@ -1364,7 +1364,7 @@ def get_parserconfig(
         "--subfirst",
         help="render subtitles and crop video before scaling",
         action=argparse.BooleanOptionalAction,
-        default=ENCODE_DEFAULTS.subfirst,
+        default=ENCODE_DEFAULTS.subcropfirst,
     )
     decimate_group.add_argument(
         "--nodecimate",
