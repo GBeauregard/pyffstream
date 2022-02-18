@@ -586,7 +586,7 @@ def process_file(
     file_string = str(fpath)
     if args.bluray:
         file_string = f"bluray:{file_string}"
-    infile_args += ["-i", file_string]
+    infile_args += [*args.preinput_opts, "-i", file_string]
     if args.subfile is None:
         insubfile_args, sfpath = infile_args, fpath
     else:
@@ -1085,6 +1085,14 @@ def get_parserconfig(
         type=ffmpeg_duration_str,
         help="timestamp to start stream from",
         metavar="TIMESTAMP",
+    )
+    parser.add_argument(
+        "-I",
+        "--preinput-opts",
+        help="pass option ffmpeg before input (specify once/item)",
+        default=[],
+        action="append",
+        metavar="OPT",
     )
     output_parser.add_argument(
         "--pyffserver",
