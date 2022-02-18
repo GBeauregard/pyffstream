@@ -1621,11 +1621,6 @@ def main() -> None:
     if args.startdelay and args.timestamp is not None:
         parser.error("timestamp seeking cannot be used with a start delay")
 
-    if args.eightbit and args.vencoder not in encode.StaticEncodeVars.TENBIT_ENCODERS:
-        parser.error(
-            "8-bit encoding must be specified with encoder that supports 10-bit"
-        )
-
     if args.passfile is not None and args.npass is None:
         parser.error("Multipass statfile writing requires picking a pass mode")
 
