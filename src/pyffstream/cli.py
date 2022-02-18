@@ -1366,7 +1366,7 @@ def get_parserconfig(
     )
     video_parser.add_argument(
         "--vencoder-params",
-        help="pass option to params argument of x264/x265 (specify once/param)",
+        help="pass option to params argument of encoders (specify once/param)",
         action="append",
         metavar="PARAM",
     )
