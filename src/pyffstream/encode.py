@@ -455,9 +455,9 @@ class StaticEncodeVars:
     vstandard: str = "h264"
     astandard: str = "aac"
     protocol: str = "srt"
-    vbitrate: str = "6M"
-    max_vbitrate: str = "6M"
-    abitrate: str = "256k"
+    vbitrate: str = str(ffmpeg.num("6M"))
+    max_vbitrate: str = str(ffmpeg.num("6M"))
+    abitrate: str = str(ffmpeg.num("256k"))
     chlayout: str = "stereo"
     start_delay: str = "30"
     end_pad: bool = True
@@ -617,7 +617,9 @@ class StaticEncodeVars:
         evars.clip_length = args.cliplength
         evars.verbosity = args.verbose
         evars.vbitrate = str(int(args.vbitrate))
-        evars.max_vbitrate = evars.vbitrate
+        evars.max_vbitrate = (
+            str(int(args.max_vbitrate)) if args.max_vbitrate else evars.vbitrate
+        )
         evars.abitrate = str(int(args.abitrate))
         evars.shader_list = args.shaders
         evars.chlayout = "stereo" if not args.mono else "mono"

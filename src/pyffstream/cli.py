@@ -1029,6 +1029,12 @@ def get_parserconfig(
         default=config.vbitrate,
         metavar="BITRATE",
     )
+    video_parser.add_argument(
+        "--max-vbitrate",
+        type=ffmpeg_number,
+        help="max encoding video bitrate (ffmpeg num) (default: vbitrate)",
+        metavar="BITRATE",
+    )
     audio_parser.add_argument(
         "-A",
         "--abitrate",
@@ -1606,6 +1612,9 @@ def main() -> None:
                 parser.error(
                     "soxr specified, but using an ffmpeg build without support"
                 )
+
+    if args.max_vbitrate is not None and args.vbitrate > args.max_vbitrate:
+        parser.error("maximum video bitrate must not be less than video bitrate")
 
     if args.startdelay and (args.copy_video or args.copy_audio):
         parser.error("audio/video copying cannot be used with a start delay")
