@@ -965,11 +965,11 @@ def get_parserconfig(
             )
         return fvalue
 
-    def ffmpeg_number(value: str) -> str:
+    def ffmpeg_number_str(value: str) -> str:
         ffmpeg.num(value)
         return value
 
-    def ffmpeg_duration(value: str) -> str:
+    def ffmpeg_duration_str(value: str) -> str:
         ffmpeg.duration(value)
         return value
 
@@ -1025,7 +1025,7 @@ def get_parserconfig(
     video_parser.add_argument(
         "-b",
         "--vbitrate",
-        type=ffmpeg_number,
+        type=ffmpeg_number_str,
         help="encoding video bitrate (ffmpeg num) (default: %(default)s)",
         default=config.vbitrate,
         metavar="BITRATE",
@@ -1033,7 +1033,7 @@ def get_parserconfig(
     audio_parser.add_argument(
         "-A",
         "--abitrate",
-        type=ffmpeg_number,
+        type=ffmpeg_number_str,
         help="encoding audio bitrate (ffmpeg num) (default: %(default)s)",
         default=config.abitrate,
         metavar="BITRATE",
@@ -1074,7 +1074,7 @@ def get_parserconfig(
     parser.add_argument(
         "-t",
         "--timestamp",
-        type=ffmpeg_duration,
+        type=ffmpeg_duration_str,
         help="timestamp to start stream from",
         metavar="TIMESTAMP",
     )
@@ -1215,7 +1215,7 @@ def get_parserconfig(
     output_parser.add_argument(
         "-T",
         "--cliplength",
-        type=ffmpeg_duration,
+        type=ffmpeg_duration_str,
         help="clip stream to this length",
         metavar="LENGTH",
     )
@@ -1303,14 +1303,14 @@ def get_parserconfig(
     )
     video_parser.add_argument(
         "--croptime",
-        type=ffmpeg_duration,
+        type=ffmpeg_duration_str,
         help="timestamp to start crop calculation at (default: %(default)s)",
         default=ENCODE_DEFAULTS.crop_ts,
         metavar="TIMESTAMP",
     )
     video_parser.add_argument(
         "--croplength",
-        type=ffmpeg_duration,
+        type=ffmpeg_duration_str,
         help="duration to estimate crop for (default: %(default)s)",
         default=ENCODE_DEFAULTS.crop_len,
         metavar="DURATION",
