@@ -965,8 +965,8 @@ def get_parserconfig(
             )
         return fvalue
 
-    def ffmpeg_number(value: str) -> float:
-        return ffmpeg.num(value)
+    def ffmpeg_number_int(value: str) -> int:
+        return int(ffmpeg.num(value))
 
     def ffmpeg_duration_str(value: str) -> str:
         ffmpeg.duration(value)
@@ -1024,21 +1024,21 @@ def get_parserconfig(
     video_parser.add_argument(
         "-b",
         "--vbitrate",
-        type=ffmpeg_number,
+        type=ffmpeg_number_int,
         help="encoding video bitrate (ffmpeg num) (default: %(default)s)",
         default=config.vbitrate,
         metavar="BITRATE",
     )
     video_parser.add_argument(
         "--max-vbitrate",
-        type=ffmpeg_number,
+        type=ffmpeg_number_int,
         help="max encoding video bitrate (ffmpeg num) (default: vbitrate)",
         metavar="BITRATE",
     )
     audio_parser.add_argument(
         "-A",
         "--abitrate",
-        type=ffmpeg_number,
+        type=ffmpeg_number_int,
         help="encoding audio bitrate (ffmpeg num) (default: %(default)s)",
         default=config.abitrate,
         metavar="BITRATE",
