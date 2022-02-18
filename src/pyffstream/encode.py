@@ -616,9 +616,9 @@ class StaticEncodeVars:
         evars.kf_target_sec = args.keyframe_target_sec
         evars.clip_length = args.cliplength
         evars.verbosity = args.verbose
-        evars.vbitrate = str(int(ffmpeg.num(args.vbitrate)))
+        evars.vbitrate = str(int(args.vbitrate))
         evars.max_vbitrate = evars.vbitrate
-        evars.abitrate = str(int(ffmpeg.num(args.abitrate)))
+        evars.abitrate = str(int(args.abitrate))
         evars.shader_list = args.shaders
         evars.chlayout = "stereo" if not args.mono else "mono"
         evars.timestamp = args.timestamp
