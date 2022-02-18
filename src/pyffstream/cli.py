@@ -116,7 +116,10 @@ class InfoKeys:
             "start_time",
             "color_range",
         },
-        set[str](),
+        {
+            "sample_aspect_ratio",
+            "display_aspect_ratio",
+        },
         {"index"},
     ]
     VSTREAM_TAGS: Final = [
