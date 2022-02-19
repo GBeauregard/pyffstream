@@ -1323,7 +1323,7 @@ def get_parserconfig(
     )
     video_parser.add_argument(
         "--framerate-multiplier",
-        help="fraction to multiply bitrate by (say, because a filter modifies it)",
+        help="fraction to multiply framerate by (e.g. because a filter modifies it)",
         type=fractions.Fraction,
         default=fractions.Fraction(1),
     )
