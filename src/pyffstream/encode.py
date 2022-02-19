@@ -1731,7 +1731,7 @@ def set_srt_flags(fv: EncodeSession) -> None:
     BPS_MULTIPLIER: Final = 5.0
     BPS: Final[int] = int(BPS_MULTIPLIER * int(fv.ev.vbitrate) + int(fv.ev.abitrate))
     PAYLOAD_SIZE: Final[int] = 1316
-    MSS: Final[int] = 1360
+    MSS: Final[int] = PAYLOAD_SIZE + 44
     LATENCY_SEC: Final = fv.ev.srt_latency
     LATENCY_USEC: Final[int] = int(LATENCY_SEC * 1_000_000)
     FULL_LATENCY_SEC: Final = LATENCY_SEC + RTT_SEC / 2
