@@ -442,6 +442,7 @@ class StaticEncodeVars:
     target_w: str = "1920"
     target_h: str = "1080"
     framerate: str = "24/1"
+    framerate_multiplier: fractions.Fraction = fractions.Fraction(1)
     scale_w: str = target_w
     scale_h: str = target_h
     bound_w: str = "1920"
@@ -614,6 +615,7 @@ class StaticEncodeVars:
         evars.api_key = args.api_key
         evars.target_w = str(math.ceil(args.height * 16 / 9))
         evars.target_h = str(args.height)
+        evars.framerate_multiplier = args.framerate_multiplier
         evars.kf_target_sec = args.keyframe_target_sec
         evars.clip_length = args.cliplength
         evars.verbosity = args.verbose
@@ -668,6 +670,7 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
     if fv.ev.obs:
         fv.sdv("v", "r_frame_rate", fv.ev.decimate_target)
     framerate = fractions.Fraction(fv.v("v", "r_frame_rate"))
+    framerate *= fv.ev.framerate_multiplier
     fv.ev.framerate = str(framerate)
     if fv.ev.copy_video:
         if fv.ev.outfile is not None:

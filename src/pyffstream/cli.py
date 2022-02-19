@@ -7,6 +7,7 @@ import concurrent.futures
 import configparser
 import copy
 import dataclasses
+import fractions
 import itertools
 import logging
 import logging.handlers
@@ -1313,6 +1314,12 @@ def get_parserconfig(
     )
     video_parser.add_argument(
         "-d", "--deinterlace", help="deinterlace video", action="store_true"
+    )
+    video_parser.add_argument(
+        "--framerate-multiplier",
+        help="fraction to multiply bitrate by (say, because a filter modifies it)",
+        type=fractions.Fraction,
+        default=fractions.Fraction(1),
     )
     video_parser.add_argument(
         "-C", "--crop", help="automatically crop video", action="store_true"
