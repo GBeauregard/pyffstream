@@ -465,6 +465,7 @@ class StaticEncodeVars:
     end_pad: bool = True
     end_delay: str = "600"
     timestamp: str | None = None
+    suboffset: str | None = None
     # timestamp to attempt crop at (can be ffmpeg timestamp)
     crop_ts: str = "600"
     # crop length (ditto)
@@ -627,6 +628,7 @@ class StaticEncodeVars:
         evars.shader_list = args.shaders
         evars.chlayout = "stereo" if not args.mono else "mono"
         evars.timestamp = args.timestamp
+        evars.suboffset = args.suboffset
         evars.eightbit = args.eightbit
         evars.pix_fmt = (
             ("yuv420p10le" if args.vencoder in cls.SW_ENCODERS else "p010le")
@@ -1141,6 +1143,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter]:
             "-hide_banner",
             *(("-hwaccel", "auto") if fv.ev.hwaccel else ()),
             "-fix_sub_duration",
+            *(("-itsoffset", fv.ev.suboffset) if fv.ev.suboffset is not None else ()),
             *fv.fopts.subtitle,
             *(
                 ("-ss", "0")
@@ -1277,12 +1280,25 @@ def get_picsub_list(fv: EncodeSession) -> list[ffmpeg.Filter]:
     else:
         overlay_fmt = "yuv420" if fv.ev.eightbit else "yuv420p10"
     subfilter_list = [
+        *(
+            (
+                ffmpeg.Filter(
+                    "setpts",
+                    f"PTS{ffmpeg.duration(fv.ev.suboffset):+0.6f}/TB",
+                    src=[f"{int(fv.ev.subfile_provided)}:s:{fv.ev.sindex}"],
+                ),
+            )
+            if fv.ev.suboffset is not None
+            else ()
+        ),
         ffmpeg.Filter(
             "scale2ref",
             "w='trunc(min(ih*mdar,iw))'",
             "h='trunc(min(ih,iw/mdar))'",
             "flags=bicubic",
-            src=[f"{int(fv.ev.subfile_provided)}:s:{fv.ev.sindex}", 0],
+            src=[f"{int(fv.ev.subfile_provided)}:s:{fv.ev.sindex}", 0]
+            if fv.ev.suboffset is None
+            else [1, 0],
             dst=[0, 1],
         ),
         ffmpeg.Filter("overlay", "(W-w)/2", "H-h", f"format={overlay_fmt}", src=[1, 0]),

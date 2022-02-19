@@ -1177,6 +1177,12 @@ def get_parserconfig(
         type=int_ge_zero,
         metavar="N",
     )
+    subtitle_parser.add_argument(
+        "--suboffset",
+        help="timestamp to offset subtitle timing by",
+        type=ffmpeg_duration_str,
+        metavar="TIMESTAMP",
+    )
     audio_parser.add_argument(
         "-a",
         "--aindex",
