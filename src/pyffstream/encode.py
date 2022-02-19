@@ -1763,8 +1763,8 @@ def set_srt_flags(fv: EncodeSession) -> None:
     FULL_LATENCY_SEC: Final = LATENCY_SEC + RTT_SEC / 2
     TARGET_PAYLOAD_BYTES: Final = FULL_LATENCY_SEC * BPS / 8
     FC_WINDOW: Final[int] = math.ceil(TARGET_PAYLOAD_BYTES / PAYLOAD_SIZE)
-    UDPHDRSIZE: Final = IPV4_MAX_HEADER + UDP_SIZE
-    RCVBUF: Final[int] = math.ceil(FC_WINDOW * (MSS - UDPHDRSIZE))
+    UDPHDR_SIZE: Final = IPV4_MAX_HEADER + UDP_SIZE
+    RCVBUF: Final[int] = math.ceil(FC_WINDOW * (MSS - UDPHDR_SIZE))
     srt_options = [
         "mode=caller",
         "transtype=live",
