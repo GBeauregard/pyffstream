@@ -528,6 +528,7 @@ class StaticEncodeVars:
     eightbit: bool = False
     cropsecond: bool = False
     subcropfirst: bool = False
+    picsubscale: str = "bicubic"
     delay_start: bool = False
     deinterlace: bool = False
     crop: bool = False
@@ -581,6 +582,7 @@ class StaticEncodeVars:
         evars.deinterlace = args.deinterlace
         evars.cropsecond = args.cropsecond
         evars.subcropfirst = args.subfirst
+        evars.picsubscale = args.picsubscale
         evars.delay_start = args.startdelay
         evars.end_pad = args.endpad
         evars.is_playlist = args.playlist
@@ -1295,7 +1297,7 @@ def get_picsub_list(fv: EncodeSession) -> list[ffmpeg.Filter]:
             "scale2ref",
             "w='trunc(min(ih*mdar,iw))'",
             "h='trunc(min(ih,iw/mdar))'",
-            "flags=bicubic",
+            f"flags={fv.ev.picsubscale}",
             src=[f"{int(fv.ev.subfile_provided)}:s:{fv.ev.sindex}", 0]
             if fv.ev.suboffset is None
             else [1, 0],

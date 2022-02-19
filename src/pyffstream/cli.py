@@ -1395,6 +1395,12 @@ def get_parserconfig(
         action=argparse.BooleanOptionalAction,
         default=ENCODE_DEFAULTS.subcropfirst,
     )
+    subtitle_parser.add_argument(
+        "--picsubscale",
+        help="algorithm to use for scaling picture subtitles (default: %(default)s)",
+        default=ENCODE_DEFAULTS.picsubscale,
+        metavar="ALGORITHM",
+    )
     decimate_group.add_argument(
         "--nodecimate",
         help="don't decimate 30 fps obs input to 24 fps",
