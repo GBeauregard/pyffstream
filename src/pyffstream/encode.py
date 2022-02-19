@@ -38,6 +38,7 @@ class FileOpts(NamedTuple):
 
 class EncodeSession:
     VSTREAMS: Final = {
+        "index",
         "width",
         "height",
         "start_time",
@@ -46,13 +47,13 @@ class EncodeSession:
         "pix_fmt",
         "codec_name",
         "bit_rate",
-        "index",
     }
     VSTREAM_TAGS: Final = {
         "BPS",
         "BPS-eng",
     }
     ASTREAMS: Final = {
+        "index",
         "start_time",
         "codec_name",
         "sample_rate",
@@ -61,9 +62,9 @@ class EncodeSession:
     }
     ASTREAM_TAGS: Final = set[str]()
     SSTREAMS: Final = {
+        "index",
         "codec_type",
         "codec_name",
-        "index",
     }
     SSTREAM_TAGS: Final = set[str]()
     VDISPOSITIONS: Final = set[str]()
