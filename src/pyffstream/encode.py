@@ -1283,12 +1283,15 @@ def get_picsub_list(fv: EncodeSession) -> list[ffmpeg.Filter]:
     else:
         overlay_fmt = "yuv420" if fv.ev.eightbit else "yuv420p10"
     subfilter_list = [
+        ffmpeg.Filter(
+            "premultiply",
+            "inplace=1",
+            src=[f"{int(fv.ev.subfile_provided)}:s:{fv.ev.sindex}"],
+        ),
         *(
             (
                 ffmpeg.Filter(
-                    "setpts",
-                    f"PTS{ffmpeg.duration(fv.ev.suboffset):+0.6f}/TB",
-                    src=[f"{int(fv.ev.subfile_provided)}:s:{fv.ev.sindex}"],
+                    "setpts", f"PTS{ffmpeg.duration(fv.ev.suboffset):+0.6f}/TB"
                 ),
             )
             if fv.ev.suboffset is not None
@@ -1299,9 +1302,7 @@ def get_picsub_list(fv: EncodeSession) -> list[ffmpeg.Filter]:
             "w='trunc(min(ih*mdar,iw))'",
             "h='trunc(min(ih,iw/mdar))'",
             f"flags={fv.ev.picsubscale}",
-            src=[f"{int(fv.ev.subfile_provided)}:s:{fv.ev.sindex}", 0]
-            if fv.ev.suboffset is None
-            else [1, 0],
+            src=[1, 0],
             dst=[0, 1],
         ),
         ffmpeg.Filter("overlay", "(W-w)/2", "H-h", f"format={overlay_fmt}", src=[1, 0]),
