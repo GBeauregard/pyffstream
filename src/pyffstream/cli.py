@@ -388,6 +388,7 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
         "pixfmt": fv.ev.pix_fmt,
         "astandard": fv.ev.astandard,
         "sample_rate": fv.ev.samplerate,
+        "chlayout": fv.ev.chlayout,
         "framerate": fv.ev.framerate,
         "keyframe_int": fv.ev.kf_int,
         "keyframe_sec": fv.ev.kf_sec,
