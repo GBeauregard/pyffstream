@@ -60,7 +60,10 @@ class EncodeSession:
         "bit_rate",
         "channel_layout",
     }
-    ASTREAM_TAGS: Final = set[str]()
+    ASTREAM_TAGS: Final = {
+        "BPS",
+        "BPS-eng",
+    }
     SSTREAMS: Final = {
         "index",
         "codec_type",
@@ -1612,8 +1615,12 @@ def get_aflags(fv: EncodeSession) -> list[str]:
         fv.ev.samplerate = fv.fv("a", "sample_rate") or "unknown"
         fv.ev.chlayout = fv.fv("a", "channel_layout") or "unknown"
         # better expressed with PEP 505
-        if (bitrate := fv.fv("a", "bit_rate")) is not None:
-            fv.ev.abitrate = bitrate
+        fv.ev.abitrate = (
+            fv.fv("a", "bit_rate")
+            or fv.fv("a", "BPS", ffmpeg.ProbeType.TAGS)
+            or fv.fv("a", "BPS-eng", ffmpeg.ProbeType.TAGS)
+            or fv.ev.abitrate
+        )
         aflags += ["-c:a", "copy"]
         logger.debug("Using abitrate for copy: %s", fv.ev.abitrate)
         return aflags
