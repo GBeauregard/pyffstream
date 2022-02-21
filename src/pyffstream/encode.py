@@ -1134,10 +1134,10 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter]:
     subpath = fv.fopts.sfpath
     subindex = fv.ev.sindex
     if not fv.ev.subfile_provided or fv.ev.timestamp is not None:
-        if fv.fv("s", "codec_name") == "mov_text":
-            sub_container = "mp4"
-        else:
-            sub_container = "mkv"
+        CONVERT_SUBS: Final = {"eia_608"}
+        container_map: dict[str | None, str] = {k: "mkv" for k in CONVERT_SUBS}
+        container_map |= {"mov_text": "mp4"}
+        sub_container = container_map.get(fv.fv("s", "codec_name"), "mkv")
         subpath = fv.ev.tempdir / f"subs.{sub_container}"
         subindex = 0
         ffprogress = ffmpeg.Progress[str]()
@@ -1157,7 +1157,7 @@ def get_textsub_list(fv: EncodeSession) -> list[ffmpeg.Filter]:
                 else ("-ss", fv.ev.timestamp)
             ),
             "-vn", "-an",
-            "-c:s", "copy",
+            "-c:s", "copy" if fv.fv("s", "codec_name") not in CONVERT_SUBS else "ass",
             "-map", f"0:s:{fv.ev.sindex}",
             "-map", "0:t?",
             "-y",
