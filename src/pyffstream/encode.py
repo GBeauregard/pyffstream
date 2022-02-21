@@ -1609,7 +1609,7 @@ def get_aflags(fv: EncodeSession) -> list[str]:
         return ["-an"]
     if fv.ev.copy_audio:
         fv.ev.astandard = fv.v("a", "codec_name")
-        fv.ev.samplerate = fv.v("a", "sample_rate")
+        fv.ev.samplerate = fv.fv("a", "sample_rate") or "unknown"
         fv.ev.chlayout = fv.fv("a", "channel_layout") or "unknown"
         # better expressed with PEP 505
         if (bitrate := fv.fv("a", "bit_rate")) is not None:
