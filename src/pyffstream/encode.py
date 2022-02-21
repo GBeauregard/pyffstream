@@ -1405,18 +1405,20 @@ def get_hwtransfer(
     if not fv.ev.subs and not fv.ev.crop:
         fv.ev.subcropfirst = True
 
+    need_postscale_sw = not fv.ev.subcropfirst
+
     if fv.ev.vulkan:
         if not fv.ev.trust_vulkan:
             prescale_transfer += [ffmpeg.Filter("hwupload")]
         prescale_transfer += [ffmpeg.Filter("hwupload", "derive_device=vulkan")]
 
-    if fv.ev.vulkan and not fv.ev.subcropfirst:
+    if fv.ev.vulkan and need_postscale_sw:
         sw_transfer += [
             ffmpeg.Filter("hwdownload"),
             ffmpeg.Filter("format", fv.ev.pix_fmt),
         ]
 
-    if fv.ev.vulkan and fv.ev.subcropfirst:
+    if fv.ev.vulkan and not need_postscale_sw:
         if fv.ev.vencoder in fv.ev.SW_ENCODERS:
             encode_transfer += [
                 ffmpeg.Filter("hwdownload"),
