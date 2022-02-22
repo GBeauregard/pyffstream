@@ -470,6 +470,7 @@ class StaticEncodeVars:
     end_delay: str = "600"
     timestamp: str | None = None
     suboffset: str | None = None
+    cleanborders: list[int] | None = None
     # timestamp to attempt crop at (can be ffmpeg timestamp)
     crop_ts: str = "600"
     # crop length (ditto)
@@ -635,6 +636,7 @@ class StaticEncodeVars:
         evars.chlayout = "stereo" if not args.mono else "mono"
         evars.timestamp = args.timestamp
         evars.suboffset = args.suboffset
+        evars.cleanborders = args.cleanborders
         evars.eightbit = args.eightbit
         evars.pix_fmt = (
             ("yuv420p10le" if args.vencoder in cls.SW_ENCODERS else "p010le")
@@ -1402,7 +1404,7 @@ def get_hwtransfer(
     sw_transfer: list[ffmpeg.Filter] = []
     encode_transfer: list[ffmpeg.Filter] = []
 
-    if not fv.ev.subs and not fv.ev.crop:
+    if not fv.ev.subs and not fv.ev.crop and not fv.ev.cleanborders:
         fv.ev.subcropfirst = True
 
     need_postscale_sw = not fv.ev.subcropfirst
@@ -1447,16 +1449,19 @@ def determine_vfilters(fv: EncodeSession) -> None:
         determine_decimation(fv)
     if fv.ev.deinterlace:
         fv.filts["deinterlace"] = ["bwdif", "0"]
+    if fv.ev.cleanborders:
+        fv.filts["cleanborders"] = ["fillborders", *map(str, fv.ev.cleanborders)]
     if fv.ev.end_pad and not fv.ev.live and fv.ev.outfile is None:
         fv.filts["endpadfilt"] = ["tpad", f"stop_duration={fv.ev.end_delay}"]
     if fv.ev.delay_start:
         fv.filts["startpadfilt"] = ["tpad", f"start_duration={fv.ev.start_delay}"]
     prescale_transfer, sw_transfer, encode_transfer = get_hwtransfer(fv)
     close_futures(futures)
+    crop_and_clean = [*fv.filts.if_exists("vcrop"), *fv.filts.if_exists("cleanborders")]
     sub_and_crop = [
-        *(fv.filts.if_exists("vcrop") if not fv.ev.cropsecond else ()),
+        *(crop_and_clean if not fv.ev.cropsecond else ()),
         *fv.ev.subfilter_list,
-        *(fv.filts.if_exists("vcrop") if fv.ev.cropsecond else ()),
+        *(crop_and_clean if fv.ev.cropsecond else ()),
     ]
     vfilter_list = [
         *fv.filts.if_exists("deinterlace"),

@@ -1339,6 +1339,13 @@ def get_parserconfig(
         metavar="TIMESTAMP",
     )
     video_parser.add_argument(
+        "--cleanborders",
+        type=int_ge_zero,
+        nargs=4,
+        help="Clean up N pixels of border after crop",
+        metavar=("LEFT", "RIGHT", "TOP", "BOTTOM"),
+    )
+    video_parser.add_argument(
         "--croplength",
         type=ffmpeg_duration_str,
         help="duration to estimate crop for (default: %(default)s)",
