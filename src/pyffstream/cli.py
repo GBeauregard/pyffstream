@@ -121,6 +121,7 @@ class InfoKeys:
             "avg_frame_rate",
             "sample_aspect_ratio",
             "display_aspect_ratio",
+            "time_base",
         },
         {"index"},
     ]
