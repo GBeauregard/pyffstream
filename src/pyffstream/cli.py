@@ -118,6 +118,7 @@ class InfoKeys:
             "color_range",
         },
         {
+            "avg_frame_rate",
             "sample_aspect_ratio",
             "display_aspect_ratio",
         },
