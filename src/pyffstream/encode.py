@@ -1790,7 +1790,7 @@ def set_srt_flags(fv: EncodeSession) -> None:
         "pbkeylen=32",
         f"mss={MSS}",
         f"payload_size={PAYLOAD_SIZE}",
-        "connect_timeout=6000",
+        "connect_timeout=8000",
         f"rcvlatency={LATENCY_USEC}",
         f"peerlatency={LATENCY_USEC}",
         f"ffs={FC_WINDOW}",
