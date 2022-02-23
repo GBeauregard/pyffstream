@@ -839,6 +839,8 @@ def determine_autocrop(fv: EncodeSession) -> None:
 
 
 def determine_afilters(fv: EncodeSession) -> None:
+    if fv.fv("a", "channel_layout") == "mono":
+        fv.ev.chlayout = "mono"
     if fv.fv("a", "channel_layout") != fv.ev.chlayout:
         fv.filts["adownmix"] = [
             "aresample",
