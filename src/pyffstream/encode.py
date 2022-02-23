@@ -886,7 +886,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
             f"i={fv.ev.target_i}",
             f"lra={fv.ev.target_lra}",
             f"tp={fv.ev.target_tp}",
-            "dual_mono=true",
+            *(("dual_mono=true",) if fv.ev.chlayout == "mono" else ()),
             "linear=false",
         ]
         fv.norm.setstatus(StatusCode.FINISHED, "success")
@@ -900,7 +900,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
                     f"i={fv.ev.target_i}",
                     f"lra={fv.ev.target_lra}",
                     f"tp={fv.ev.target_tp}",
-                    "dual_mono=true",
+                    *(("dual_mono=true",) if fv.ev.chlayout == "mono" else ()),
                     "linear=true",
                     f'measured_i={json_map["input_i"]}',
                     f'measured_lra={json_map["input_lra"]}',
@@ -924,7 +924,7 @@ def determine_anormalize(fv: EncodeSession) -> None:
                     f"i={fv.ev.target_i}",
                     f"lra={fv.ev.target_lra}",
                     f"tp={fv.ev.target_tp}",
-                    "dual_mono=true",
+                    *(("dual_mono=true",) if fv.ev.chlayout == "mono" else ()),
                     "print_format=json",
                 ),
             ]
