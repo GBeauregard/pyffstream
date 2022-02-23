@@ -1776,7 +1776,9 @@ def set_srt_flags(fv: EncodeSession) -> None:
     UDPHDR_SIZE: Final = IPV4_MAX_HEADER + UDP_SIZE
     SRT_HEADER: Final[int] = 16
     HEADER_SIZE = UDPHDR_SIZE + SRT_HEADER
-    PAYLOAD_SIZE: Final[int] = 1316
+    MTU: Final[int] = 1500
+    # alternatively payload can be 1316 for mpegts
+    PAYLOAD_SIZE: Final[int] = MTU - HEADER_SIZE
     MSS: Final[int] = PAYLOAD_SIZE + HEADER_SIZE
     LATENCY_SEC: Final = fv.ev.srt_latency
     LATENCY_USEC: Final[int] = int(LATENCY_SEC * 1_000_000)
