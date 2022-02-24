@@ -1802,10 +1802,11 @@ def set_srt_flags(fv: EncodeSession) -> None:
     ]
     srt_opts = "&".join(srt_options)
     srt_flags = ["-flush_packets", "0"]
+    srt_format = "matroska" if fv.ev.pyffserver else "mpegts"
     if fv.ev.fifo:
-        srt_flags += get_fifo_flags("mpegts")
+        srt_flags += get_fifo_flags(srt_format)
     else:
-        srt_flags += ["-f", "mpegts"]
+        srt_flags += ["-f", srt_format]
     srt_flags += [f"srt://{fv.ev.endpoint}?{srt_opts}"]
     fv.ev.output_flags = srt_flags
 
