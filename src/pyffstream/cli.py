@@ -674,7 +674,7 @@ class DefaultConfig:
     api_url: str = ENCODE_DEFAULTS.api_url
     api_key: str = ENCODE_DEFAULTS.api_key
     soxr: bool = ENCODE_DEFAULTS.soxr
-    preset: str = ENCODE_DEFAULTS.x26X_preset
+    preset: str = ENCODE_DEFAULTS.encode_preset
     zscale: bool = ENCODE_DEFAULTS.zscale
     vulkan: bool = ENCODE_DEFAULTS.vulkan
     trust_vulkan: bool = ENCODE_DEFAULTS.trust_vulkan
@@ -1277,13 +1277,13 @@ def get_parserconfig(
     )
     video_parser.add_argument(
         "--preset",
-        help="preset to use for x264/x265 encoding (default: %(default)s)",
+        help="preset to use for encoding (default: %(default)s)",
         type=ffmpeg_preset,
         default=config.preset,
         choices=encode.StaticEncodeVars.ALLOWED_PRESETS,
     )
     video_parser.add_argument(
-        "--tune", help="tune parameter to use for x264/x265 encoding"
+        "--tune", help="tune parameter to use for supported encoders"
     )
     video_parser.add_argument(
         "--pass",
