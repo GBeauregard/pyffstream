@@ -1718,20 +1718,22 @@ def get_vflags(fv: EncodeSession) -> list[str]:
         return vflags
     # TODO: match case in 3.10
     if fv.ev.vencoder == "libx264":
-        return get_x264_flags(fv)
+        vflags = get_x264_flags(fv)
     elif fv.ev.vencoder == "h264_nvenc":
-        return get_nvenc_h264_flags(fv)
+        vflags = get_nvenc_h264_flags(fv)
     elif fv.ev.vencoder == "libx265":
-        return get_x265_flags(fv)
+        vflags = get_x265_flags(fv)
     elif fv.ev.vencoder == "hevc_nvenc":
-        return get_nvenc_hevc_flags(fv)
+        vflags = get_nvenc_hevc_flags(fv)
     elif fv.ev.vencoder == "libaom-av1":
-        return get_libaom_av1_flags(fv)
+        vflags = get_libaom_av1_flags(fv)
     elif fv.ev.vencoder == "libsvtav1":
-        return get_libsvtav1_flags(fv)
-    raise ValueError(
-        f"No valid video encoder parameter selection found: {fv.ev.vencoder!r}"
-    )
+        vflags = get_libsvtav1_flags(fv)
+    else:
+        raise ValueError(
+            f"No valid video encoder parameter selection found: {fv.ev.vencoder!r}"
+        )
+    return vflags
 
 
 def set_input_flags(fv: EncodeSession) -> None:
