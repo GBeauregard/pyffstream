@@ -464,7 +464,7 @@ class Params:
         "libsvtav1": VEncoder(
             name="libsvtav1",
             codec="av1",
-            presets=range(9),  # larger faster
+            presets=range(-1, 14),  # larger faster
             tenbit=True,
         ),
         "libvpx-vp9": VEncoder(
@@ -1645,7 +1645,6 @@ def get_libsvtav1_flags(fv: EncodeSession) -> list[str]:
         "-g:v", f"{fv.ev.kf_int}",
         "-keyint_min:v", f"{fv.ev.min_kf_int}",
         *(("-svtav1-params:v", svtav1_params) if svtav1_params else ()),
-        "-rc:v", "cvbr",
         *(("-sc_detection:v", "0") if not fv.ev.vgop else ()),
         *(("-preset:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
 
