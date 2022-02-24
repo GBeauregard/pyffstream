@@ -1805,7 +1805,7 @@ def set_srt_flags(fv: EncodeSession) -> None:
     if fv.ev.fifo:
         srt_flags += get_fifo_flags("mpegts")
     else:
-        srt_flags += ["-f", "mpegts", "-mpegts_flags", "+initial_discontinuity"]
+        srt_flags += ["-f", "mpegts"]
     srt_flags += [f"srt://{fv.ev.endpoint}?{srt_opts}"]
     fv.ev.output_flags = srt_flags
 
