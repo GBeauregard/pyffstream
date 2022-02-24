@@ -701,7 +701,7 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
             ]
             if len(pts_list) >= 2:
                 time_diffs = sorted(y - x for x, y in zip(pts_list, pts_list[1:]))
-                min_diff = percentile(time_diffs, 30)
+                min_diff = percentile(time_diffs, 40)
                 max_diff = percentile(time_diffs, 99.5)
                 timebase = fractions.Fraction(fv.v("v", "time_base"))
                 fv.ev.kf_int = str(int(min_diff * timebase * framerate))
@@ -710,7 +710,7 @@ def do_framerate_calcs(fv: EncodeSession) -> None:
                     f"{float(min_diff*timebase):.7f}"[:-1].rstrip("0").rstrip(".")
                 )
                 fv.ev.latency_target = (
-                    f"{max(4*float(fv.ev.kf_sec), float(2*max_diff*timebase)):.8g}"
+                    f"{max(5*float(fv.ev.kf_sec), float(3.5*max_diff*timebase)):.8g}"
                 )
                 logger.debug("keyframe interval: %s", fv.ev.kf_int)
                 logger.debug("keyframe seconds: %s", fv.ev.kf_sec)
