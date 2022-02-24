@@ -412,11 +412,25 @@ class StaticEncodeVars:
     H264_ENCODERS: ClassVar[set[str]] = {"h264_nvenc", "libx264"}
     HEVC_ENCODERS: ClassVar[set[str]] = {"hevc_nvenc", "libx265"}
     AV1_ENCODERS: ClassVar[set[str]] = {"libaom-av1", "libsvtav1"}
+    VP9_ENCODERS: ClassVar[set[str]] = {"libvpx-vp9"}
     NVIDIA_ENCODERS: ClassVar[set[str]] = {"hevc_nvenc", "h264_nvenc"}
-    SW_ENCODERS: ClassVar[set[str]] = {"libx264", "libx265", "libaom-av1", "libsvtav1"}
-    TENBIT_ENCODERS: ClassVar[set[str]] = HEVC_ENCODERS | AV1_ENCODERS
-    MULTIPASS_ENCODERS: ClassVar[set[str]] = {"libx264", "libx265", "libaom-av1"}
-    VIDEO_ENCODERS: ClassVar[set[str]] = H264_ENCODERS | HEVC_ENCODERS | AV1_ENCODERS
+    SW_ENCODERS: ClassVar[set[str]] = {
+        "libx264",
+        "libx265",
+        "libaom-av1",
+        "libsvtav1",
+        "libvpx-vp9",
+    }
+    TENBIT_ENCODERS: ClassVar[set[str]] = HEVC_ENCODERS | AV1_ENCODERS | VP9_ENCODERS
+    MULTIPASS_ENCODERS: ClassVar[set[str]] = {
+        "libx264",
+        "libx265",
+        "libaom-av1",
+        "libvpx-vp9",
+    }
+    VIDEO_ENCODERS: ClassVar[set[str]] = (
+        H264_ENCODERS | HEVC_ENCODERS | AV1_ENCODERS | VP9_ENCODERS
+    )
     ALLOWED_PRESETS: ClassVar[list[str]] = [
         "placebo",
         "veryslow",
@@ -1601,6 +1615,24 @@ def get_libsvtav1_flags(fv: EncodeSession) -> list[str]:
     return flags
 
 
+def get_libvpx_vp9_flags(fv: EncodeSession) -> list[str]:
+    # fmt: off
+    flags = [
+        "-c:v", "libvpx-vp9",
+        "-g:v", f"{fv.ev.kf_int}",
+        "-keyint_min:v", f"{fv.ev.min_kf_int}",
+        *(("-tune", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
+        *(("-pass", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
+        "-cpu-used", f"{min(fv.ev.ALLOWED_PRESETS.index(fv.ev.encode_preset), 8)}",
+
+        "-b:v", f"{fv.ev.vbitrate}",
+        "-maxrate:v", f"{fv.ev.max_vbitrate}",
+        "-bufsize:v", f"{fv.ev.bufsize}",
+    ]
+    # fmt: on
+    return flags
+
+
 # TODO: enable SEI when nvidia fixes their driver (495 series)
 # TODO: make workaround and encode options dependent on ffmpeg version
 def get_nvenc_hevc_flags(fv: EncodeSession) -> list[str]:
@@ -1741,6 +1773,8 @@ def get_vflags(fv: EncodeSession) -> list[str]:
         vflags = get_libaom_av1_flags(fv)
     elif fv.ev.vencoder == "libsvtav1":
         vflags = get_libsvtav1_flags(fv)
+    elif fv.ev.vencoder == "libvpx-vp9":
+        vflags = get_libvpx_vp9_flags(fv)
     else:
         raise ValueError(
             f"No valid video encoder parameter selection found: {fv.ev.vencoder!r}"
