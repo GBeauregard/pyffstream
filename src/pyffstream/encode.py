@@ -520,6 +520,7 @@ class StaticEncodeVars:
     npass: int | None = None
     passfile: pathlib.Path | None = None
     wait: bool = False
+    overwrite: bool = False
     fifo: bool = False
     soxr: bool = False
     zscale: bool = False
@@ -606,6 +607,7 @@ class StaticEncodeVars:
                 evars.decimate_target = "24/1"
         evars.obs = args.obs
         evars.wait = args.wait
+        evars.overwrite = args.overwrite
         evars.fifo = args.fifo
         evars.slowseek = args.slowseek
         evars.live = args.live
@@ -1551,7 +1553,11 @@ def get_x265_flags(fv: EncodeSession) -> list[str]:
 
 
 def get_libaom_av1_flags(fv: EncodeSession) -> list[str]:
-    aom_params = ":".join(fv.ev.vencoder_params)
+    aom_params = ":".join(
+        [
+            *fv.ev.vencoder_params,
+        ]
+    )
     # fmt: off
     flags = [
         "-c:v", "libaom-av1",
@@ -1572,7 +1578,11 @@ def get_libaom_av1_flags(fv: EncodeSession) -> list[str]:
 
 
 def get_libsvtav1_flags(fv: EncodeSession) -> list[str]:
-    svtav1_params = ":".join(fv.ev.vencoder_params)
+    svtav1_params = ":".join(
+        [
+            *fv.ev.vencoder_params,
+        ]
+    )
     # fmt: off
     flags = [
         "-c:v", "libsvtav1",
@@ -1800,10 +1810,10 @@ def get_fifo_flags(fifo_format: str) -> list[str]:
 
 def set_output_flags(fv: EncodeSession) -> None:
     if fv.ev.outfile is not None:
-        if fv.ev.npass in (1, 3):
-            fv.ev.output_flags = ["-f", "null", "-"]
-        else:
-            fv.ev.output_flags = [str(fv.ev.outfile)]
+        fv.ev.output_flags = [
+            *(("-y",) if fv.ev.overwrite else ()),
+            *(("-f", "null", "-") if fv.ev.npass in (1, 3) else (str(fv.ev.outfile),)),
+        ]
         return
     if fv.ev.protocol == "srt":
         set_srt_flags(fv)

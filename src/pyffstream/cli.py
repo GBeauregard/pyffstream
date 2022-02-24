@@ -1105,6 +1105,12 @@ def get_parserconfig(
         default=config.pyffserver,
     )
     output_parser.add_argument(
+        "-y",
+        "--overwrite",
+        help="overwrite output file if it already exists",
+        action="store_true",
+    )
+    output_parser.add_argument(
         "--srt-passphrase",
         help="optional passphrase to use for SRT when not streaming to a pyffserver",
         type=str,
@@ -1724,7 +1730,7 @@ def main() -> None:
     if args.timestamp and args.live:
         parser.error("timestamp seeking can't be used with live input")
 
-    if args.outfile is not None and args.outfile.exists():
+    if not args.overwrite and args.outfile is not None and args.outfile.exists():
         parser.error("output file can't already exist")
 
     if args.playlist and not args.files:
