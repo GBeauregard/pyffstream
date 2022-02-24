@@ -1286,6 +1286,12 @@ def get_parserconfig(
         "--tune", help="tune parameter to use for supported encoders"
     )
     video_parser.add_argument(
+        "--realtime",
+        help="tune for realtime encoding on encoders that support it",
+        action=argparse.BooleanOptionalAction,
+        default=ENCODE_DEFAULTS.realtime,
+    )
+    video_parser.add_argument(
         "--pass",
         dest="npass",
         help="encoder pass",

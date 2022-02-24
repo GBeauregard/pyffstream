@@ -458,6 +458,7 @@ class StaticEncodeVars:
     aencoder: str = "aac"
     encode_preset: str = "medium"
     encode_tune: str | None = None
+    realtime: bool = False
     vstandard: str = "h264"
     astandard: str = "aac"
     protocol: str = "srt"
@@ -568,6 +569,7 @@ class StaticEncodeVars:
             evars.astandard = "opus"
         evars.encode_preset = args.preset
         evars.encode_tune = args.tune
+        evars.realtime = args.realtime
         evars.fix_start_time = args.fix_start_time
         evars.dynamicnorm = args.dynamicnorm
         evars.normfile = args.normfile
@@ -1559,6 +1561,7 @@ def get_libaom_av1_flags(fv: EncodeSession) -> list[str]:
         *(("-tune", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
         *(("-pass", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
         "-cpu-used", f"{min(fv.ev.ALLOWED_PRESETS.index(fv.ev.encode_preset), 8)}",
+        *(("-usage", "realtime") if fv.ev.realtime else ()),
 
         "-b:v", f"{fv.ev.vbitrate}",
         "-maxrate:v", f"{fv.ev.max_vbitrate}",
