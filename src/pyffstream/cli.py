@@ -386,7 +386,7 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
     """Communicate with a pyffserver API to set up encode session."""
     payload = {"key": fv.ev.api_key}
     json_payload = {
-        "vstandard": fv.ev.vstandard,
+        "vstandard": fv.ev.vencoder.codec,
         "pixfmt": fv.ev.pix_fmt,
         "astandard": fv.ev.astandard,
         "sample_rate": fv.ev.samplerate,
@@ -669,12 +669,16 @@ class DefaultConfig:
     vbitrate: str = ENCODE_DEFAULTS.vbitrate
     abitrate: str = ENCODE_DEFAULTS.abitrate
     aencoder: str = ENCODE_DEFAULTS.aencoder
-    vencoder: str = ENCODE_DEFAULTS.vencoder
+    vencoder: str = ENCODE_DEFAULTS.vencoder.name
     endpoint: str = ENCODE_DEFAULTS.endpoint
     api_url: str = ENCODE_DEFAULTS.api_url
     api_key: str = ENCODE_DEFAULTS.api_key
     soxr: bool = ENCODE_DEFAULTS.soxr
-    preset: str = ENCODE_DEFAULTS.encode_preset
+    preset: dict[str, str | None] = dataclasses.field(
+        default_factory=lambda: {
+            k: v.default_preset for k, v in encode.Params.VIDEO_ENCODERS.items()
+        }
+    )
     zscale: bool = ENCODE_DEFAULTS.zscale
     vulkan: bool = ENCODE_DEFAULTS.vulkan
     trust_vulkan: bool = ENCODE_DEFAULTS.trust_vulkan
@@ -908,7 +912,6 @@ def get_parserconfig(
         config.abitrate = main_conf.get("abitrate", config.abitrate)
         config.aencoder = main_conf.get("aencoder", config.aencoder)
         config.vencoder = main_conf.get("vencoder", config.vencoder)
-        config.preset = main_conf.get("preset", config.preset)
         config.endpoint = main_conf.get("endpoint", config.endpoint)
         config.api_url = main_conf.get("api_url", config.api_url)
         config.api_key = main_conf.get("api_key", config.api_key)
@@ -934,6 +937,10 @@ def get_parserconfig(
         env_config.read(conf_list, encoding="utf-8")
         for key in env_config["env"]:
             config.env[key] = env_config["env"][key]
+
+    if "preset" in parsed_config.sections():
+        preset_conf = parsed_config["preset"]
+        config.preset |= preset_conf
 
     parser = argparse.ArgumentParser(
         description="CLI frontend for streaming over SRT and RTMP.",
@@ -981,27 +988,21 @@ def get_parserconfig(
 
     def ffmpeg_protocol(value: str) -> str:
         lvalue = value.lower()
-        if lvalue not in encode.StaticEncodeVars.STREAM_PROTOCOLS:
+        if lvalue not in encode.Params.STREAM_PROTOCOLS:
             raise argparse.ArgumentTypeError(
                 f"unsupported stream protocol value: {value!r}"
             )
         return lvalue
 
-    def ffmpeg_preset(value: str) -> str:
-        lvalue = value.lower()
-        if lvalue not in encode.StaticEncodeVars.ALLOWED_PRESETS:
-            raise argparse.ArgumentTypeError(f"unsupported preset value: {value!r}")
-        return lvalue
-
     def ffmpeg_aencoder(value: str) -> str:
         lvalue = value.lower()
-        if lvalue not in encode.StaticEncodeVars.AUDIO_ENCODERS:
+        if lvalue not in encode.Params.AUDIO_ENCODERS:
             raise argparse.ArgumentTypeError(f"unsupported aencoder value: {value!r}")
         return lvalue
 
     def ffmpeg_vencoder(value: str) -> str:
         lvalue = value.lower()
-        if lvalue not in encode.StaticEncodeVars.VIDEO_ENCODERS:
+        if lvalue not in encode.Params.VIDEO_ENCODERS:
             raise argparse.ArgumentTypeError(f"unsupported vencoder value: {value!r}")
         return lvalue
 
@@ -1055,7 +1056,7 @@ def get_parserconfig(
         type=ffmpeg_aencoder,
         help="audio encoder to use (default: %(default)s)",
         default=config.aencoder,
-        choices=sorted(encode.StaticEncodeVars.AUDIO_ENCODERS),
+        choices=sorted(encode.Params.AUDIO_ENCODERS),
     )
     input_group.add_argument(
         "files",
@@ -1129,7 +1130,7 @@ def get_parserconfig(
         type=ffmpeg_protocol,
         help="streaming protocol to use (default: %(default)s)",
         default=config.protocol,
-        choices=sorted(encode.StaticEncodeVars.STREAM_PROTOCOLS),
+        choices=sorted(encode.Params.STREAM_PROTOCOLS),
     )
     output_parser.add_argument(
         "-U",
@@ -1281,13 +1282,7 @@ def get_parserconfig(
     vencoder_group.add_argument(
         "-x", "--x264", help="encode with x264", action="store_true"
     )
-    video_parser.add_argument(
-        "--preset",
-        help="preset to use for encoding (default: %(default)s)",
-        type=ffmpeg_preset,
-        default=config.preset,
-        choices=encode.StaticEncodeVars.ALLOWED_PRESETS,
-    )
+    video_parser.add_argument("--preset", help="preset to use for encoding")
     video_parser.add_argument(
         "--tune", help="tune parameter to use for supported encoders"
     )
@@ -1322,7 +1317,7 @@ def get_parserconfig(
         type=ffmpeg_vencoder,
         help="video encoder to use (default: %(default)s)",
         default=config.vencoder,
-        choices=sorted(encode.StaticEncodeVars.VIDEO_ENCODERS),
+        choices=sorted(encode.Params.VIDEO_ENCODERS),
     )
     video_parser.add_argument(
         "-u",
@@ -1625,14 +1620,12 @@ def main() -> None:
     if not args.print_info:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             vencoder_future = executor.submit(
-                lambda: args.vencoder
-                in encode.StaticEncodeVars.VIDEO_ENCODERS & ffmpeg.ff_bin.vencoders
+                lambda: args.vencoder in ffmpeg.ff_bin.vencoders
                 if not args.copy_video
                 else True
             )
             aencoder_future = executor.submit(
-                lambda: args.aencoder
-                in encode.StaticEncodeVars.AUDIO_ENCODERS & ffmpeg.ff_bin.aencoders
+                lambda: args.aencoder in ffmpeg.ff_bin.aencoders
                 if not args.copy_audio
                 else True
             )
@@ -1665,6 +1658,9 @@ def main() -> None:
                     "soxr specified, but using an ffmpeg build without support"
                 )
 
+    if args.preset is None:
+        args.preset = config.preset[args.vencoder]
+
     if args.max_vbitrate is not None and args.vbitrate > args.max_vbitrate:
         parser.error("maximum video bitrate must not be less than video bitrate")
 
@@ -1678,8 +1674,13 @@ def main() -> None:
 
     if (
         args.npass is not None or args.passfile is not None
-    ) and args.vencoder not in encode.StaticEncodeVars.MULTIPASS_ENCODERS:
+    ) and not encode.Params.VIDEO_ENCODERS[args.vencoder].multipass:
         parser.error(f"{args.vencoder!r} does not support multipass encoding")
+
+    if args.preset is not None and args.preset not in map(
+        str, encode.Params.VIDEO_ENCODERS[args.vencoder].presets
+    ):
+        parser.error(f"Invalid encoding preset passed for {args.vencoder!r}")
 
     if args.eightbit and args.vencoder == "hevc_nvenc":
         logger.warning(
@@ -1769,7 +1770,6 @@ def main() -> None:
             ConfName("abitrate", "abitrate"),
             ConfName("aencoder", "aencoder"),
             ConfName("vencoder", "vencoder"),
-            ConfName("preset", "preset"),
             ConfName("endpoint", "endpoint"),
             ConfName("api_url", "api_url"),
             ConfName("api_key", "api_key"),
@@ -1785,10 +1785,14 @@ def main() -> None:
             ConfName("srt_latency", "srt_latency"),
         }
         for conf in conf_names:
-            if getattr(config, conf.file_name) != getattr(
-                args, conf.arg_name, getattr(config, conf.file_name)
-            ):
+            confvarname = getattr(config, conf.file_name)
+            if confvarname != getattr(args, conf.arg_name, confvarname):
                 main_section[conf.file_name] = str(getattr(args, conf.arg_name))
+        preset_default = config.preset[args.vencoder]
+        if args.preset and preset_default != (args.preset or preset_default):
+            if "preset" not in new_config.sections():
+                new_full_config.add_section("preset")
+            new_full_config["preset"][args.vencoder] = args.preset
         new_full_config["pyffstream"] = new_config["pyffstream"]
 
         console.print(f"Writing defaults to config path:\n{hl_path(config_path)}")

@@ -401,37 +401,8 @@ def min_version(
 
 
 @dataclasses.dataclass
-class StaticEncodeVars:
-    """Class holding general encoding parameters.
-
-    Needs to be passed to an encode session to initialize it.
-    """
-
-    STREAM_PROTOCOLS: ClassVar[set[str]] = {"srt", "rtmp"}
-
-    H264_ENCODERS: ClassVar[set[str]] = {"h264_nvenc", "libx264"}
-    HEVC_ENCODERS: ClassVar[set[str]] = {"hevc_nvenc", "libx265"}
-    AV1_ENCODERS: ClassVar[set[str]] = {"libaom-av1", "libsvtav1"}
-    VP9_ENCODERS: ClassVar[set[str]] = {"libvpx-vp9"}
-    NVIDIA_ENCODERS: ClassVar[set[str]] = {"hevc_nvenc", "h264_nvenc"}
-    SW_ENCODERS: ClassVar[set[str]] = {
-        "libx264",
-        "libx265",
-        "libaom-av1",
-        "libsvtav1",
-        "libvpx-vp9",
-    }
-    TENBIT_ENCODERS: ClassVar[set[str]] = HEVC_ENCODERS | AV1_ENCODERS | VP9_ENCODERS
-    MULTIPASS_ENCODERS: ClassVar[set[str]] = {
-        "libx264",
-        "libx265",
-        "libaom-av1",
-        "libvpx-vp9",
-    }
-    VIDEO_ENCODERS: ClassVar[set[str]] = (
-        H264_ENCODERS | HEVC_ENCODERS | AV1_ENCODERS | VP9_ENCODERS
-    )
-    ALLOWED_PRESETS: ClassVar[list[str]] = [
+class VEncoder:
+    X26X_PRESETS: ClassVar[list[str]] = [
         "placebo",
         "veryslow",
         "slower",
@@ -443,10 +414,78 @@ class StaticEncodeVars:
         "superfast",
         "ultrafast",
     ]
+    name: str
+    codec: str
+    presets: Iterable[object] = dataclasses.field(default_factory=list)
+    default_preset: str | None = None
+    tenbit: bool = False
+    software: bool = True
+    nvidia: bool = False
+    multipass: bool = False
 
+
+class Params:
+    STREAM_PROTOCOLS: ClassVar[set[str]] = {"srt", "rtmp"}
+    VIDEO_ENCODERS: ClassVar[dict[str, VEncoder]] = {
+        "libx264": VEncoder(
+            name="libx264",
+            codec="h264",
+            presets=VEncoder.X26X_PRESETS,
+            default_preset="medium",
+            multipass=True,
+        ),
+        "h264_nvenc": VEncoder(
+            name="h264_nvenc",
+            codec="h264",
+            software=False,
+            nvidia=True,
+        ),
+        "libx265": VEncoder(
+            name="libx265",
+            codec="hevc",
+            presets=VEncoder.X26X_PRESETS,
+            tenbit=True,
+            multipass=True,
+        ),
+        "hevc_nvenc": VEncoder(
+            name="hevc_nvenc",
+            codec="hevc",
+            tenbit=True,
+            software=False,
+            nvidia=True,
+        ),
+        "libaom-av1": VEncoder(
+            name="libaom-av1",
+            codec="av1",
+            presets=range(9),  # larger faster
+            tenbit=True,
+            multipass=True,
+        ),
+        "libsvtav1": VEncoder(
+            name="libsvtav1",
+            codec="av1",
+            presets=range(9),  # larger faster
+            tenbit=True,
+        ),
+        "libvpx-vp9": VEncoder(
+            name="libvpx-vp9",
+            codec="vp9",
+            presets=range(-8, 9),  # larger faster
+            tenbit=True,
+            multipass=True,
+        ),
+    }
     AAC_ENCODERS: ClassVar[set[str]] = {"aac", "libfdk_aac"}
     OPUS_ENCODERS: ClassVar[set[str]] = {"libopus"}
     AUDIO_ENCODERS: ClassVar[set[str]] = AAC_ENCODERS | OPUS_ENCODERS
+
+
+@dataclasses.dataclass
+class StaticEncodeVars:
+    """Class holding general encoding parameters.
+
+    Needs to be passed to an encode session to initialize it.
+    """
 
     tempdir: pathlib.Path
 
@@ -468,9 +507,9 @@ class StaticEncodeVars:
     bound_h: str = "1080"
     kf_target_sec: float = 5.0
     clip_length: str | None = None
-    vencoder: str = "libx264"
+    vencoder: VEncoder = Params.VIDEO_ENCODERS["libx264"]
     aencoder: str = "aac"
-    encode_preset: str = "medium"
+    encode_preset: str | None = None
     encode_tune: str | None = None
     realtime: bool = False
     vstandard: str = "h264"
@@ -572,15 +611,12 @@ class StaticEncodeVars:
         evars.protocol = args.protocol
         evars.srt_passphrase = args.srt_passphrase
         evars.srt_latency = args.srt_latency
-        evars.vencoder = args.vencoder
-        if evars.vencoder in cls.H264_ENCODERS:
-            evars.vstandard = "h264"
-        elif evars.vencoder in cls.HEVC_ENCODERS:
-            evars.vstandard = "hevc"
+        evars.vencoder = Params.VIDEO_ENCODERS[args.vencoder]
+        evars.vstandard = evars.vencoder.codec
         evars.aencoder = args.aencoder
-        if evars.aencoder in cls.AAC_ENCODERS:
+        if evars.aencoder in Params.AAC_ENCODERS:
             evars.astandard = "aac"
-        elif evars.aencoder in cls.OPUS_ENCODERS:
+        elif evars.aencoder in Params.OPUS_ENCODERS:
             evars.astandard = "opus"
         evars.encode_preset = args.preset
         evars.encode_tune = args.tune
@@ -658,8 +694,8 @@ class StaticEncodeVars:
         evars.cleanborders = args.cleanborders
         evars.eightbit = args.eightbit
         evars.pix_fmt = (
-            ("yuv420p10le" if args.vencoder in cls.SW_ENCODERS else "p010le")
-            if args.vencoder in cls.TENBIT_ENCODERS and not args.eightbit
+            ("yuv420p10le" if evars.vencoder.software else "p010le")
+            if evars.vencoder.tenbit and not args.eightbit
             else "yuv420p"
         )
         evars.eightbit = evars.pix_fmt == "yuv420p"
@@ -1442,18 +1478,20 @@ def get_hwtransfer(
         ]
 
     if fv.ev.vulkan and not need_postscale_sw:
-        if fv.ev.vencoder in fv.ev.SW_ENCODERS:
+        if fv.ev.vencoder.software:
             encode_transfer += [
                 ffmpeg.Filter("hwdownload"),
                 ffmpeg.Filter("format", fv.ev.pix_fmt),
             ]
-        elif fv.ev.vencoder in fv.ev.NVIDIA_ENCODERS:
+        elif fv.ev.vencoder.nvidia:
             encode_transfer += [ffmpeg.Filter("hwupload", "derive_device=cuda")]
         else:
-            raise ValueError(f"No valid transfer found for encoder {fv.ev.vencoder!r}.")
+            raise ValueError(
+                f"No valid transfer found for encoder {fv.ev.vencoder.name!r}."
+            )
     else:
         encode_transfer += [ffmpeg.Filter("format", fv.ev.pix_fmt)]
-        if fv.ev.vencoder in fv.ev.NVIDIA_ENCODERS:
+        if fv.ev.vencoder.nvidia:
             encode_transfer += [ffmpeg.Filter("hwupload", "derive_device=cuda")]
 
     return prescale_transfer, sw_transfer, encode_transfer
@@ -1514,15 +1552,19 @@ def get_x264_flags(fv: EncodeSession) -> list[str]:
     flags = [
         "-c:v", "libx264",
         "-profile:v", "high",
-        "-preset:v", fv.ev.encode_preset,
+        *(("-preset:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
         "-g:v", f"{fv.ev.kf_int}",
         "-keyint_min:v", f"{fv.ev.min_kf_int}",
         *(("-sc_threshold:v", "0") if not fv.ev.vgop else ()),
         "-forced-idr:v", "1",
         *(("-x264-params:v", x264_params) if x264_params else ()),
-        *(("-tune", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
-        *(("-pass", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
-        *(("-passlogfile", f"{fv.ev.passfile}") if fv.ev.passfile is not None else ()),
+        *(("-tune:v", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
+        *(("-pass:v", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
+        *(
+            ("-passlogfile:v", f"{fv.ev.passfile}")
+            if fv.ev.passfile is not None
+            else ()
+        ),
 
         "-b:v", f"{fv.ev.vbitrate}",
         "-maxrate:v", f"{fv.ev.max_vbitrate}",
@@ -1550,12 +1592,12 @@ def get_x265_flags(fv: EncodeSession) -> list[str]:
     flags = [
         "-c:v", "libx265",
         "-profile:v", *(("main",) if fv.ev.eightbit else ("main10",)),
-        "-preset:v", fv.ev.encode_preset,
+        *(("-preset:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
         "-g:v", f"{fv.ev.kf_int}",
         "-keyint_min:v", f"{fv.ev.min_kf_int}",
         "-forced-idr:v", "1",
         *(("-x265-params:v", x265_params) if x265_params else ()),
-        *(("-tune", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
+        *(("-tune:v", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
 
         "-tag:v", "hvc1",
         "-b:v", f"{fv.ev.vbitrate}",
@@ -1578,10 +1620,10 @@ def get_libaom_av1_flags(fv: EncodeSession) -> list[str]:
         "-g:v", f"{fv.ev.kf_int}",
         "-keyint_min:v", f"{fv.ev.min_kf_int}",
         *(("-aom-params:v", aom_params) if aom_params else ()),
-        *(("-tune", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
-        *(("-pass", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
-        "-cpu-used", f"{min(fv.ev.ALLOWED_PRESETS.index(fv.ev.encode_preset), 8)}",
-        *(("-usage", "realtime") if fv.ev.realtime else ()),
+        *(("-tune:v", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
+        *(("-pass:v", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
+        *(("-cpu-used:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
+        *(("-usage:v", "realtime") if fv.ev.realtime else ()),
 
         "-b:v", f"{fv.ev.vbitrate}",
         "-maxrate:v", f"{fv.ev.max_vbitrate}",
@@ -1603,9 +1645,9 @@ def get_libsvtav1_flags(fv: EncodeSession) -> list[str]:
         "-g:v", f"{fv.ev.kf_int}",
         "-keyint_min:v", f"{fv.ev.min_kf_int}",
         *(("-svtav1-params:v", svtav1_params) if svtav1_params else ()),
-        "-rc", "cvbr",
+        "-rc:v", "cvbr",
         *(("-sc_detection:v", "0") if not fv.ev.vgop else ()),
-        "-preset", f"{min(fv.ev.ALLOWED_PRESETS.index(fv.ev.encode_preset), 8)}",
+        *(("-preset:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
 
         "-b:v", f"{fv.ev.vbitrate}",
         "-maxrate:v", f"{fv.ev.max_vbitrate}",
@@ -1621,9 +1663,9 @@ def get_libvpx_vp9_flags(fv: EncodeSession) -> list[str]:
         "-c:v", "libvpx-vp9",
         "-g:v", f"{fv.ev.kf_int}",
         "-keyint_min:v", f"{fv.ev.min_kf_int}",
-        *(("-tune", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
-        *(("-pass", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
-        "-cpu-used", f"{min(fv.ev.ALLOWED_PRESETS.index(fv.ev.encode_preset), 8)}",
+        *(("-tune:v", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
+        *(("-pass:v", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
+        *(("-cpu-used:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
 
         "-b:v", f"{fv.ev.vbitrate}",
         "-maxrate:v", f"{fv.ev.max_vbitrate}",
@@ -1761,30 +1803,30 @@ def get_vflags(fv: EncodeSession) -> list[str]:
         logger.debug("Using vbitrate for copy: %s", fv.ev.vbitrate)
         return vflags
     # TODO: match case in 3.10
-    if fv.ev.vencoder == "libx264":
+    if fv.ev.vencoder.name == "libx264":
         vflags = get_x264_flags(fv)
-    elif fv.ev.vencoder == "h264_nvenc":
+    elif fv.ev.vencoder.name == "h264_nvenc":
         vflags = get_nvenc_h264_flags(fv)
-    elif fv.ev.vencoder == "libx265":
+    elif fv.ev.vencoder.name == "libx265":
         vflags = get_x265_flags(fv)
-    elif fv.ev.vencoder == "hevc_nvenc":
+    elif fv.ev.vencoder.name == "hevc_nvenc":
         vflags = get_nvenc_hevc_flags(fv)
-    elif fv.ev.vencoder == "libaom-av1":
+    elif fv.ev.vencoder.name == "libaom-av1":
         vflags = get_libaom_av1_flags(fv)
-    elif fv.ev.vencoder == "libsvtav1":
+    elif fv.ev.vencoder.name == "libsvtav1":
         vflags = get_libsvtav1_flags(fv)
-    elif fv.ev.vencoder == "libvpx-vp9":
+    elif fv.ev.vencoder.name == "libvpx-vp9":
         vflags = get_libvpx_vp9_flags(fv)
     else:
         raise ValueError(
-            f"No valid video encoder parameter selection found: {fv.ev.vencoder!r}"
+            f"No valid video encoder parameter selection found: {fv.ev.vencoder.name!r}"
         )
     return vflags
 
 
 def set_input_flags(fv: EncodeSession) -> None:
     hwaccel_flags = []
-    if fv.ev.hwaccel and fv.ev.vencoder in fv.ev.NVIDIA_ENCODERS:
+    if fv.ev.hwaccel and fv.ev.vencoder.nvidia:
         # fmt: off
         hwaccel_flags = [
             "-hwaccel", "cuda",
