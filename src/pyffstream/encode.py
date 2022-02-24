@@ -411,9 +411,9 @@ class StaticEncodeVars:
 
     H264_ENCODERS: ClassVar[set[str]] = {"h264_nvenc", "libx264"}
     HEVC_ENCODERS: ClassVar[set[str]] = {"hevc_nvenc", "libx265"}
-    AV1_ENCODERS: ClassVar[set[str]] = {"libaom-av1"}
+    AV1_ENCODERS: ClassVar[set[str]] = {"libaom-av1", "libsvtav1"}
     NVIDIA_ENCODERS: ClassVar[set[str]] = {"hevc_nvenc", "h264_nvenc"}
-    SW_ENCODERS: ClassVar[set[str]] = {"libx264", "libx265", "libaom-av1"}
+    SW_ENCODERS: ClassVar[set[str]] = {"libx264", "libx265", "libaom-av1", "libsvtav1"}
     TENBIT_ENCODERS: ClassVar[set[str]] = HEVC_ENCODERS | AV1_ENCODERS
     MULTIPASS_ENCODERS: ClassVar[set[str]] = {"libx264", "libx265", "libaom-av1"}
     VIDEO_ENCODERS: ClassVar[set[str]] = H264_ENCODERS | HEVC_ENCODERS | AV1_ENCODERS
@@ -1568,6 +1568,24 @@ def get_libaom_av1_flags(fv: EncodeSession) -> list[str]:
     return flags
 
 
+def get_libsvtav1_flags(fv: EncodeSession) -> list[str]:
+    # fmt: off
+    flags = [
+        "-c:v", "libsvtav1",
+        "-g:v", f"{fv.ev.kf_int}",
+        "-keyint_min:v", f"{fv.ev.min_kf_int}",
+        "-rc", "cvbr",
+        *(("-sc_detection:v", "0") if not fv.ev.vgop else ()),
+        "-preset", f"{min(fv.ev.ALLOWED_PRESETS.index(fv.ev.encode_preset), 8)}",
+
+        "-b:v", f"{fv.ev.vbitrate}",
+        "-maxrate:v", f"{fv.ev.max_vbitrate}",
+        "-bufsize:v", f"{fv.ev.bufsize}",
+    ]
+    # fmt: on
+    return flags
+
+
 # TODO: enable SEI when nvidia fixes their driver (495 series)
 # TODO: make workaround and encode options dependent on ffmpeg version
 def get_nvenc_hevc_flags(fv: EncodeSession) -> list[str]:
@@ -1706,6 +1724,8 @@ def get_vflags(fv: EncodeSession) -> list[str]:
         return get_nvenc_hevc_flags(fv)
     elif fv.ev.vencoder == "libaom-av1":
         return get_libaom_av1_flags(fv)
+    elif fv.ev.vencoder == "libsvtav1":
+        return get_libsvtav1_flags(fv)
     raise ValueError(
         f"No valid video encoder parameter selection found: {fv.ev.vencoder!r}"
     )
