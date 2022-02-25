@@ -764,7 +764,7 @@ def download_win_ffmpeg(dltype: str = "git") -> bool:
             raise ValueError("Unrecognized download type requested")
         ff_url = ""
         dir_name = ""
-        for ass in assets:
+        for ass in reversed(assets):
             if match := re.fullmatch(download_regex, ass.get("name", "")):
                 dir_name = match.group("dir")
                 ff_url = ass["browser_download_url"]
