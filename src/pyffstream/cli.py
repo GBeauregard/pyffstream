@@ -939,8 +939,7 @@ def get_parserconfig(
             config.env[key] = env_config["env"][key]
 
     if "preset" in parsed_config.sections():
-        preset_conf = parsed_config["preset"]
-        config.preset |= preset_conf
+        config.preset |= parsed_config["preset"]
 
     parser = argparse.ArgumentParser(
         description="CLI frontend for streaming over SRT and RTMP.",
