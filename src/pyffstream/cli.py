@@ -757,9 +757,9 @@ def download_win_ffmpeg(dltype: str = "git") -> bool:
 
         assets = r.json().get("assets", {})
         if dltype == "git":
-            download_regex = r"(?P<dir>ffmpeg-N-.*win64-gpl)\.zip"
+            download_regex = r"(?P<dir>ffmpeg-master-.*win64-gpl)\.zip"
         elif dltype == "stable":
-            download_regex = r"(?P<dir>ffmpeg-[n\d\.]+-.*win64-gpl-[\d\.]+)\.zip"
+            download_regex = r"(?P<dir>ffmpeg-n[\d\.]+-.*win64-gpl-[\d\.]+)\.zip"
         else:
             raise ValueError("Unrecognized download type requested")
         ff_url = ""
