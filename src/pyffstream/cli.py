@@ -1282,7 +1282,9 @@ def get_parserconfig(
     vencoder_group.add_argument(
         "-x", "--x264", help="encode with x264", action="store_true"
     )
-    video_parser.add_argument("--preset", help="preset to use for encoding")
+    video_parser.add_argument(
+        "--preset", type=str.lower, help="preset to use for encoding"
+    )
     video_parser.add_argument(
         "--tune", help="tune parameter to use for supported encoders"
     )
