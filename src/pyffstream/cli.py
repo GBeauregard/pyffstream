@@ -1677,10 +1677,15 @@ def main() -> None:
     ) and not encode.Params.VIDEO_ENCODERS[args.vencoder].multipass:
         parser.error(f"{args.vencoder!r} does not support multipass encoding")
 
-    if args.preset is not None and args.preset not in map(
-        str, encode.Params.VIDEO_ENCODERS[args.vencoder].presets
-    ):
-        parser.error(f"Invalid encoding preset passed for {args.vencoder!r}")
+    if args.preset is not None:
+        presets = list(map(str, encode.Params.VIDEO_ENCODERS[args.vencoder].presets))
+        if not presets:
+            parser.error(f"Encoder {args.vencoder!r} does not support encoding presets")
+        elif args.preset not in presets:
+            parser.error(
+                f"Invalid encoding preset passed for {args.vencoder!r}\n"
+                f"Valid presets: {', '.join(presets)}"
+            )
 
     if args.eightbit and args.vencoder == "hevc_nvenc":
         logger.warning(
