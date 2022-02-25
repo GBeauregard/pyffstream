@@ -388,9 +388,9 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
     json_payload = {
         "vstandard": fv.ev.vstandard,
         "pixfmt": fv.ev.pix_fmt,
-        "astandard": fv.ev.astandard,
-        "sample_rate": fv.ev.samplerate,
-        "chlayout": fv.ev.chlayout,
+        "astandard": fv.ev.astandard if fv.ev.include_audio else "unknown",
+        "sample_rate": fv.ev.samplerate if fv.ev.include_audio else "unknown",
+        "chlayout": fv.ev.chlayout if fv.ev.include_audio else "unknown",
         "framerate": fv.ev.framerate,
         "keyframe_int": fv.ev.kf_int,
         "keyframe_sec": fv.ev.kf_sec,
@@ -551,7 +551,10 @@ def stream_file(fopts: encode.FileOpts, args: argparse.Namespace) -> None:
         fv = encode.EncodeSession(fopts, encode.StaticEncodeVars.from_args(args))
         futures: list[concurrent.futures.Future[Any]] = []
         encode.determine_timeseek(fv)
-        if not fv.ev.copy_audio:
+        if fv.fv("a", "codec_type") != "audio":
+            fv.ev.include_audio = False
+            logger.warning("no audio found, disabling audio")
+        if not fv.ev.copy_audio and fv.ev.include_audio:
             futures.append(fv.executor.submit(encode.determine_afilters, fv))
         if not fv.ev.copy_video:
             futures.append(fv.executor.submit(encode.determine_vfilters, fv))
@@ -1429,6 +1432,12 @@ def get_parserconfig(
     )
     decimate_group.add_argument(
         "--sixtyfps", help="don't halve 60 fps obs input to 30 fps", action="store_true"
+    )
+    audio_parser.add_argument(
+        "--audio",
+        help="attempt to include audio in output (default: %(default)s)",
+        default=True,
+        action=argparse.BooleanOptionalAction,
     )
     audio_parser.add_argument(
         "-n",

@@ -54,6 +54,7 @@ class EncodeSession:
     }
     ASTREAMS: Final = {
         "index",
+        "codec_type",
         "start_time",
         "codec_name",
         "sample_rate",
@@ -142,7 +143,7 @@ class EncodeSession:
         if self.ev.crop:
             self.crop = StatusThread(self, "crop")
             self.statuses.append(self.crop)
-        if self.ev.anormalize:
+        if self.ev.anormalize and self.ev.include_audio:
             self.norm = StatusThread(self, "normalize")
             self.statuses.append(self.norm)
         if self.ev.subs:
@@ -404,6 +405,7 @@ class EncType(enum.Enum):
     SOFTWARE = enum.auto()
     NVIDIA = enum.auto()
     QSV = enum.auto()
+    VAAPI = enum.auto()
 
 
 @dataclasses.dataclass
@@ -517,6 +519,7 @@ class StaticEncodeVars:
     realtime: bool = False
     vstandard: str = "h264"
     astandard: str = "aac"
+    include_audio: bool = True
     protocol: str = "srt"
     # these strings are processed into int by argparse
     vbitrate: str = "6M"
@@ -621,6 +624,7 @@ class StaticEncodeVars:
             evars.astandard = "aac"
         elif evars.aencoder in Params.OPUS_ENCODERS:
             evars.astandard = "opus"
+        evars.include_audio = args.audio
         evars.encode_preset = args.preset
         evars.encode_tune = args.tune
         evars.realtime = args.realtime
@@ -669,6 +673,7 @@ class StaticEncodeVars:
         evars.passfile = args.passfile
         if args.npass in (1, 3):
             evars.outfile = pathlib.Path("-")
+            evars.include_audio = False
         evars.vindex = args.vindex
         evars.aindex = args.aindex
         evars.sindex = args.sindex
@@ -1747,7 +1752,7 @@ def get_nvenc_h264_flags(fv: EncodeSession) -> list[str]:
 
 def get_aflags(fv: EncodeSession) -> list[str]:
     aflags: list[str] = []
-    if fv.ev.npass in (1, 3):
+    if not fv.ev.include_audio:
         return ["-an"]
     if fv.ev.copy_audio:
         fv.ev.astandard = fv.v("a", "codec_name")
@@ -1961,7 +1966,7 @@ def set_filter_flags(fv: EncodeSession) -> None:
             "-map", "[b]",
         ]
         # fmt: on
-    if fv.ev.npass not in (1, 3):
+    if fv.ev.include_audio:
         if fv.ev.copy_audio:
             filter_flags += ["-map", f"0:a:{fv.ev.aindex}?"]
         else:
