@@ -400,6 +400,12 @@ def min_version(
         return args
 
 
+class EncType(enum.Enum):
+    SOFTWARE = enum.auto()
+    NVIDIA = enum.auto()
+    INTEL = enum.auto()
+
+
 @dataclasses.dataclass
 class VEncoder:
     X26X_PRESETS: ClassVar[list[str]] = [
@@ -419,8 +425,7 @@ class VEncoder:
     presets: Iterable[object] = dataclasses.field(default_factory=list)
     default_preset: str | None = None
     tenbit: bool = False
-    software: bool = True
-    nvidia: bool = False
+    type: EncType = EncType.SOFTWARE
     multipass: bool = False
 
 
@@ -437,8 +442,7 @@ class Params:
         "h264_nvenc": VEncoder(
             name="h264_nvenc",
             codec="h264",
-            software=False,
-            nvidia=True,
+            type=EncType.NVIDIA,
         ),
         "libx265": VEncoder(
             name="libx265",
@@ -451,8 +455,7 @@ class Params:
             name="hevc_nvenc",
             codec="hevc",
             tenbit=True,
-            software=False,
-            nvidia=True,
+            type=EncType.NVIDIA,
         ),
         "libaom-av1": VEncoder(
             name="libaom-av1",
@@ -694,7 +697,7 @@ class StaticEncodeVars:
         evars.cleanborders = args.cleanborders
         evars.eightbit = args.eightbit
         evars.pix_fmt = (
-            ("yuv420p10le" if evars.vencoder.software else "p010le")
+            ("yuv420p10le" if evars.vencoder.type is EncType.SOFTWARE else "p010le")
             if evars.vencoder.tenbit and not args.eightbit
             else "yuv420p"
         )
@@ -1478,12 +1481,12 @@ def get_hwtransfer(
         ]
 
     if fv.ev.vulkan and not need_postscale_sw:
-        if fv.ev.vencoder.software:
+        if fv.ev.vencoder.type is EncType.SOFTWARE:
             encode_transfer += [
                 ffmpeg.Filter("hwdownload"),
                 ffmpeg.Filter("format", fv.ev.pix_fmt),
             ]
-        elif fv.ev.vencoder.nvidia:
+        elif fv.ev.vencoder.type is EncType.NVIDIA:
             encode_transfer += [ffmpeg.Filter("hwupload", "derive_device=cuda")]
         else:
             raise ValueError(
@@ -1491,7 +1494,7 @@ def get_hwtransfer(
             )
     else:
         encode_transfer += [ffmpeg.Filter("format", fv.ev.pix_fmt)]
-        if fv.ev.vencoder.nvidia:
+        if fv.ev.vencoder.type is EncType.NVIDIA:
             encode_transfer += [ffmpeg.Filter("hwupload", "derive_device=cuda")]
 
     return prescale_transfer, sw_transfer, encode_transfer
@@ -1825,7 +1828,7 @@ def get_vflags(fv: EncodeSession) -> list[str]:
 
 def set_input_flags(fv: EncodeSession) -> None:
     hwaccel_flags = []
-    if fv.ev.hwaccel and fv.ev.vencoder.nvidia:
+    if fv.ev.hwaccel and fv.ev.vencoder.type is EncType.NVIDIA:
         # fmt: off
         hwaccel_flags = [
             "-hwaccel", "cuda",
