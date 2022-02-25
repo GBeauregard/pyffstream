@@ -386,7 +386,7 @@ def setup_pyffserver_stream(fv: encode.EncodeSession) -> None:
     """Communicate with a pyffserver API to set up encode session."""
     payload = {"key": fv.ev.api_key}
     json_payload = {
-        "vstandard": fv.ev.vencoder.codec,
+        "vstandard": fv.ev.vstandard,
         "pixfmt": fv.ev.pix_fmt,
         "astandard": fv.ev.astandard,
         "sample_rate": fv.ev.samplerate,
