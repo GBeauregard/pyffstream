@@ -403,7 +403,7 @@ def min_version(
 class EncType(enum.Enum):
     SOFTWARE = enum.auto()
     NVIDIA = enum.auto()
-    INTEL = enum.auto()
+    QSV = enum.auto()
 
 
 @dataclasses.dataclass
@@ -699,9 +699,9 @@ class StaticEncodeVars:
         evars.pix_fmt = (
             ("yuv420p10le" if evars.vencoder.type is EncType.SOFTWARE else "p010le")
             if evars.vencoder.tenbit and not args.eightbit
-            else "yuv420p"
+            else ("yuv420p" if evars.vencoder.type is EncType.SOFTWARE else "nv12")
         )
-        evars.eightbit = evars.pix_fmt == "yuv420p"
+        evars.eightbit = evars.pix_fmt in {"yuv420p", "nv12"}
         evars.subfile_provided = args.subfile is not None
         evars.ff_deepprobe_flags = (
             ["-analyzeduration", "100M", "-probesize", "100M"]
