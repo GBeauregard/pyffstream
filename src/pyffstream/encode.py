@@ -1411,6 +1411,7 @@ def determine_scale(fv: EncodeSession) -> None:
             "color_primaries=bt709",
             "color_trc=bt709",
             "range=tv",
+            *(("force_dither=1",) if fv.ev.eightbit else ()),
             *fv.ev.placebo_opts,
             f"format={fv.ev.pix_fmt}",
         ]
