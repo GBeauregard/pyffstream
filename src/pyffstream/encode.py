@@ -420,7 +420,7 @@ def common_bitrate_flags(fv: EncodeSession) -> list[str]:
     # fmt: on
 
 
-def get_x264_flags(fv: EncodeSession) -> list[str]:
+def get_libx264_flags(fv: EncodeSession) -> list[str]:
     x264_params = ":".join(
         [
             "open-gop=0",
@@ -450,7 +450,7 @@ def get_x264_flags(fv: EncodeSession) -> list[str]:
     return flags
 
 
-def get_x265_flags(fv: EncodeSession) -> list[str]:
+def get_libx265_flags(fv: EncodeSession) -> list[str]:
     x265_params = ":".join(
         [
             "open-gop=0",
@@ -554,7 +554,7 @@ def get_libvpx_vp9_flags(fv: EncodeSession) -> list[str]:
 
 # TODO: enable SEI when nvidia fixes their driver (495 series)
 # TODO: make workaround and encode options dependent on ffmpeg version
-def get_nvenc_hevc_flags(fv: EncodeSession) -> list[str]:
+def get_hevc_nvenc_flags(fv: EncodeSession) -> list[str]:
     # fmt: off
     flags = [
         "-c:v", "hevc_nvenc",
@@ -584,7 +584,7 @@ def get_nvenc_hevc_flags(fv: EncodeSession) -> list[str]:
 
 # TODO: enable SEI when nvidia fixes their driver (495 series)
 # TODO: make workaround and encode options dependent on ffmpeg version
-def get_nvenc_h264_flags(fv: EncodeSession) -> list[str]:
+def get_h264_nvenc_flags(fv: EncodeSession) -> list[str]:
     # fmt: off
     flags = [
         "-c:v", "h264_nvenc",
@@ -648,7 +648,7 @@ class Params:
     VIDEO_ENCODERS: ClassVar[dict[str, VEncoder]] = {
         "libx264": VEncoder(
             name="libx264",
-            flag_function=get_x264_flags,
+            flag_function=get_libx264_flags,
             codec="h264",
             presets=VEncoder.X26X_PRESETS,
             default_preset="medium",
@@ -656,13 +656,13 @@ class Params:
         ),
         "h264_nvenc": VEncoder(
             name="h264_nvenc",
-            flag_function=get_nvenc_h264_flags,
+            flag_function=get_h264_nvenc_flags,
             codec="h264",
             type=EncType.NVIDIA,
         ),
         "libx265": VEncoder(
             name="libx265",
-            flag_function=get_x265_flags,
+            flag_function=get_libx265_flags,
             codec="hevc",
             presets=VEncoder.X26X_PRESETS,
             tenbit=True,
@@ -670,7 +670,7 @@ class Params:
         ),
         "hevc_nvenc": VEncoder(
             name="hevc_nvenc",
-            flag_function=get_nvenc_hevc_flags,
+            flag_function=get_hevc_nvenc_flags,
             codec="hevc",
             tenbit=True,
             type=EncType.NVIDIA,
