@@ -472,6 +472,12 @@ class Params:
             presets=range(-1, 14),  # larger faster
             tenbit=True,
         ),
+        "librav1e": VEncoder(
+            name="librav1e",
+            codec="av1",
+            presets=range(-1, 11),  # larger faster
+            tenbit=True,
+        ),
         "libvpx-vp9": VEncoder(
             name="libvpx-vp9",
             codec="vp9",
@@ -1664,6 +1670,28 @@ def get_libsvtav1_flags(fv: EncodeSession) -> list[str]:
     return flags
 
 
+def get_librav1e_flags(fv: EncodeSession) -> list[str]:
+    rav1e_params = ":".join(
+        [
+            *fv.ev.vencoder_params,
+        ]
+    )
+    # fmt: off
+    flags = [
+        "-c:v", "librav1e",
+        "-g:v", f"{fv.ev.kf_int}",
+        "-keyint_min:v", f"{fv.ev.min_kf_int}",
+        *(("-rav1e-params:v", rav1e_params) if rav1e_params else ()),
+        *(("-speed:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
+
+        "-b:v", f"{fv.ev.vbitrate}",
+        "-maxrate:v", f"{fv.ev.max_vbitrate}",
+        "-bufsize:v", f"{fv.ev.bufsize}",
+    ]
+    # fmt: on
+    return flags
+
+
 def get_libvpx_vp9_flags(fv: EncodeSession) -> list[str]:
     # fmt: off
     flags = [
@@ -1822,6 +1850,8 @@ def get_vflags(fv: EncodeSession) -> list[str]:
         vflags = get_libaom_av1_flags(fv)
     elif fv.ev.vencoder.name == "libsvtav1":
         vflags = get_libsvtav1_flags(fv)
+    elif fv.ev.vencoder.name == "librav1e":
+        vflags = get_librav1e_flags(fv)
     elif fv.ev.vencoder.name == "libvpx-vp9":
         vflags = get_libvpx_vp9_flags(fv)
     else:
