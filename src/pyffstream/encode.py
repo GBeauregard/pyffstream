@@ -21,7 +21,7 @@ from collections.abc import (
     MutableSequence,
     Sequence,
 )
-from typing import Any, ClassVar, Final, NamedTuple, TypeVar, cast
+from typing import Any, Callable, ClassVar, Final, NamedTuple, TypeVar, cast
 
 from . import ffmpeg
 
@@ -401,6 +401,217 @@ def min_version(
         return args
 
 
+def common_keyint_flags(fv: EncodeSession) -> list[str]:
+    # fmt: off
+    return [
+        "-g:v", f"{fv.ev.kf_int}",
+        "-keyint_min:v", f"{fv.ev.min_kf_int}",
+    ]
+    # fmt: on
+
+
+def common_bitrate_flags(fv: EncodeSession) -> list[str]:
+    # fmt: off
+    return [
+        "-b:v", f"{fv.ev.vbitrate}",
+        "-maxrate:v", f"{fv.ev.max_vbitrate}",
+        "-bufsize:v", f"{fv.ev.bufsize}",
+    ]
+    # fmt: on
+
+
+def get_x264_flags(fv: EncodeSession) -> list[str]:
+    x264_params = ":".join(
+        [
+            "open-gop=0",
+            *(("scenecut=0",) if not fv.ev.vgop else ()),
+            *fv.ev.vencoder_params,
+        ]
+    )
+    # fmt: off
+    flags = [
+        "-c:v", "libx264",
+        *common_keyint_flags(fv),
+        "-profile:v", "high",
+        *(("-preset:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
+        *(("-sc_threshold:v", "0") if not fv.ev.vgop else ()),
+        "-forced-idr:v", "1",
+        *(("-x264-params:v", x264_params) if x264_params else ()),
+        *(("-tune:v", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
+        *(("-pass:v", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
+        *(
+            ("-passlogfile:v", f"{fv.ev.passfile}")
+            if fv.ev.passfile is not None
+            else ()
+        ),
+        *common_bitrate_flags(fv),
+    ]
+    # fmt: on
+    return flags
+
+
+def get_x265_flags(fv: EncodeSession) -> list[str]:
+    x265_params = ":".join(
+        [
+            "open-gop=0",
+            *(("scenecut=0",) if not fv.ev.vgop else ()),
+            *((f"pass={fv.ev.npass}",) if fv.ev.npass is not None else ()),
+            *(
+                (f"stats={ffmpeg.single_quote(fv.ev.passfile)}",)
+                if fv.ev.passfile is not None
+                else ()
+            ),
+            *fv.ev.vencoder_params,
+        ]
+    )
+    # fmt: off
+    flags = [
+        "-c:v", "libx265",
+        *common_keyint_flags(fv),
+        "-profile:v", *(("main",) if fv.ev.eightbit else ("main10",)),
+        *(("-preset:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
+        "-forced-idr:v", "1",
+        *(("-x265-params:v", x265_params) if x265_params else ()),
+        *(("-tune:v", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
+        "-tag:v", "hvc1",
+        *common_bitrate_flags(fv),
+    ]
+    # fmt: on
+    return flags
+
+
+def get_libaom_av1_flags(fv: EncodeSession) -> list[str]:
+    aom_params = ":".join(
+        [
+            *fv.ev.vencoder_params,
+        ]
+    )
+    # fmt: off
+    flags = [
+        "-c:v", "libaom-av1",
+        *common_keyint_flags(fv),
+        *(("-aom-params:v", aom_params) if aom_params else ()),
+        *(("-tune:v", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
+        *(("-pass:v", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
+        *(("-cpu-used:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
+        *(("-usage:v", "realtime") if fv.ev.realtime else ()),
+        *common_bitrate_flags(fv),
+    ]
+    # fmt: on
+    return flags
+
+
+def get_libsvtav1_flags(fv: EncodeSession) -> list[str]:
+    svtav1_params = ":".join(
+        [
+            *fv.ev.vencoder_params,
+        ]
+    )
+    # fmt: off
+    flags = [
+        "-c:v", "libsvtav1",
+        *common_keyint_flags(fv),
+        *(("-svtav1-params:v", svtav1_params) if svtav1_params else ()),
+        *(("-sc_detection:v", "0") if not fv.ev.vgop else ()),
+        *(("-preset:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
+        *common_bitrate_flags(fv),
+    ]
+    # fmt: on
+    return flags
+
+
+def get_librav1e_flags(fv: EncodeSession) -> list[str]:
+    rav1e_params = ":".join(
+        [
+            *fv.ev.vencoder_params,
+        ]
+    )
+    # fmt: off
+    flags = [
+        "-c:v", "librav1e",
+        *common_keyint_flags(fv),
+        *(("-rav1e-params:v", rav1e_params) if rav1e_params else ()),
+        *(("-speed:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
+        *common_bitrate_flags(fv),
+    ]
+    # fmt: on
+    return flags
+
+
+def get_libvpx_vp9_flags(fv: EncodeSession) -> list[str]:
+    # fmt: off
+    flags = [
+        "-c:v", "libvpx-vp9",
+        *common_keyint_flags(fv),
+        *(("-tune:v", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
+        *(("-pass:v", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
+        *(("-cpu-used:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
+        *common_bitrate_flags(fv),
+    ]
+    # fmt: on
+    return flags
+
+
+# TODO: enable SEI when nvidia fixes their driver (495 series)
+# TODO: make workaround and encode options dependent on ffmpeg version
+def get_nvenc_hevc_flags(fv: EncodeSession) -> list[str]:
+    # fmt: off
+    flags = [
+        "-c:v", "hevc_nvenc",
+        *common_keyint_flags(fv),
+        "-profile:v", *(("main",) if fv.ev.eightbit else ("main10",)),
+        "-threads:v", "3",
+        "-forced-idr:v", "1",
+        *(("-no-scenecut:v", "1") if not fv.ev.vgop else ()),
+        "-spatial-aq:v", "1",
+        "-temporal-aq:v", "1",
+
+        "-preset:v", "p7",
+        "-tune:v", "hq",
+        "-rc:v", "cbr",
+        "-multipass:v", "fullres",
+        "-bf:v", "3",
+        "-b_ref_mode:v", "each",
+        "-rc-lookahead:v", "32",
+        *min_version(("-s12m_tc:v", "0"), ("libavcodec", "59.1.101")),
+        *min_version(("-extra_sei:v", "0"), ("libavcodec", "59.1.101")),
+        "-tag:v", "hvc1",
+        *common_bitrate_flags(fv),
+    ]
+    # fmt: on
+    return flags
+
+
+# TODO: enable SEI when nvidia fixes their driver (495 series)
+# TODO: make workaround and encode options dependent on ffmpeg version
+def get_nvenc_h264_flags(fv: EncodeSession) -> list[str]:
+    # fmt: off
+    flags = [
+        "-c:v", "h264_nvenc",
+        *common_keyint_flags(fv),
+        "-profile:v", "high",
+        "-threads:v", "3",
+        "-forced-idr:v", "1",
+        *(("-no-scenecut:v", "1") if not fv.ev.vgop else ()),
+        "-rc-lookahead:v", "32",
+        "-coder:v", "cabac",
+        "-bf:v", "3",
+        "-b_ref_mode:v", "middle",
+        "-spatial-aq:v", "1",
+        "-temporal-aq:v", "1",
+        # "-strict_gop", "1",
+
+        "-preset:v", "p7",
+        "-tune:v", "hq",
+        "-rc:v", "cbr",
+        "-multipass:v", "fullres",
+        *min_version(("-extra_sei:v", "0"), ("libavcodec", "59.1.101")),
+        *common_bitrate_flags(fv),
+    ]
+    # fmt: on
+    return flags
+
+
 class EncType(enum.Enum):
     SOFTWARE = enum.auto()
     NVIDIA = enum.auto()
@@ -424,6 +635,7 @@ class VEncoder:
     ]
     name: str
     codec: str
+    flag_function: Callable[[EncodeSession], list[str]]
     presets: Iterable[object] = dataclasses.field(default_factory=list)
     default_preset: str | None = None
     tenbit: bool = False
@@ -436,6 +648,7 @@ class Params:
     VIDEO_ENCODERS: ClassVar[dict[str, VEncoder]] = {
         "libx264": VEncoder(
             name="libx264",
+            flag_function=get_x264_flags,
             codec="h264",
             presets=VEncoder.X26X_PRESETS,
             default_preset="medium",
@@ -443,11 +656,13 @@ class Params:
         ),
         "h264_nvenc": VEncoder(
             name="h264_nvenc",
+            flag_function=get_nvenc_h264_flags,
             codec="h264",
             type=EncType.NVIDIA,
         ),
         "libx265": VEncoder(
             name="libx265",
+            flag_function=get_x265_flags,
             codec="hevc",
             presets=VEncoder.X26X_PRESETS,
             tenbit=True,
@@ -455,12 +670,14 @@ class Params:
         ),
         "hevc_nvenc": VEncoder(
             name="hevc_nvenc",
+            flag_function=get_nvenc_hevc_flags,
             codec="hevc",
             tenbit=True,
             type=EncType.NVIDIA,
         ),
         "libaom-av1": VEncoder(
             name="libaom-av1",
+            flag_function=get_libaom_av1_flags,
             codec="av1",
             presets=range(9),  # larger faster
             tenbit=True,
@@ -468,18 +685,21 @@ class Params:
         ),
         "libsvtav1": VEncoder(
             name="libsvtav1",
+            flag_function=get_libsvtav1_flags,
             codec="av1",
             presets=range(-1, 14),  # larger faster
             tenbit=True,
         ),
         "librav1e": VEncoder(
             name="librav1e",
+            flag_function=get_librav1e_flags,
             codec="av1",
             presets=range(-1, 11),  # larger faster
             tenbit=True,
         ),
         "libvpx-vp9": VEncoder(
             name="libvpx-vp9",
+            flag_function=get_libvpx_vp9_flags,
             codec="vp9",
             presets=range(-8, 9),  # larger faster
             tenbit=True,
@@ -1554,217 +1774,6 @@ def determine_vfilters(fv: EncodeSession) -> None:
     logger.info("Determined vfilters:\n%r", fv.ev.filter_complex)
 
 
-def common_keyint_flags(fv: EncodeSession) -> list[str]:
-    # fmt: off
-    return [
-        "-g:v", f"{fv.ev.kf_int}",
-        "-keyint_min:v", f"{fv.ev.min_kf_int}",
-    ]
-    # fmt: on
-
-
-def common_bitrate_flags(fv: EncodeSession) -> list[str]:
-    # fmt: off
-    return [
-        "-b:v", f"{fv.ev.vbitrate}",
-        "-maxrate:v", f"{fv.ev.max_vbitrate}",
-        "-bufsize:v", f"{fv.ev.bufsize}",
-    ]
-    # fmt: on
-
-
-def get_x264_flags(fv: EncodeSession) -> list[str]:
-    x264_params = ":".join(
-        [
-            "open-gop=0",
-            *(("scenecut=0",) if not fv.ev.vgop else ()),
-            *fv.ev.vencoder_params,
-        ]
-    )
-    # fmt: off
-    flags = [
-        "-c:v", "libx264",
-        *common_keyint_flags(fv),
-        "-profile:v", "high",
-        *(("-preset:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
-        *(("-sc_threshold:v", "0") if not fv.ev.vgop else ()),
-        "-forced-idr:v", "1",
-        *(("-x264-params:v", x264_params) if x264_params else ()),
-        *(("-tune:v", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
-        *(("-pass:v", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
-        *(
-            ("-passlogfile:v", f"{fv.ev.passfile}")
-            if fv.ev.passfile is not None
-            else ()
-        ),
-        *common_bitrate_flags(fv),
-    ]
-    # fmt: on
-    return flags
-
-
-def get_x265_flags(fv: EncodeSession) -> list[str]:
-    x265_params = ":".join(
-        [
-            "open-gop=0",
-            *(("scenecut=0",) if not fv.ev.vgop else ()),
-            *((f"pass={fv.ev.npass}",) if fv.ev.npass is not None else ()),
-            *(
-                (f"stats={ffmpeg.single_quote(fv.ev.passfile)}",)
-                if fv.ev.passfile is not None
-                else ()
-            ),
-            *fv.ev.vencoder_params,
-        ]
-    )
-    # fmt: off
-    flags = [
-        "-c:v", "libx265",
-        *common_keyint_flags(fv),
-        "-profile:v", *(("main",) if fv.ev.eightbit else ("main10",)),
-        *(("-preset:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
-        "-forced-idr:v", "1",
-        *(("-x265-params:v", x265_params) if x265_params else ()),
-        *(("-tune:v", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
-        "-tag:v", "hvc1",
-        *common_bitrate_flags(fv),
-    ]
-    # fmt: on
-    return flags
-
-
-def get_libaom_av1_flags(fv: EncodeSession) -> list[str]:
-    aom_params = ":".join(
-        [
-            *fv.ev.vencoder_params,
-        ]
-    )
-    # fmt: off
-    flags = [
-        "-c:v", "libaom-av1",
-        *common_keyint_flags(fv),
-        *(("-aom-params:v", aom_params) if aom_params else ()),
-        *(("-tune:v", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
-        *(("-pass:v", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
-        *(("-cpu-used:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
-        *(("-usage:v", "realtime") if fv.ev.realtime else ()),
-        *common_bitrate_flags(fv),
-    ]
-    # fmt: on
-    return flags
-
-
-def get_libsvtav1_flags(fv: EncodeSession) -> list[str]:
-    svtav1_params = ":".join(
-        [
-            *fv.ev.vencoder_params,
-        ]
-    )
-    # fmt: off
-    flags = [
-        "-c:v", "libsvtav1",
-        *common_keyint_flags(fv),
-        *(("-svtav1-params:v", svtav1_params) if svtav1_params else ()),
-        *(("-sc_detection:v", "0") if not fv.ev.vgop else ()),
-        *(("-preset:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
-        *common_bitrate_flags(fv),
-    ]
-    # fmt: on
-    return flags
-
-
-def get_librav1e_flags(fv: EncodeSession) -> list[str]:
-    rav1e_params = ":".join(
-        [
-            *fv.ev.vencoder_params,
-        ]
-    )
-    # fmt: off
-    flags = [
-        "-c:v", "librav1e",
-        *common_keyint_flags(fv),
-        *(("-rav1e-params:v", rav1e_params) if rav1e_params else ()),
-        *(("-speed:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
-        *common_bitrate_flags(fv),
-    ]
-    # fmt: on
-    return flags
-
-
-def get_libvpx_vp9_flags(fv: EncodeSession) -> list[str]:
-    # fmt: off
-    flags = [
-        "-c:v", "libvpx-vp9",
-        *common_keyint_flags(fv),
-        *(("-tune:v", f"{fv.ev.encode_tune}") if fv.ev.encode_tune is not None else ()),
-        *(("-pass:v", f"{fv.ev.npass}") if fv.ev.npass is not None else ()),
-        *(("-cpu-used:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
-        *common_bitrate_flags(fv),
-    ]
-    # fmt: on
-    return flags
-
-
-# TODO: enable SEI when nvidia fixes their driver (495 series)
-# TODO: make workaround and encode options dependent on ffmpeg version
-def get_nvenc_hevc_flags(fv: EncodeSession) -> list[str]:
-    # fmt: off
-    flags = [
-        "-c:v", "hevc_nvenc",
-        *common_keyint_flags(fv),
-        "-profile:v", *(("main",) if fv.ev.eightbit else ("main10",)),
-        "-threads:v", "3",
-        "-forced-idr:v", "1",
-        *(("-no-scenecut:v", "1") if not fv.ev.vgop else ()),
-        "-spatial-aq:v", "1",
-        "-temporal-aq:v", "1",
-
-        "-preset:v", "p7",
-        "-tune:v", "hq",
-        "-rc:v", "cbr",
-        "-multipass:v", "fullres",
-        "-bf:v", "3",
-        "-b_ref_mode:v", "each",
-        "-rc-lookahead:v", "32",
-        *min_version(("-s12m_tc:v", "0"), ("libavcodec", "59.1.101")),
-        *min_version(("-extra_sei:v", "0"), ("libavcodec", "59.1.101")),
-        "-tag:v", "hvc1",
-        *common_bitrate_flags(fv),
-    ]
-    # fmt: on
-    return flags
-
-
-# TODO: enable SEI when nvidia fixes their driver (495 series)
-# TODO: make workaround and encode options dependent on ffmpeg version
-def get_nvenc_h264_flags(fv: EncodeSession) -> list[str]:
-    # fmt: off
-    flags = [
-        "-c:v", "h264_nvenc",
-        *common_keyint_flags(fv),
-        "-profile:v", "high",
-        "-threads:v", "3",
-        "-forced-idr:v", "1",
-        *(("-no-scenecut:v", "1") if not fv.ev.vgop else ()),
-        "-rc-lookahead:v", "32",
-        "-coder:v", "cabac",
-        "-bf:v", "3",
-        "-b_ref_mode:v", "middle",
-        "-spatial-aq:v", "1",
-        "-temporal-aq:v", "1",
-        # "-strict_gop", "1",
-
-        "-preset:v", "p7",
-        "-tune:v", "hq",
-        "-rc:v", "cbr",
-        "-multipass:v", "fullres",
-        *min_version(("-extra_sei:v", "0"), ("libavcodec", "59.1.101")),
-        *common_bitrate_flags(fv),
-    ]
-    # fmt: on
-    return flags
-
-
 def get_aflags(fv: EncodeSession) -> list[str]:
     aflags: list[str] = []
     if not fv.ev.include_audio:
@@ -1824,28 +1833,7 @@ def get_vflags(fv: EncodeSession) -> list[str]:
         vflags += ["-c:v", "copy"]
         logger.debug("Using vbitrate for copy: %s", fv.ev.vbitrate)
         return vflags
-    # TODO: match case in 3.10
-    if fv.ev.vencoder.name == "libx264":
-        vflags = get_x264_flags(fv)
-    elif fv.ev.vencoder.name == "h264_nvenc":
-        vflags = get_nvenc_h264_flags(fv)
-    elif fv.ev.vencoder.name == "libx265":
-        vflags = get_x265_flags(fv)
-    elif fv.ev.vencoder.name == "hevc_nvenc":
-        vflags = get_nvenc_hevc_flags(fv)
-    elif fv.ev.vencoder.name == "libaom-av1":
-        vflags = get_libaom_av1_flags(fv)
-    elif fv.ev.vencoder.name == "libsvtav1":
-        vflags = get_libsvtav1_flags(fv)
-    elif fv.ev.vencoder.name == "librav1e":
-        vflags = get_librav1e_flags(fv)
-    elif fv.ev.vencoder.name == "libvpx-vp9":
-        vflags = get_libvpx_vp9_flags(fv)
-    else:
-        raise ValueError(
-            f"No valid video encoder parameter selection found: {fv.ev.vencoder.name!r}"
-        )
-    return vflags
+    return fv.ev.vencoder.flag_function(fv)
 
 
 def set_input_flags(fv: EncodeSession) -> None:
