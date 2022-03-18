@@ -401,6 +401,17 @@ def min_version(
         return args
 
 
+def max_version(
+    args: str | Sequence[str], version: tuple[str, str | ffmpeg.FFVersion]
+) -> Sequence[str] | tuple[()]:
+    if ffmpeg.ff_bin.version[version[0]] >= version[1]:
+        return ()
+    if isinstance(args, str):
+        return (args,)
+    else:
+        return args
+
+
 def common_keyint_flags(fv: EncodeSession) -> list[str]:
     # fmt: off
     return [
@@ -1134,7 +1145,8 @@ def determine_afilters(fv: EncodeSession) -> None:
         fv.filts["adownmix"] = [
             "aresample",
             *(("resampler=soxr",) if fv.ev.soxr else ()),
-            f"ocl={fv.ev.chlayout}",
+            *max_version((f"ocl={fv.ev.chlayout}",), ("libavutil", "57.24.101")),
+            *min_version((f"ochl={fv.ev.chlayout}",), ("libavutil", "57.24.101")),
         ]
     futures: list[concurrent.futures.Future[Any]] = []
     if fv.ev.anormalize:
