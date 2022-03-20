@@ -1594,7 +1594,7 @@ def main() -> None:
             raise SystemExit(1)
 
     required_args = [args.files, args.obs, args.write]
-    if sum(bool(i) for i in required_args) != 1:
+    if sum(bool(i) for i in required_args) != 1:  # pyright: ignore
         if args.write:
             parser.error(
                 "--write cannot be used with an output argument or other action"
