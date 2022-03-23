@@ -1040,6 +1040,7 @@ def get_parserconfig(
         metavar="BITRATE",
     )
     video_parser.add_argument(
+        "-M",
         "--max-vbitrate",
         type=ffmpeg_number_int,
         help="max encoding video bitrate (ffmpeg num) (default: vbitrate)",
