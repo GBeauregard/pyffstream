@@ -579,7 +579,7 @@ def get_hevc_nvenc_flags(fv: EncodeSession) -> list[str]:
 
         "-preset:v", "p7",
         "-tune:v", "hq",
-        "-rc:v", "cbr",
+        "-rc:v", "cbr" if fv.ev.vbitrate == fv.ev.max_vbitrate else "vbr",
         "-multipass:v", "fullres",
         "-bf:v", "3",
         "-b_ref_mode:v", "each",
@@ -614,7 +614,7 @@ def get_h264_nvenc_flags(fv: EncodeSession) -> list[str]:
 
         "-preset:v", "p7",
         "-tune:v", "hq",
-        "-rc:v", "cbr",
+        "-rc:v", "cbr" if fv.ev.vbitrate == fv.ev.max_vbitrate else "vbr",
         "-multipass:v", "fullres",
         *min_version(("-extra_sei:v", "0"), ("libavcodec", "59.1.101")),
         *common_bitrate_flags(fv),
