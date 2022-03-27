@@ -425,7 +425,11 @@ def common_bitrate_flags(fv: EncodeSession) -> list[str]:
     # fmt: off
     return [
         "-b:v", f"{fv.ev.vbitrate}",
-        "-maxrate:v", f"{fv.ev.max_vbitrate}",
+        *(
+            ("-maxrate:v", f"{fv.ev.max_vbitrate}")
+            if fv.ev.rc_mode == "vbr"
+            else ("-maxrate:v", f"{fv.ev.vbitrate}")
+        ),
         "-bufsize:v", f"{fv.ev.bufsize}",
     ]
     # fmt: on
@@ -579,7 +583,7 @@ def get_hevc_nvenc_flags(fv: EncodeSession) -> list[str]:
 
         "-preset:v", "p7",
         "-tune:v", "hq",
-        "-rc:v", "cbr" if fv.ev.vbitrate == fv.ev.max_vbitrate else "vbr",
+        "-rc:v", "cbr" if fv.ev.rc_mode == "cbr" else "vbr",
         "-multipass:v", "fullres",
         "-bf:v", "3",
         "-b_ref_mode:v", "each",
@@ -614,7 +618,7 @@ def get_h264_nvenc_flags(fv: EncodeSession) -> list[str]:
 
         "-preset:v", "p7",
         "-tune:v", "hq",
-        "-rc:v", "cbr" if fv.ev.vbitrate == fv.ev.max_vbitrate else "vbr",
+        "-rc:v", "cbr" if fv.ev.rc_mode == "cbr" else "vbr",
         "-multipass:v", "fullres",
         *min_version(("-extra_sei:v", "0"), ("libavcodec", "59.1.101")),
         *common_bitrate_flags(fv),
@@ -760,7 +764,8 @@ class StaticEncodeVars:
     protocol: str = "srt"
     # these strings are processed into int by argparse
     vbitrate: str = "6M"
-    max_vbitrate: str = "6M"
+    max_vbitrate: str = "0"
+    rc_mode: str = "cbr"
     abitrate: str = "256k"
     chlayout: str = "stereo"
     start_delay: str = "30"
@@ -928,9 +933,8 @@ class StaticEncodeVars:
         evars.clip_length = args.cliplength
         evars.verbosity = args.verbose
         evars.vbitrate = str(args.vbitrate)
-        evars.max_vbitrate = (
-            str(args.max_vbitrate) if args.max_vbitrate else evars.vbitrate
-        )
+        evars.max_vbitrate = str(args.max_vbitrate)
+        evars.rc_mode = "cbr" if args.max_vbitrate == 0 else "vbr"
         evars.abitrate = str(int(args.abitrate))
         evars.shader_list = args.shaders
         evars.chlayout = "stereo" if not args.mono else "mono"

@@ -670,6 +670,7 @@ class DefaultConfig:
     pyffserver: bool = ENCODE_DEFAULTS.pyffserver
     protocol: str = ENCODE_DEFAULTS.protocol
     vbitrate: str = ENCODE_DEFAULTS.vbitrate
+    max_vbitrate: str = ENCODE_DEFAULTS.max_vbitrate
     abitrate: str = ENCODE_DEFAULTS.abitrate
     aencoder: str = ENCODE_DEFAULTS.aencoder
     vencoder: str = ENCODE_DEFAULTS.vencoder.name
@@ -912,6 +913,7 @@ def get_parserconfig(
         config.pyffserver = main_conf.getboolean("pyffserver", config.pyffserver)
         config.protocol = main_conf.get("protocol", config.protocol)
         config.vbitrate = main_conf.get("vbitrate", config.vbitrate)
+        config.max_vbitrate = main_conf.get("max_vbitrate", config.max_vbitrate)
         config.abitrate = main_conf.get("abitrate", config.abitrate)
         config.aencoder = main_conf.get("aencoder", config.aencoder)
         config.vencoder = main_conf.get("vencoder", config.vencoder)
@@ -1044,6 +1046,7 @@ def get_parserconfig(
         "--max-vbitrate",
         type=ffmpeg_number_int,
         help="max encoding video bitrate (ffmpeg num) (default: vbitrate)",
+        default=config.max_vbitrate,
         metavar="BITRATE",
     )
     audio_parser.add_argument(
@@ -1672,7 +1675,7 @@ def main() -> None:
     if args.preset is None:
         args.preset = config.preset[args.vencoder]
 
-    if args.max_vbitrate is not None and args.vbitrate > args.max_vbitrate:
+    if args.max_vbitrate != 0 and args.vbitrate > args.max_vbitrate:
         parser.error("maximum video bitrate must not be less than video bitrate")
 
     if args.startdelay and (args.copy_video or args.copy_audio):
@@ -1783,6 +1786,7 @@ def main() -> None:
             ConfName("pyffserver", "pyffserver"),
             ConfName("protocol", "protocol"),
             ConfName("vbitrate", "vbitrate"),
+            ConfName("max_vbitrate", "max_vbitrate"),
             ConfName("abitrate", "abitrate"),
             ConfName("aencoder", "aencoder"),
             ConfName("vencoder", "vencoder"),
