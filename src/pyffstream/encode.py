@@ -519,6 +519,7 @@ def get_libaom_av1_flags(fv: EncodeSession) -> list[str]:
 def get_libsvtav1_flags(fv: EncodeSession) -> list[str]:
     svtav1_params = ":".join(
         [
+            *(("scd=0",) if not fv.ev.vgop else ()),
             *fv.ev.vencoder_params,
         ]
     )
@@ -527,7 +528,6 @@ def get_libsvtav1_flags(fv: EncodeSession) -> list[str]:
         "-c:v", "libsvtav1",
         *common_keyint_flags(fv),
         *(("-svtav1-params:v", svtav1_params) if svtav1_params else ()),
-        *(("-sc_detection:v", "0") if not fv.ev.vgop else ()),
         *(("-preset:v", fv.ev.encode_preset) if fv.ev.encode_preset else ()),
         *common_bitrate_flags(fv),
     ]
