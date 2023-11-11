@@ -599,6 +599,35 @@ def get_hevc_nvenc_flags(fv: EncodeSession) -> list[str]:
 
 # TODO: enable SEI when nvidia fixes their driver (495 series)
 # TODO: make workaround and encode options dependent on ffmpeg version
+def get_av1_nvenc_flags(fv: EncodeSession) -> list[str]:
+    # fmt: off
+    flags = [
+        "-c:v", "av1_nvenc",
+        *common_keyint_flags(fv),
+        "-highbitdepth:v", *(("0",) if fv.ev.eightbit else ("1",)),
+        "-threads:v", "3",
+        "-forced-idr:v", "1",
+        *(("-no-scenecut:v", "1") if not fv.ev.vgop else ()),
+        "-spatial-aq:v", "1",
+        "-temporal-aq:v", "1",
+
+        "-preset:v", "p7",
+        "-tune:v", "hq",
+        "-rc:v", "cbr" if fv.ev.rc_mode == "cbr" else "vbr",
+        "-multipass:v", "fullres",
+        "-bf:v", "3",
+        "-b_ref_mode:v", "each",
+        "-rc-lookahead:v", "32",
+        *min_version(("-s12m_tc:v", "0"), ("libavcodec", "59.1.101")),
+        *min_version(("-extra_sei:v", "0"), ("libavcodec", "59.1.101")),
+        *common_bitrate_flags(fv),
+    ]
+    # fmt: on
+    return flags
+
+
+# TODO: enable SEI when nvidia fixes their driver (495 series)
+# TODO: make workaround and encode options dependent on ffmpeg version
 def get_h264_nvenc_flags(fv: EncodeSession) -> list[str]:
     # fmt: off
     flags = [
@@ -687,6 +716,13 @@ class Params:
             name="hevc_nvenc",
             flag_function=get_hevc_nvenc_flags,
             codec="hevc",
+            tenbit=True,
+            type=EncType.NVIDIA,
+        ),
+        "av1_nvenc": VEncoder(
+            name="av1_nvenc",
+            flag_function=get_av1_nvenc_flags,
+            codec="av1",
             tenbit=True,
             type=EncType.NVIDIA,
         ),
