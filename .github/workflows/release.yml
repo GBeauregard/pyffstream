@@ -92,4 +92,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ steps.tag_name.outputs.val }}
-        run: gh release upload "$TAG_NAME" pyffstream.exe
+        run: gh release upload "$TAG_NAME" build\\pyffstream.exe
