@@ -789,7 +789,9 @@ class StaticEncodeVars:
     bound_h: str = "1080"
     kf_target_sec: float = 5.0
     clip_length: str | None = None
-    vencoder: VEncoder = Params.VIDEO_ENCODERS["libx264"]
+    vencoder: VEncoder = dataclasses.field(
+        default_factory=lambda: Params.VIDEO_ENCODERS["libx264"]
+    )
     aencoder: str = "aac"
     encode_preset: str | None = None
     encode_tune: str | None = None
