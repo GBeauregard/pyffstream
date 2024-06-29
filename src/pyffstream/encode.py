@@ -1898,13 +1898,15 @@ def set_input_flags(fv: EncodeSession) -> None:
             "-hwaccel", "cuda",
             "-init_hw_device", "cuda=cud",
             "-hwaccel_device", "cud",
-            "-filter_hw_device", "cud",
+            *(("-filter_hw_device", "cud") if not fv.ev.vulkan else ()),
         ]
         # fmt: on
     elif fv.ev.hwaccel:
         hwaccel_flags = ["-hwaccel", "auto"]
     if fv.ev.vulkan and "vulkan" in ffmpeg.ff_bin.hwaccels:
         device_str = "" if fv.ev.vulkan_device == -1 else f":{fv.ev.vulkan_device}"
+        if fv.ev.vencoder.type is EncType.NVIDIA:
+            device_str += ",disable_multiplane=1"
         hwaccel_flags += ["-init_hw_device", f"vulkan=vulk{device_str}"]
     input_flags = [
         *fv.ev.ffprogress.flags(0.25),
